@@ -11,8 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('receipt_items', function (Blueprint $table) {
+        Schema::create('premium_products', function (Blueprint $table) {
             $table->id();
+            $table->string('item_code')->unique();
+            $table->string('name');
+            $table->text('description')->nullable();
+            $table->string('category')->nullable();
             $table->timestamps();
         });
     }
@@ -22,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('receipt_items');
+        Schema::dropIfExists('premium_products');
     }
 };

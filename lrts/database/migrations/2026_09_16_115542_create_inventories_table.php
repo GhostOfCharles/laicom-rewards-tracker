@@ -11,8 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('earned_rewards', function (Blueprint $table) {
+        Schema::create('inventories', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('premium_product_id')->constrained('premium_products')->onDelete('cascade');
+            $table->integer('stock_balance')->default(0);
+            $table->integer('reserved_stock')->default(0);
             $table->timestamps();
         });
     }
@@ -22,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('earned_rewards');
+        Schema::dropIfExists('inventories');
     }
 };
