@@ -27,26 +27,27 @@ class PremiumProductController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+  public function store(Request $request)
     {
-        // 1. Validate the incoming data
+        // 1. Validate the incoming data (Now includes initial_stock)
         $request->validate([
             'name' => 'required|string|max:255',
             'item_code' => 'required|string|unique:premium_products,item_code',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Max 2MB
+            'initial_stock' => 'required|integer|min:0', 
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         // 2. Handle the file upload
         $imagePath = null;
         if ($request->hasFile('image')) {
-            // Stores the file in storage/app/public/products and returns the path
             $imagePath = $request->file('image')->store('products', 'public');
         }
 
-        // 3. Save to the Premium Products table
+        // 3. Save to the Premium Products table (Now includes stock mapping)
         PremiumProduct::create([
             'name' => $request->name,
             'item_code' => $request->item_code,
+            'stock' => $request->initial_stock, 
             'image_path' => $imagePath,
         ]);
 
