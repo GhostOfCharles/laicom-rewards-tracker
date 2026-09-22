@@ -4,7 +4,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class PremiumProduct extends Model
 {
-    protected $fillable = ['item_code', 'name', 'description', 'category'];
+    protected $fillable = ['item_code', 'name', 'description', 'category', 'image_path'];
 
     public function inventory() {
         return $this->hasOne(Inventory::class);

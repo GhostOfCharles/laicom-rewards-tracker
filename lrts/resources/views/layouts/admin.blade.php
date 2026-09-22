@@ -23,13 +23,13 @@
                         <a class="nav-link text-dark active border" href="{{ route('admin.dashboard') }}">PREMIUM PRODUCTS & PROMOTIONS</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-dark border" href="#">INVENTORY</a>
+                        <a class="nav-link text-dark border" href="{{ route('admin.inventory') }}">INVENTORY</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-dark border" href="#">REPORTS</a>
+                        <a class="nav-link text-dark border" href="{{ route('admin.reports') }}">REPORTS</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-dark border" href="#">RECEIPTS</a>
+                        <a class="nav-link text-dark border" href="{{ route('admin.receipts') }}">RECEIPTS</a>
                     </li>
                 </ul>
             </div>
