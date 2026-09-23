@@ -11,6 +11,13 @@
     </div>
     
     <div class="border border-dark border-2 p-2">
+        @if(session('success'))
+            <div class="alert alert-success py-2 fw-bold small rounded-0">{{ session('success') }}</div>
+        @endif
+        @if($errors->any())
+            <div class="alert alert-danger py-2 fw-bold small rounded-0">{{ $errors->first() }}</div>
+        @endif
+
         <table class="table table-borderless mb-0">
             <tbody>
                 @forelse($receipts as $receipt)
@@ -20,7 +27,6 @@
                         <div class="small fw-bold mt-1">CUSTOMER: {{ $receipt->user->name ?? 'Unknown' }}</div>
                         <div class="small fw-bold">DATE SUBMITTED: {{ \Carbon\Carbon::parse($receipt->submitted_at)->format('m/d/Y') }}</div>
                         <div class="mt-3">
-                            <!-- Notice the dynamic ID target combining the string with the receipt ID -->
                             <button class="btn btn-sm btn-outline-dark rounded-0 fw-bold me-2" data-bs-toggle="modal" data-bs-target="#viewProductsModal{{ $receipt->id }}">VIEW PRODUCTS</button>
                             <button class="btn btn-sm btn-outline-dark rounded-0 fw-bold" data-bs-toggle="modal" data-bs-target="#viewRewardsModal{{ $receipt->id }}">VIEW CLAIMABLE REWARDS</button>
                         </div>
@@ -28,8 +34,14 @@
                     <td class="text-end align-middle pb-3" style="width: 150px;">
                         <div class="badge bg-warning text-dark border border-dark rounded-0 w-100 py-2 mb-2">STATUS: {{ strtoupper($receipt->status) }}</div>
                         @if($receipt->status === 'pending')
-                            <button class="btn btn-sm btn-success rounded-0 w-100 mb-1 fw-bold">APPROVE</button>
-                            <button class="btn btn-sm btn-danger rounded-0 w-100 fw-bold">REJECT</button>
+                            <form action="{{ route('admin.receipts.approve', $receipt->id) }}" method="POST" class="mb-1">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-success rounded-0 w-100 fw-bold">APPROVE</button>
+                            </form>
+                            <form action="{{ route('admin.receipts.reject', $receipt->id) }}" method="POST">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-danger rounded-0 w-100 fw-bold">REJECT</button>
+                            </form>
                         @endif
                     </td>
                 </tr>

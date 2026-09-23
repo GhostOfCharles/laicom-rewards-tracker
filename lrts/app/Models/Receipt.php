@@ -13,4 +13,8 @@ class Receipt extends Model
     public function items() {
         return $this->hasMany(ReceiptItem::class);
     }
+
+    public function earnedRewards() {
+        return $this->hasMany(EarnedReward::class);
+    }
 }

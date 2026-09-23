@@ -5,7 +5,17 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\PremiumProductController;
 use App\Http\Controllers\Admin\PromotionController;
 use App\Http\Controllers\Admin\ClaimController;
+use App\Http\Controllers\Admin\InventoryController;
 use App\Http\Controllers\Auth\WebAuthController;
+use App\Http\Controllers\CustomerController;
+
+// Protected Customer Routes
+Route::middleware(['auth'])->group(function () {
+    Route::get('/dashboard', [CustomerController::class, 'index'])->name('customer.dashboard');
+
+    // Handle order form submission
+    Route::post('/dashboard/submit-order', [CustomerController::class, 'submitOrder'])->name('customer.submit_order');
+});
 
 // 1. The main Entry Portal (Wireframe 1)
 Route::get('/', function () {
@@ -34,18 +44,23 @@ Route::post('/logout', [WebAuthController::class, 'logout'])->name('logout');
 Route::prefix('admin')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
 
-    // Inventory UI preview route
-    Route::get('/inventory', function () {
-        return view('admin.inventory');
-    })->name('admin.inventory');
+    // Inventory — explicit routes so sidebar link (admin.inventory) keeps working
+    Route::get('/inventory', [InventoryController::class, 'index'])->name('admin.inventory');
+    Route::post('/inventory', [InventoryController::class, 'store'])->name('admin.inventory.store');
+    Route::put('/inventory/{id}', [InventoryController::class, 'update'])->name('admin.inventory.update');
+    Route::delete('/inventory/{id}', [InventoryController::class, 'destroy'])->name('admin.inventory.destroy');
 
-    // Reports UI preview route
+    // Reports (still static — placeholder for now)
     Route::get('/reports', function () {
         return view('admin.reports');
     })->name('admin.reports');
 
     // Receipts — reads from DB via ClaimController
     Route::get('/receipts', [ClaimController::class, 'index'])->name('admin.receipts');
+
+    // Approve / Reject actions
+    Route::post('/receipts/{id}/approve', [ClaimController::class, 'approve'])->name('admin.receipts.approve');
+    Route::post('/receipts/{id}/reject', [ClaimController::class, 'reject'])->name('admin.receipts.reject');
 
     Route::resource('products', PremiumProductController::class);
     Route::resource('promotions', PromotionController::class);

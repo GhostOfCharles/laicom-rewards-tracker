@@ -38,7 +38,8 @@ class WebAuthController extends Controller
 
         Auth::login($user);
 
-        return redirect()->intended('/dashboard'); // Temporary route or customer page
+        // Customers land on their own dashboard
+        return redirect()->route('customer.dashboard');
     }
 
     // Handle Login for both Customer and Admin
@@ -57,7 +58,8 @@ class WebAuthController extends Controller
                 return redirect()->route('admin.dashboard');
             }
 
-            return redirect()->intended('/admin/receipts'); // Or customer landing page view later
+            // Customers land on their own dashboard
+            return redirect()->route('customer.dashboard');
         }
 
         return back()->withErrors([

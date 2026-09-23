@@ -8,80 +8,73 @@ use Illuminate\Http\Request;
 
 class PremiumProductController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
         //
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
         //
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-  public function store(Request $request)
+    public function store(Request $request)
     {
-        // 1. Validate the incoming data (Now includes initial_stock)
         $request->validate([
             'name' => 'required|string|max:255',
             'item_code' => 'required|string|unique:premium_products,item_code',
-            'initial_stock' => 'required|integer|min:0', 
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
-        // 2. Handle the file upload
         $imagePath = null;
         if ($request->hasFile('image')) {
             $imagePath = $request->file('image')->store('products', 'public');
         }
 
-        // 3. Save to the Premium Products table (Now includes stock mapping)
         PremiumProduct::create([
             'name' => $request->name,
             'item_code' => $request->item_code,
-            'stock' => $request->initial_stock, 
             'image_path' => $imagePath,
+            'stock' => $request->initial_stock ?? 0,
         ]);
 
-        // 4. Redirect back with a success message
         return redirect()->route('admin.dashboard')->with('success', 'Premium product added successfully!');
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(string $id)
     {
         //
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
     public function edit(string $id)
     {
         //
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, string $id)
     {
-        //
+        $product = PremiumProduct::findOrFail($id);
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'stock' => 'required|integer|min:0',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        $imagePath = $product->image_path;
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image')->store('products', 'public');
+        }
+
+        $product->update([
+            'name' => $request->name,
+            'stock' => $request->stock,
+            'image_path' => $imagePath,
+        ]);
+
+        return redirect()->route('admin.dashboard')->with('success', 'Premium product updated successfully.');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(string $id)
     {
         //
