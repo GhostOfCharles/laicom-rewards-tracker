@@ -13,4 +13,8 @@ class PremiumProduct extends Model
     public function promotions() {
         return $this->hasMany(Promotion::class);
     }
+
+    public function earnedRewards() {
+        return $this->hasMany(EarnedReward::class);
+    }
 }

@@ -16,8 +16,8 @@
         <button class="btn btn-sm btn-outline-dark" data-bs-toggle="modal" data-bs-target="#addInventoryModal" title="Add Inventory Item"><i class="bi bi-plus-lg"></i></button>
     </div>
 
-    <div class="table-responsive border border-dark border-2 p-1">
-        <table class="table table-bordered mb-0 text-center align-middle">
+    <div class="table-responsive laicom-card p-1">
+        <table class="table table-bordered laicom-table mb-0 text-center align-middle">
             <thead class="table-light">
                 <tr>
                     <th>PRODUCT NAME</th>
@@ -31,9 +31,7 @@
                 <tr>
                     <td class="text-start">
                         <div class="d-flex align-items-center">
-                            <div class="border me-2" style="width: 40px; height: 40px; background-color: #f8f9fa; background-size: cover; background-position: center;
-                                @if($item->image_path) background-image: url('{{ asset('storage/' . $item->image_path) }}'); @endif">
-                            </div>
+                            <img src="{{ $item->image_path ? asset('storage/' . $item->image_path) : asset('images/laicom-logo.png') }}" onerror="this.src='{{ asset('images/laicom-logo.png') }}'" alt="{{ $item->name }}" class="laicom-thumbnail {{ $item->image_path ? '' : 'laicom-empty-image' }} me-2">
                             <span class="fw-bold">{{ $item->name }}</span>
                         </div>
                     </td>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Promotion;
+use App\Models\Inventory;
 use Illuminate\Http\Request;
 
 class PromotionController extends Controller
@@ -21,11 +22,11 @@ class PromotionController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'buy_product_name' => 'required|string',
+            'buy_product_name' => 'required|string|exists:inventories,name',
             'required_quantity' => 'required|integer|min:1',
             'premium_product_id' => 'required|exists:premium_products,id',
             'reward_quantity' => 'required|integer|min:1',
-            'title' => 'nullable|string'
+            'title' => 'nullable|string|max:255'
         ]);
 
         $title = $request->title ?? "BUY {$request->required_quantity} {$request->buy_product_name} GET {$request->reward_quantity}";
@@ -60,11 +61,11 @@ class PromotionController extends Controller
         $promo = Promotion::findOrFail($id);
 
         $request->validate([
-            'buy_product_name' => 'required|string',
+            'buy_product_name' => 'required|string|exists:inventories,name',
             'required_quantity' => 'required|integer|min:1',
             'premium_product_id' => 'required|exists:premium_products,id',
             'reward_quantity' => 'required|integer|min:1',
-            'title' => 'nullable|string'
+            'title' => 'nullable|string|max:255'
         ]);
 
         $title = $request->title ?? "BUY {$request->required_quantity} {$request->buy_product_name} GET {$request->reward_quantity}";

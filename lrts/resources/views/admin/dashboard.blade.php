@@ -16,8 +16,8 @@
         <button class="btn btn-sm btn-outline-dark" data-bs-toggle="modal" data-bs-target="#addPremiumProductModal" title="Add New Premium Product"><i class="bi bi-plus-lg"></i></button>
     </div>
 
-    <div class="table-responsive border border-dark border-2 p-1">
-        <table class="table table-bordered mb-0 text-center align-middle">
+    <div class="table-responsive laicom-card p-1">
+        <table class="table table-bordered laicom-table mb-0 text-center align-middle">
             <thead class="table-light">
                 <tr>
                     <th>PRODUCT NAME</th>
@@ -29,19 +29,26 @@
             <tbody>
                 @forelse($premiumProducts as $premium)
                 <tr>
-                    <td class="text-start fw-bold">{{ $premium->name }}</td>
+                    <td class="text-start fw-bold"><img src="{{ $premium->image_path ? asset('storage/' . $premium->image_path) : asset('images/laicom-logo.png') }}" onerror="this.src='{{ asset('images/laicom-logo.png') }}'" alt="{{ $premium->name }}" class="laicom-thumbnail {{ $premium->image_path ? '' : 'laicom-empty-image' }} me-2">{{ $premium->name }}</td>
                     <td>{{ $premium->stock }}</td>
                     <td>
                         @if($premium->stock > 50)
                             <span class="text-success fw-bold">HIGH</span>
                         @elseif($premium->stock > 10)
-                            <span class="text-warning fw-bold">MODERATE</span>
+                            <span class="text-warning fw-bold">MID</span>
                         @else
                             <span class="text-danger fw-bold">LOW</span>
                         @endif
                     </td>
                     <td>
-                        <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editPremiumProductModal{{ $premium->id }}"><i class="bi bi-pencil-square"></i></button>
+                        <div class="d-flex justify-content-center gap-1">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editPremiumProductModal{{ $premium->id }}"><i class="bi bi-pencil-square"></i></button>
+                            <form action="{{ route('products.destroy', $premium->id) }}" method="POST" onsubmit="return confirm('Delete this premium product? Products used by rewards cannot be deleted.');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                            </form>
+                        </div>
                     </td>
                 </tr>
                 @empty

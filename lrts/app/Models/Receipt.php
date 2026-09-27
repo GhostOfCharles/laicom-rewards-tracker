@@ -6,6 +6,11 @@ class Receipt extends Model
 {
     protected $fillable = ['user_id', 'salesman_order_number', 'status', 'submitted_at'];
 
+    protected function casts(): array
+    {
+        return ['submitted_at' => 'datetime'];
+    }
+
     public function user() {
         return $this->belongsTo(User::class);
     }

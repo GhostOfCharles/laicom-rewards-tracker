@@ -4,13 +4,15 @@
 <div class="mb-5">
     <div class="d-flex align-items-center mb-3">
         <label class="fw-bold small me-2 mb-0">SORT BY:</label>
-        <select class="form-select form-select-sm border-dark rounded-0 w-auto fw-bold">
-            <option>PROCESSING</option>
-            <option>APPROVED</option>
+        <select class="form-select form-select-sm border-dark rounded-0 w-auto fw-bold" onchange="window.location.href='{{ route('admin.receipts') }}?status=' + this.value">
+            <option value="">ALL RECEIPTS</option>
+            <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>PROCESSING</option>
+            <option value="approved" {{ request('status') === 'approved' ? 'selected' : '' }}>APPROVED</option>
+            <option value="rejected" {{ request('status') === 'rejected' ? 'selected' : '' }}>REJECTED</option>
         </select>
     </div>
     
-    <div class="border border-dark border-2 p-2">
+    <div class="laicom-card p-2">
         @if(session('success'))
             <div class="alert alert-success py-2 fw-bold small rounded-0">{{ session('success') }}</div>
         @endif
@@ -32,13 +34,13 @@
                         </div>
                     </td>
                     <td class="text-end align-middle pb-3" style="width: 150px;">
-                        <div class="badge bg-warning text-dark border border-dark rounded-0 w-100 py-2 mb-2">STATUS: {{ strtoupper($receipt->status) }}</div>
+                        <div class="badge {{ $receipt->status === 'approved' ? 'bg-success' : ($receipt->status === 'rejected' ? 'bg-danger' : 'bg-warning text-dark') }} border border-dark rounded-0 w-100 py-2 mb-2">STATUS: {{ $receipt->status === 'pending' ? 'PROCESSING' : strtoupper($receipt->status) }}</div>
                         @if($receipt->status === 'pending')
-                            <form action="{{ route('admin.receipts.approve', $receipt->id) }}" method="POST" class="mb-1">
+                            <form action="{{ route('admin.receipts.approve', $receipt->id) }}" method="POST" class="mb-1" onsubmit="return confirm('Approve this receipt and deduct reward stock?');">
                                 @csrf
                                 <button type="submit" class="btn btn-sm btn-success rounded-0 w-100 fw-bold">APPROVE</button>
                             </form>
-                            <form action="{{ route('admin.receipts.reject', $receipt->id) }}" method="POST">
+                            <form action="{{ route('admin.receipts.reject', $receipt->id) }}" method="POST" onsubmit="return confirm('Reject this receipt?');">
                                 @csrf
                                 <button type="submit" class="btn btn-sm btn-danger rounded-0 w-100 fw-bold">REJECT</button>
                             </form>
@@ -73,7 +75,7 @@
                     </div>
                 </div>
 
-                <!-- Dynamic View Claimable Rewards Modal (Placeholder for next step) -->
+                <!-- Dynamic View Claimable Rewards Modal -->
                 <div class="modal fade" id="viewRewardsModal{{ $receipt->id }}" tabindex="-1" aria-hidden="true">
                     <div class="modal-dialog">
                         <div class="modal-content border-dark border-2 rounded-0">
@@ -82,7 +84,26 @@
                                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                             </div>
                             <div class="modal-body text-start">
-                                <p class="small text-muted">Reward calculation logic will be injected here next.</p>
+                                @if ($receipt->status === 'pending')
+                                    @if (count($receipt->calculated_rewards))
+                                        <p class="small text-muted">Calculated rewards will be issued after approval:</p>
+                                        <ul class="list-group list-group-flush">
+                                            @foreach ($receipt->calculated_rewards as $reward)
+                                                <li class="list-group-item px-0 d-flex justify-content-between"><span class="fw-bold">{{ $reward['name'] }}</span><span>{{ $reward['quantity'] }} × PENDING</span></li>
+                                            @endforeach
+                                        </ul>
+                                    @else
+                                        <p class="small text-muted mb-0">No active promotion applies to this receipt.</p>
+                                    @endif
+                                @elseif ($receipt->status === 'approved')
+                                    @forelse ($receipt->earnedRewards as $reward)
+                                        <div class="d-flex justify-content-between border-bottom py-2"><span class="fw-bold">{{ $reward->premiumProduct->name ?? 'Premium product' }}</span><span>{{ $reward->reward_quantity }} × {{ strtoupper($reward->claim_status) }}</span></div>
+                                    @empty
+                                        <p class="small text-muted mb-0">No rewards were earned from this receipt.</p>
+                                    @endforelse
+                                @else
+                                    <p class="small text-danger mb-0">Rejected receipts do not earn rewards.</p>
+                                @endif
                             </div>
                             <div class="modal-footer border-top-0 justify-content-end">
                                 <button type="button" class="btn btn-outline-dark rounded-0" data-bs-dismiss="modal">CLOSE</button>

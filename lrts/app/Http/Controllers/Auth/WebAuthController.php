@@ -22,8 +22,8 @@ class WebAuthController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
-            'store_name' => 'nullable|string|max:255',
-            'phone_number' => 'nullable|string|max:50',
+            'store_name' => 'required|string|max:255',
+            'phone_number' => 'required|string|max:50',
             'password' => 'required|string|min:6|confirmed',
         ]);
 
@@ -39,7 +39,7 @@ class WebAuthController extends Controller
         Auth::login($user);
 
         // Customers land on their own dashboard
-        return redirect()->route('customer.dashboard');
+        return redirect()->route('customer.dashboard')->with('success', 'Account created successfully. Welcome to LRTS!');
     }
 
     // Handle Login for both Customer and Admin
@@ -52,6 +52,14 @@ class WebAuthController extends Controller
 
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
+
+            if ($request->routeIs('login.admin.submit') && Auth::user()->role !== 'admin') {
+                Auth::logout();
+
+                return back()->withErrors([
+                    'email' => 'This account does not have administrator access.',
+                ])->onlyInput('email');
+            }
 
             // Redirect based on user role
             if (Auth::user()->role === 'admin') {

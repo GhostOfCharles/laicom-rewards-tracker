@@ -1,52 +1,23 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Models;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use App\Models\Inventory;
-use App\Models\Receipt;
+use Illuminate\Database\Eloquent\Model;
 
-class CustomerController extends Controller
+class EarnedReward extends Model
 {
-    public function index()
+    protected $fillable = [
+        'user_id', 'receipt_id', 'promotion_id', 'premium_product_id', 
+        'reward_quantity', 'claim_status', 'claimed_at'
+    ];
+
+    public function premiumProduct()
     {
-        // Eager-load items and earned rewards with premium products
-        $receipts = Auth::user()->receipts()
-            ->with(['items', 'earnedRewards.premiumProduct'])
-            ->latest()
-            ->get();
-
-        $products = Inventory::orderBy('name')->get();
-
-        return view('customer.dashboard', compact('receipts', 'products'));
+        return $this->belongsTo(PremiumProduct::class, 'premium_product_id');
     }
 
-    public function submitOrder(Request $request)
+    public function receipt()
     {
-        $request->validate([
-            'salesman_order_number' => 'required|string|unique:receipts,salesman_order_number',
-            'items' => 'required|array|min:1',
-            'items.*.product_name' => 'required|string',
-            'items.*.quantity' => 'required|integer|min:1',
-        ], [
-            'items.required' => 'You must add at least one product to your item listbox.',
-        ]);
-
-        $receipt = Receipt::create([
-            'user_id' => Auth::id(),
-            'salesman_order_number' => $request->salesman_order_number,
-            'status' => 'pending',
-        ]);
-
-        foreach ($request->items as $item) {
-            $receipt->items()->create([
-                'product_name' => $item['product_name'],
-                'quantity' => $item['quantity'],
-                'unit_price' => 0,
-            ]);
-        }
-
-        return redirect()->route('customer.dashboard')->with('success', 'Order submitted successfully! It is now pending admin review.');
+        return $this->belongsTo(Receipt::class);
     }
 }

@@ -1,0 +1,19 @@
+:root { --laicom-navy: #12284c; --laicom-red: #ed1b24; --laicom-ink: #172033; --laicom-mist: #f4f7fb; }
+* { box-sizing: border-box; }
+body { color: var(--laicom-ink); font-family: "Segoe UI", Tahoma, sans-serif; }
+.laicom-navbar, .laicom-sidebar-head, .laicom-section-title { background: var(--laicom-navy); color: #fff; }
+.laicom-page { background: linear-gradient(135deg, #f4f7fb 0%, #fff 45%, #edf2fa 100%); min-height: 100vh; }
+.laicom-card { border: 2px solid var(--laicom-navy); border-radius: 0; background: #fff; box-shadow: 7px 7px 0 rgba(18, 40, 76, .10); }
+.laicom-card .card-header { background: var(--laicom-navy); color: #fff; border-radius: 0; font-weight: 800; letter-spacing: .08em; }
+.laicom-btn-primary { background: var(--laicom-navy); border: 2px solid var(--laicom-navy); color: #fff; border-radius: 0; font-weight: 800; letter-spacing: .04em; }
+.laicom-btn-primary:hover, .laicom-btn-primary:focus { background: #0a1b35; border-color: #0a1b35; color: #fff; }
+.laicom-btn-accent { background: var(--laicom-red); border: 2px solid var(--laicom-red); color: #fff; border-radius: 0; font-weight: 800; }
+.laicom-btn-accent:hover, .laicom-btn-accent:focus { background: #bd1018; border-color: #bd1018; color: #fff; }
+.laicom-thumbnail { width: 48px; height: 48px; object-fit: cover; border: 2px solid var(--laicom-navy); background: #fff; }
+.laicom-empty-image { object-fit: contain; padding: 5px; }
+.laicom-table thead th { background: #eaf0f8; color: var(--laicom-navy); border-color: var(--laicom-navy); font-size: .78rem; letter-spacing: .04em; }
+.laicom-modal .modal-content { border: 2px solid var(--laicom-navy); border-radius: 0; }
+.laicom-modal .modal-header { background: var(--laicom-navy); color: #fff; border-bottom: 2px solid var(--laicom-navy); }
+.laicom-bell { position: relative; color: var(--laicom-red); }
+.laicom-bell .badge { position: absolute; top: -7px; right: -10px; font-size: .6rem; }
+@media (max-width: 767.98px) { .laicom-card { box-shadow: 4px 4px 0 rgba(18, 40, 76, .10); } }

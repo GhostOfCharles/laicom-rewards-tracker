@@ -23,6 +23,7 @@ class PremiumProductController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'item_code' => 'required|string|unique:premium_products,item_code',
+            'initial_stock' => 'required|integer|min:0',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
@@ -77,6 +78,13 @@ class PremiumProductController extends Controller
 
     public function destroy(string $id)
     {
-        //
+        $product = PremiumProduct::withCount(['promotions', 'earnedRewards'])->findOrFail($id);
+
+        if ($product->promotions_count > 0 || $product->earned_rewards_count > 0) {
+            return back()->withErrors(['error' => 'This premium product cannot be deleted because it is used by promotions or reward records.']);
+        }
+
+        $product->delete();
+        return back()->with('success', 'Premium product removed.');
     }
 }

@@ -8,12 +8,17 @@ use App\Models\Promotion;
 use App\Models\PremiumProduct;
 use App\Models\EarnedReward;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ClaimController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $receipts = Receipt::with(['user', 'items'])->orderBy('created_at', 'desc')->get();
+        $status = $request->query('status');
+        $receipts = Receipt::with(['user', 'items', 'earnedRewards.premiumProduct'])
+            ->when(in_array($status, ['pending', 'approved', 'rejected'], true), fn ($query) => $query->where('status', $status))
+            ->orderBy('created_at', 'desc')
+            ->get();
         $promotions = Promotion::with('premiumProduct')->where('is_active', 1)->get(); 
 
         foreach ($receipts as $receipt) {
@@ -47,60 +52,78 @@ class ClaimController extends Controller
 
     public function approve($id)
     {
-        $receipt = Receipt::with('items')->findOrFail($id);
-        $promotions = Promotion::where('is_active', 1)->get();
-        
-        $pendingRewards = [];
-        $stockCheck = [];
+        try {
+            DB::transaction(function () use ($id) {
+                $receipt = Receipt::with('items')->lockForUpdate()->findOrFail($id);
 
-        // 1. Calculate everything earned on this receipt
+                if ($receipt->status !== 'pending') {
+                    throw new \RuntimeException('Only processing receipts can be approved.');
+                }
+
+                $pendingRewards = $this->calculateRewards($receipt);
+                $stockCheck = [];
+                foreach ($pendingRewards as $reward) {
+                    $stockCheck[$reward['premium_product_id']] = ($stockCheck[$reward['premium_product_id']] ?? 0) + $reward['reward_quantity'];
+                }
+
+                $premiumProducts = PremiumProduct::whereIn('id', array_keys($stockCheck))->lockForUpdate()->get()->keyBy('id');
+                foreach ($stockCheck as $productId => $quantity) {
+                    $product = $premiumProducts->get($productId);
+                    if (! $product || $product->stock < $quantity) {
+                        throw new \RuntimeException('Insufficient stock for ' . ($product->name ?? 'a premium product') . '.');
+                    }
+                }
+
+                foreach ($pendingRewards as $reward) {
+                    $premiumProducts->get($reward['premium_product_id'])->decrement('stock', $reward['reward_quantity']);
+                    EarnedReward::create([
+                        'user_id' => $receipt->user_id,
+                        'receipt_id' => $receipt->id,
+                        'promotion_id' => $reward['promotion_id'],
+                        'premium_product_id' => $reward['premium_product_id'],
+                        'reward_quantity' => $reward['reward_quantity'],
+                        'claim_status' => 'unclaimed',
+                    ]);
+                }
+
+                $receipt->update(['status' => 'approved']);
+            });
+        } catch (\RuntimeException $exception) {
+            return back()->withErrors(['error' => $exception->getMessage()]);
+        }
+
+        return back()->with('success', 'Receipt approved successfully. Premium inventory has been deducted.');
+    }
+
+    public function reject($id)
+    {
+        $receipt = Receipt::findOrFail($id);
+        if ($receipt->status !== 'pending') {
+            return back()->withErrors(['error' => 'Only processing receipts can be rejected.']);
+        }
+
+        $receipt->update(['status' => 'rejected']);
+        return back()->with('success', 'Receipt has been rejected.');
+    }
+
+    private function calculateRewards(Receipt $receipt): array
+    {
+        $promotions = Promotion::where('is_active', true)->get()->groupBy('buy_product_name');
+        $rewards = [];
+
         foreach ($receipt->items as $item) {
-            $matchingPromos = $promotions->where('buy_product_name', $item->product_name);
-            foreach ($matchingPromos as $promo) {
-                $multiplier = floor($item->quantity / $promo->required_quantity);
-                if ($multiplier > 0) {
-                    $earnedQty = $multiplier * $promo->reward_quantity;
-                    $pid = $promo->premium_product_id;
-                    
-                    $stockCheck[$pid] = ($stockCheck[$pid] ?? 0) + $earnedQty;
-                    $pendingRewards[] = [
+            foreach ($promotions->get($item->product_name, collect()) as $promo) {
+                $quantity = intdiv($item->quantity, $promo->required_quantity) * $promo->reward_quantity;
+                if ($quantity > 0) {
+                    $rewards[] = [
                         'promotion_id' => $promo->id,
-                        'premium_product_id' => $pid,
-                        'reward_quantity' => $earnedQty
+                        'premium_product_id' => $promo->premium_product_id,
+                        'reward_quantity' => $quantity,
                     ];
                 }
             }
         }
 
-        // 2. Prevent Silent Failures: Verify absolute total stock availability before any deductions
-        foreach ($stockCheck as $pid => $totalNeeded) {
-            $premium = PremiumProduct::find($pid);
-            if (!$premium || $premium->stock < $totalNeeded) {
-                return redirect()->back()->withErrors(['error' => 'Insufficient stock for ' . ($premium->name ?? 'Premium Product') . '. Needed: ' . $totalNeeded . ' | Available: ' . ($premium->stock ?? 0)]);
-            }
-        }
-
-        // 3. Stock is guaranteed. Deduct inventory and write to EarnedRewards.
-        foreach ($pendingRewards as $reward) {
-            PremiumProduct::where('id', $reward['premium_product_id'])->decrement('stock', $reward['reward_quantity']);
-            
-            EarnedReward::create([
-                'user_id' => $receipt->user_id,
-                'receipt_id' => $receipt->id,
-                'promotion_id' => $reward['promotion_id'],
-                'premium_product_id' => $reward['premium_product_id'],
-                'reward_quantity' => $reward['reward_quantity'],
-                'claim_status' => 'unclaimed',
-            ]);
-        }
-
-        $receipt->update(['status' => 'approved']);
-        return redirect()->back()->with('success', 'Receipt approved successfully! Premium inventory has been deducted.');
-    }
-
-    public function reject($id)
-    {
-        Receipt::findOrFail($id)->update(['status' => 'rejected']);
-        return redirect()->back()->with('success', 'Receipt has been rejected.');
+        return $rewards;
     }
 }

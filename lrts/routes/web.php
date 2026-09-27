@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\PremiumProductController;
 use App\Http\Controllers\Admin\PromotionController;
 use App\Http\Controllers\Admin\ClaimController;
 use App\Http\Controllers\Admin\InventoryController;
+use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Auth\WebAuthController;
 use App\Http\Controllers\CustomerController;
 
@@ -15,6 +16,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Handle order form submission
     Route::post('/dashboard/submit-order', [CustomerController::class, 'submitOrder'])->name('customer.submit_order');
+    Route::post('/rewards/{reward}/claim', [CustomerController::class, 'claimReward'])->name('customer.rewards.claim');
 });
 
 // 1. The main Entry Portal (Wireframe 1)
@@ -41,7 +43,7 @@ Route::post('/admin/login', [WebAuthController::class, 'login'])->name('login.ad
 // 5. Logout
 Route::post('/logout', [WebAuthController::class, 'logout'])->name('logout');
 
-Route::prefix('admin')->group(function () {
+Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
 
     // Inventory — explicit routes so sidebar link (admin.inventory) keeps working
@@ -51,9 +53,7 @@ Route::prefix('admin')->group(function () {
     Route::delete('/inventory/{id}', [InventoryController::class, 'destroy'])->name('admin.inventory.destroy');
 
     // Reports (still static — placeholder for now)
-    Route::get('/reports', function () {
-        return view('admin.reports');
-    })->name('admin.reports');
+    Route::get('/reports', [ReportController::class, 'index'])->name('admin.reports');
 
     // Receipts — reads from DB via ClaimController
     Route::get('/receipts', [ClaimController::class, 'index'])->name('admin.receipts');
