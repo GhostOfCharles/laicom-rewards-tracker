@@ -7,30 +7,21 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="{{ asset('css/laicom.css') }}">
-    <style>
-        body { background-color: #f8f9fa; }
-        .navbar-custom { background-color: #12284c; }
-        .card-custom { border: 2px solid #12284c; border-radius: 8px; }
-        .card-header-custom { background-color: #12284c; color: white; font-weight: bold; letter-spacing: 1px; }
-        .nav-tabs .nav-link { color: #12284c; font-weight: 700; border: 2px solid transparent; border-bottom: none; }
-        .nav-tabs .nav-link.active { color: #12284c; border-color: #12284c #12284c #f8f9fa; background-color: #f8f9fa; }
-        .nav-tabs { border-bottom: 2px solid #12284c; }
-
-        /* Wireframe Specific Styling */
-        .product-list-item { border-bottom: 2px solid #12284c; }
-        .product-list-item:last-child { border-bottom: none; }
-        .qty-box { border: 2px solid #12284c; padding: 2px 8px; font-weight: bold; min-width: 40px; text-align: center; }
-    </style>
 </head>
 <body class="laicom-page">
 
     <!-- Navigation Bar -->
-    <nav class="navbar navbar-expand-lg navbar-dark laicom-navbar mb-4 py-3 shadow-sm">
-        <div class="container">
+    <nav class="navbar navbar-expand-lg navbar-dark laicom-navbar py-3 shadow-sm">
+        <div class="container-fluid px-3 px-md-4">
+            <button class="btn btn-sm lrts-menu-toggle me-3" id="menuToggle" type="button" aria-expanded="false" aria-controls="primaryNav" aria-label="Toggle navigation">
+                <i class="bi bi-list fs-5"></i>
+            </button>
+
             <a class="navbar-brand fw-bold d-flex align-items-center" href="#order">
                 <img src="{{ asset('images/laicom-logo.png') }}" alt="Laicom" height="30" class="me-2"> LRTS CUSTOMER
             </a>
-            <div class="d-flex align-items-center text-white">
+
+            <div class="d-flex align-items-center text-white ms-auto">
                 <span class="me-3 fw-semibold small d-none d-md-inline">WELCOME, {{ strtoupper(auth()->user()->name) }}</span>
                 <div class="dropdown me-3">
                     <button type="button" class="btn btn-sm btn-outline-light rounded-0 laicom-bell" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Open notifications">
@@ -53,161 +44,242 @@
         </div>
     </nav>
 
-    <!-- Main Content -->
-    <div class="container mb-5">
+    <!-- Mobile backdrop -->
+    <div class="lrts-backdrop" id="sidebarBackdrop"></div>
 
-        @if (session('success'))
-            <div class="alert alert-success py-2 small fw-bold mb-4 border-dark">{{ session('success') }}</div>
-        @endif
-        @if ($errors->any())
-            <div class="alert alert-danger py-2 small mb-4 border-dark">
-                <ul class="mb-0 list-unstyled fw-bold">
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
+    <!-- Shell: Sidebar + Content -->
+    <div class="lrts-shell">
 
-        <!-- Nav Tabs -->
-        <ul class="nav nav-tabs mb-4" id="customerTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="order-tab" data-bs-toggle="tab" data-bs-target="#order" type="button" role="tab">SUBMIT NEW ORDER</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="tracker-tab" data-bs-toggle="tab" data-bs-target="#tracker" type="button" role="tab">MY REWARD TRACKER</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="promos-tab" data-bs-toggle="tab" data-bs-target="#promos" type="button" role="tab">PROMOS &amp; CLAIMS</button>
-            </li>
-        </ul>
+        <!-- Sidebar / Vertical Tabs -->
+        <aside class="lrts-sidebar" id="primaryNav">
+            <div class="lrts-sidebar-heading">CUSTOMER MENU</div>
 
-        <!-- Tab Content -->
-        <div class="tab-content" id="customerTabsContent">
+            <ul class="nav nav-pills flex-column" id="customerTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="order-tab" data-bs-toggle="pill" data-bs-target="#order" type="button" role="tab" aria-selected="true">
+                        <i class="bi bi-cart-plus-fill"></i>
+                        <span>Submit<br>New Order</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tracker-tab" data-bs-toggle="pill" data-bs-target="#tracker" type="button" role="tab" aria-selected="false">
+                        <i class="bi bi-gift-fill"></i>
+                        <span>Reward<br>Tracker</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="promos-tab" data-bs-toggle="pill" data-bs-target="#promos" type="button" role="tab" aria-selected="false">
+                        <i class="bi bi-tags-fill"></i>
+                        <span>Promos<br>&amp; Claim</span>
+                    </button>
+                </li>
+            </ul>
+        </aside>
 
-            <!-- TAB 1: SUBMIT NEW ORDER (Matches image_40a057.png) -->
-            <div class="tab-pane fade show active" id="order" role="tabpanel">
-                <div class="row justify-content-center">
-                    <div class="col-md-8 col-lg-6">
-                        <div class="card laicom-card">
-                            <div class="card-header bg-white border-bottom border-dark text-center py-3">
-                                <h6 class="mb-0 fw-bold">SELECT BOUGHT PRODUCTS <span class="small fw-normal text-muted ms-2">Build your purchase list before submitting.</span></h6>
-                            </div>
-                            <div class="card-body p-4">
+        <!-- Main Content -->
+        <main class="lrts-content">
 
-                                <!-- Product Selection Array -->
-                                <div class="d-flex align-items-center mb-3">
-                                    <select id="product_combobox" class="form-select border-dark border-2 rounded-0 me-2 fw-bold small">
-                                        <option selected disabled>Choose a product...</option>
-                                        @foreach ($products as $product)
-                                            <option value="{{ $product->name }}" data-image="{{ $product->image_path ? asset('storage/' . $product->image_path) : '' }}">{{ $product->name }}</option>
-                                        @endforeach
-                                    </select>
-                                    <input type="number" id="product_quantity" class="form-control border-dark border-2 rounded-0 me-2 fw-bold text-center" min="1" value="1" style="width: 70px;">
-                                    <button type="button" id="add_item_btn" class="btn laicom-btn-primary px-3 py-1" aria-label="Add selected product"><i class="bi bi-plus-lg"></i></button>
-                                </div>
-
-                                <!-- Dynamic Visual Listbox -->
-                                <div class="border border-dark border-2 bg-white mb-4 position-relative" style="height: 280px; overflow-y: auto;">
-                                    <ul id="item_listbox" class="list-unstyled mb-0">
-                                        <li class="p-4 text-muted text-center fw-bold" id="empty_msg">NO PRODUCTS SELECTED YET.</li>
-                                    </ul>
-                                </div>
-
-                                <!-- Action Buttons -->
-                                <div class="d-flex justify-content-between align-items-center mt-2">
-                                    <button type="button" class="btn laicom-btn-primary px-4 small" onclick="document.getElementById('promos-tab').click()">PROMOS &amp; REWARDS</button>
-                                    <button type="button" id="process_receipt_btn" class="btn laicom-btn-accent px-4 small" data-bs-toggle="modal" data-bs-target="#processReceiptModal">PROCESS RECEIPT</button>
-                                </div>
-
-                            </div>
-                        </div>
-                    </div>
+            @if (session('success'))
+                <div class="alert alert-success py-2 small fw-bold mb-4 border-dark">{{ session('success') }}</div>
+            @endif
+            @if ($errors->any())
+                <div class="alert alert-danger py-2 small mb-4 border-dark">
+                    <ul class="mb-0 list-unstyled fw-bold">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
                 </div>
-            </div>
+            @endif
 
-            <!-- TAB 2: MY REWARD TRACKER -->
-            <div class="tab-pane fade" id="tracker" role="tabpanel">
-                <div class="card card-custom">
-                    <div class="card-header card-header-custom">SUBMITTED ORDERS</div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover mb-0 align-middle text-center">
-                                <thead class="table-light border-bottom border-dark">
-                                    <tr>
-                                        <th class="py-3">ORDER NO.</th>
-                                        <th class="py-3">DATE SUBMITTED</th>
-                                        <th class="py-3">STATUS</th>
-                                        <th class="py-3">DETAILS</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @forelse ($receipts as $receipt)
-                                    <tr>
-                                        <td class="fw-bold">{{ $receipt->salesman_order_number }}</td>
-                                        <td class="small">{{ \Carbon\Carbon::parse($receipt->submitted_at)->format('M d, Y') }}</td>
-                                        <td>
-                                            @if ($receipt->status === 'pending')
-                                                <span class="badge bg-warning text-dark border border-dark w-75 py-2">PROCESSING</span>
-                                            @elseif ($receipt->status === 'approved')
-                                                <span class="badge bg-success border border-dark w-75 py-2">APPROVED</span>
-                                            @else
-                                                <span class="badge bg-danger border border-dark w-75 py-2">REJECTED</span>
-                                            @endif
-                                        </td>
-                                        <td>
-                                            <div class="d-flex justify-content-center gap-1">
-                                                <button type="button" class="btn btn-sm btn-outline-dark fw-bold" data-bs-toggle="modal" data-bs-target="#viewOrderModal{{ $receipt->id }}">VIEW PRODUCTS</button>
-                                                @if ($receipt->earnedRewards->isNotEmpty())
-                                                    <button type="button" class="btn btn-sm btn-outline-dark fw-bold" data-bs-toggle="modal" data-bs-target="#viewRewardsModal{{ $receipt->id }}">REWARDS</button>
-                                                @endif
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    @empty
-                                    <tr>
-                                        <td colspan="4" class="py-4 text-muted fw-bold">NO ORDERS SUBMITTED YET</td>
-                                    </tr>
-                                    @endforelse
-                                </tbody>
-                            </table>
+            <!-- Tab Content -->
+            <div class="tab-content" id="customerTabsContent">
+
+                <!-- TAB 1: SUBMIT NEW ORDER -->
+                <div class="tab-pane fade show active" id="order" role="tabpanel">
+                    <div class="card laicom-card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span>SELECT BOUGHT PRODUCTS</span>
+                            <span class="small fw-normal d-none d-md-inline" style="opacity:.7;">Build your purchase list before submitting.</span>
                         </div>
-                    </div>
-                </div>
-            </div>
+                        <div class="card-body p-4">
 
-            <!-- TAB 3: PROMOS & CLAIMS -->
-            <div class="tab-pane fade" id="promos" role="tabpanel">
-                <div class="row">
-                    <!-- Active Promotions Left Side -->
-                    <div class="col-md-6 mb-4">
-                        <div class="card card-custom h-100">
-                            <div class="card-header card-header-custom bg-success border-success">ACTIVE PROMOTIONS</div>
-                            <div class="card-body">
-                                <p class="small text-muted fw-bold mb-4">Purchase the required items to automatically earn these premium rewards!</p>
-                                <ul class="list-group list-group-flush border-top border-dark">
-                                    @forelse ($promotions as $promo)
-                                        <li class="list-group-item py-3">
-                                            <h6 class="fw-bold text-dark mb-1">{{ $promo->title }}</h6>
-                                            <div class="d-flex align-items-center gap-2 small fw-bold text-secondary">
-                                                <div class="border border-dark bg-light" style="width: 48px; height: 48px; background-size: cover; background-position: center; @php($buyImage = $products->firstWhere('name', $promo->buy_product_name)?->image_path) @if ($buyImage) background-image: url('{{ asset('storage/' . $buyImage) }}'); @endif"></div>
-                                                <div><span class="d-block">BUY {{ $promo->required_quantity }} × {{ $promo->buy_product_name }}</span><i class="bi bi-arrow-right fs-5"></i></div>
-                                                <div class="border border-dark bg-light" style="width: 48px; height: 48px; background-size: cover; background-position: center; @if ($promo->premiumProduct?->image_path) background-image: url('{{ asset('storage/' . $promo->premiumProduct->image_path) }}'); @endif"></div>
-                                                <div><span class="d-block">GET {{ $promo->reward_quantity }} × {{ $promo->premiumProduct->name ?? 'Premium Reward' }}</span><span class="text-success">{{ $promo->premiumProduct?->stock ?? 0 }} left</span></div>
-                                            </div>
-                                        </li>
-                                    @empty
-                                        <li class="list-group-item text-muted text-center py-4 fw-bold">No active promotions at this time.</li>
-                                    @endforelse
+                            <div class="d-flex align-items-center mb-3">
+                                <select id="product_combobox" class="form-select border-dark border-2 rounded-0 me-2 fw-bold small">
+                                    <option selected disabled>Choose a product...</option>
+                                    @foreach ($products as $product)
+                                        <option value="{{ $product->name }}" data-image="{{ $product->image_path ? asset('storage/' . $product->image_path) : '' }}">{{ $product->name }}</option>
+                                    @endforeach
+                                </select>
+                                <input type="number" id="product_quantity" class="form-control border-dark border-2 rounded-0 me-2 fw-bold text-center" min="1" value="1" style="width: 70px;">
+                                <button type="button" id="add_item_btn" class="btn laicom-btn-primary px-3 py-1" aria-label="Add selected product"><i class="bi bi-plus-lg"></i></button>
+                            </div>
+
+                            <div class="border border-dark border-2 bg-white mb-4 position-relative" style="height: 320px; overflow-y: auto;">
+                                <ul id="item_listbox" class="list-unstyled mb-0">
+                                    <li class="p-4 text-muted text-center fw-bold" id="empty_msg">NO PRODUCTS SELECTED YET.</li>
                                 </ul>
                             </div>
+
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <button type="button" class="btn laicom-btn-primary px-4 small" onclick="document.getElementById('promos-tab').click()">PROMOS &amp; REWARDS</button>
+                                <button type="button" id="process_receipt_btn" class="btn laicom-btn-accent px-4 small" data-bs-toggle="modal" data-bs-target="#processReceiptModal">PROCESS RECEIPT</button>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: MY REWARD TRACKER -->
+                <div class="tab-pane fade" id="tracker" role="tabpanel">
+                    <div class="card laicom-card">
+                        <div class="card-header">SUBMITTED ORDERS</div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0 align-middle text-center">
+                                    <thead class="border-bottom border-dark">
+                                        <tr>
+                                            <th class="py-3">ORDER NO.</th>
+                                            <th class="py-3">DATE SUBMITTED</th>
+                                            <th class="py-3">STATUS</th>
+                                            <th class="py-3">DETAILS</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse ($receipts as $receipt)
+                                        <tr>
+                                            <td class="fw-bold">{{ $receipt->salesman_order_number }}</td>
+                                            <td class="small">{{ \Carbon\Carbon::parse($receipt->submitted_at)->format('M d, Y') }}</td>
+                                            <td>
+                                                @if ($receipt->status === 'pending')
+                                                    <span class="badge bg-warning text-dark border border-dark w-75 py-2">PROCESSING</span>
+                                                @elseif ($receipt->status === 'approved')
+                                                    <span class="badge bg-success border border-dark w-75 py-2">APPROVED</span>
+                                                @else
+                                                    <span class="badge bg-danger border border-dark w-75 py-2">REJECTED</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                <div class="d-flex justify-content-center gap-1">
+                                                    <button type="button" class="btn btn-sm btn-outline-dark fw-bold" data-bs-toggle="modal" data-bs-target="#viewOrderModal{{ $receipt->id }}">VIEW PRODUCTS</button>
+                                                    @if ($receipt->earnedRewards->isNotEmpty())
+                                                        <button type="button" class="btn btn-sm btn-outline-dark fw-bold" data-bs-toggle="modal" data-bs-target="#viewRewardsModal{{ $receipt->id }}">REWARDS</button>
+                                                    @endif
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        @empty
+                                        <tr>
+                                            <td colspan="4" class="py-4 text-muted fw-bold">NO ORDERS SUBMITTED YET</td>
+                                        </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: PROMOS & CLAIMS -->
+                <div class="tab-pane fade" id="promos" role="tabpanel">
+
+                    <!-- Section Toggle (Option A: dual navy bars) -->
+                    <div class="row g-0 lrts-section-toggle">
+                        <div class="col-6">
+                            <button type="button" class="lrts-section-btn is-active" data-promos-section="promotions">
+                                ACTIVE PROMOTIONS
+                            </button>
+                        </div>
+                        <div class="col-6">
+                            <button type="button" class="lrts-section-btn" data-promos-section="claims">
+                                CLAIMABLE REWARDS
+                            </button>
                         </div>
                     </div>
 
-                    <!-- Available Claims Right Side -->
-                    <div class="col-md-6 mb-4">
-                        <div class="card card-custom h-100">
-                            <div class="card-header card-header-custom">MY CLAIMABLE REWARDS</div>
+                    <!-- Section: Active Promotions -->
+<div class="lrts-section-pane is-active" data-promos-pane="promotions">
+    <div class="card laicom-card">
+        <div class="card-header">ACTIVE PROMOTIONS</div>
+        <div class="card-body">
+            <p class="small text-muted fw-bold mb-4">Purchase the required items to automatically earn these premium rewards!</p>
+
+            @if ($promotions->count() > 0)
+                <div class="row g-4">
+                    @foreach ($promotions as $promo)
+                        @php
+                            $buyProduct = $products->firstWhere('name', $promo->buy_product_name);
+                            $buyImage = $buyProduct?->image_path;
+                            $rewardImage = $promo->premiumProduct?->image_path;
+                        @endphp
+                        <div class="col-md-6">
+                            <div class="promo-card">
+
+                                <!-- PROMO n badge -->
+                                <span class="promo-badge">PROMO {{ $loop->iteration }}</span>
+
+                                <!-- Headline -->
+                                <div class="promo-headline">
+                                    BUY {{ $promo->required_quantity }} {{ $promo->buy_product_name }}
+                                    <span class="promo-get">GET {{ $promo->reward_quantity }} {{ $promo->premiumProduct->name ?? 'Premium Reward' }}</span>
+                                </div>
+
+                                <!-- Products row -->
+                                <div class="promo-products">
+
+                                    <!-- BUY side -->
+                                    <div class="promo-product">
+                                        @if ($buyImage)
+                                            <img src="{{ asset('storage/' . $buyImage) }}" alt="{{ $promo->buy_product_name }}" class="promo-product-img">
+                                        @else
+                                            <img src="{{ asset('images/laicom-logo.png') }}" alt="{{ $promo->buy_product_name }}" class="promo-product-img is-empty">
+                                        @endif
+                                        <span class="promo-product-tag">BUY {{ $promo->required_quantity }}</span>
+                                        <p class="promo-product-name">{{ $promo->buy_product_name }}</p>
+                                    </div>
+
+                                    <!-- Arrow -->
+                                    <div class="promo-arrow">
+                                        <svg viewBox="0 0 36 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                            <path d="M0 9h22V2.5L36 12l-14 9.5V15H0z"/>
+                                        </svg>
+                                    </div>
+
+                                    <!-- GET side -->
+                                    <div class="promo-product">
+                                        @if ($rewardImage)
+                                            <img src="{{ asset('storage/' . $rewardImage) }}" alt="{{ $promo->premiumProduct->name }}" class="promo-product-img">
+                                        @else
+                                            <img src="{{ asset('images/laicom-logo.png') }}" alt="{{ $promo->premiumProduct->name ?? 'Reward' }}" class="promo-product-img is-empty">
+                                        @endif
+                                        <span class="promo-product-tag">GET {{ $promo->reward_quantity }}</span>
+                                        <p class="promo-product-name">{{ $promo->premiumProduct->name ?? 'Premium Reward' }}</p>
+                                        <span class="promo-stock">
+                                            <i class="bi bi-box-seam"></i>
+                                            {{ $promo->premiumProduct?->stock ?? 0 }} left
+                                        </span>
+                                    </div>
+
+                                </div>
+
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <div class="border border-dark p-4 text-center bg-light">
+                    <i class="bi bi-tags text-muted" style="font-size: 2rem;"></i>
+                    <p class="mt-2 mb-0 fw-bold text-muted">NO ACTIVE PROMOTIONS AT THIS TIME</p>
+                </div>
+            @endif
+        </div>
+    </div>
+</div>
+
+                    <!-- Section: Claimable Rewards -->
+                    <div class="lrts-section-pane" data-promos-pane="claims">
+                        <div class="card laicom-card">
+                            <div class="card-header">MY CLAIMABLE REWARDS</div>
                             <div class="card-body">
                                 <p class="small text-muted fw-bold mb-4">These rewards have been approved and are ready for you to claim physically.</p>
 
@@ -246,18 +318,16 @@
                             </div>
                         </div>
                     </div>
+
                 </div>
-            </div>
 
-        </div> <!-- End Tab Content -->
-    </div> <!-- End Container -->
+            </div> <!-- End Tab Content -->
+        </main>
+    </div> <!-- End Shell -->
 
-    <!-- ============================================= -->
-    <!-- PROCESS RECEIPT SUBMISSION MODAL (Matches image_40a0bb.png) -->
-    <!-- ============================================= -->
+    <!-- PROCESS RECEIPT SUBMISSION MODAL -->
     <div class="modal fade" id="processReceiptModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <!-- Form wraps the entire modal content -->
             <form id="orderForm" action="{{ route('customer.submit_order') }}" method="POST" class="w-100">
                 @csrf
                 <div class="modal-content border-dark border-3 rounded-0 bg-light shadow">
@@ -280,7 +350,6 @@
                             </ul>
                         </div>
 
-                        <!-- Hidden array inputs will be injected here by JS -->
                         <div id="hidden_inputs_container"></div>
 
                     </div>
@@ -292,7 +361,6 @@
             </form>
         </div>
     </div>
-
 
     <!-- Dynamic View Order Modals -->
     @foreach ($receipts as $receipt)
@@ -357,7 +425,60 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- Synchronized Dual-Listbox Logic -->
+    <!-- Sidebar toggle (mobile) -->
+    <script>
+        (function() {
+            const menuToggle = document.getElementById("menuToggle");
+            const primaryNav = document.getElementById("primaryNav");
+            const backdrop = document.getElementById("sidebarBackdrop");
+
+            if (!menuToggle || !primaryNav) return;
+
+            menuToggle.addEventListener("click", () => {
+                const isOpen = primaryNav.classList.toggle("is-open");
+                backdrop.classList.toggle("is-open", isOpen);
+                menuToggle.setAttribute("aria-expanded", String(isOpen));
+            });
+
+            primaryNav.querySelectorAll(".nav-link").forEach((link) => {
+                link.addEventListener("click", () => {
+                    primaryNav.classList.remove("is-open");
+                    backdrop.classList.remove("is-open");
+                    menuToggle.setAttribute("aria-expanded", "false");
+                });
+            });
+
+            backdrop.addEventListener("click", () => {
+                primaryNav.classList.remove("is-open");
+                backdrop.classList.remove("is-open");
+                menuToggle.setAttribute("aria-expanded", "false");
+            });
+        })();
+    </script>
+
+    <!-- Promos tab: in-content section toggle -->
+    <script>
+        (function () {
+            const sectionButtons = document.querySelectorAll('[data-promos-section]');
+            const sectionPanes   = document.querySelectorAll('[data-promos-pane]');
+
+            if (!sectionButtons.length || !sectionPanes.length) return;
+
+            sectionButtons.forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const target = btn.getAttribute('data-promos-section');
+
+                    sectionButtons.forEach((b) => b.classList.toggle('is-active', b === btn));
+
+                    sectionPanes.forEach((pane) => {
+                        pane.classList.toggle('is-active', pane.getAttribute('data-promos-pane') === target);
+                    });
+                });
+            });
+        })();
+    </script>
+
+    <!-- Synchronized Dual-Listbox Logic (UNCHANGED) -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const addBtn = document.getElementById('add_item_btn');
@@ -383,17 +504,14 @@
                         return;
                     }
 
-                    // Remove empty messages if they exist
                     const mainEmpty = document.getElementById('empty_msg');
                     if (mainEmpty) mainEmpty.remove();
 
                     const modalEmpty = document.getElementById('modal_empty_msg');
                     if (modalEmpty) modalEmpty.remove();
 
-                    // Generate a unique ID for this list item block
                     const uniqueId = 'item-row-' + itemIndex;
 
-                    // 1. Build the Main Dashboard UI Row (Matches image_40a057.png)
                     const mainLi = document.createElement('li');
                     mainLi.className = 'product-list-item d-flex align-items-center justify-content-between p-2';
                     mainLi.id = uniqueId + '-main';
@@ -418,13 +536,11 @@
                     mainListbox.appendChild(mainLi);
                     processReceiptButton.disabled = false;
 
-                    // 2. Build the Modal Summary Row (Matches image_40a0bb.png)
                     const modalLi = document.createElement('li');
                     modalLi.id = uniqueId + '-modal';
                     modalLi.innerHTML = `• ${productName} — QTY ${qty}`;
                     modalSummaryList.appendChild(modalLi);
 
-                    // 3. Add hidden inputs for Laravel form submission inside the modal form
                     const hiddenWrapper = document.createElement('div');
                     hiddenWrapper.id = uniqueId + '-hidden';
 
@@ -434,7 +550,6 @@
                     `;
                     hiddenContainer.appendChild(hiddenWrapper);
 
-                    // 4. Handle Deletion globally
                     mainLi.querySelector('.remove-btn').addEventListener('click', function() {
                         const targetId = this.getAttribute('data-target');
 
@@ -442,7 +557,6 @@
                         document.getElementById(targetId + '-modal').remove();
                         document.getElementById(targetId + '-hidden').remove();
 
-                        // Restore empty states if all items are removed
                         if (mainListbox.children.length === 0) {
                             mainListbox.innerHTML = '<li class="p-4 text-muted text-center fw-bold" id="empty_msg">NO PRODUCTS SELECTED YET.</li>';
                             modalSummaryList.innerHTML = '<li class="text-muted" id="modal_empty_msg">No items recorded.</li>';
@@ -450,7 +564,6 @@
                         }
                     });
 
-                    // Reset Inputs
                     itemIndex++;
                     combobox.selectedIndex = 0;
                     quantity.value = 1;
