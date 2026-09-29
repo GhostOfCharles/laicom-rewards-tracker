@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "30ede9cc2d9eecae449b0452a2292045",
+    "content-hash": "a4fa4cdeb9dd81f41f6b6afacc7f5f91",
     "packages": [
         {
             "name": "brick/math",
@@ -445,6 +445,61 @@
                 }
             ],
             "time": "2025-10-31T18:51:33+00:00"
+        },
+        {
+            "name": "edulazaro/laracaptcha",
+            "version": "1.0.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/edulazaro/laracaptcha.git",
+                "reference": "e4700d43593a061bcbb3d9d7e3e75ba9735288d3"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/edulazaro/laracaptcha/zipball/e4700d43593a061bcbb3d9d7e3e75ba9735288d3",
+                "reference": "e4700d43593a061bcbb3d9d7e3e75ba9735288d3",
+                "shasum": ""
+            },
+            "require": {
+                "laravel/framework": ">=11.0",
+                "php": "^8.2"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^9.0|^10.0|^11.0",
+                "phpunit/phpunit": "^10.5|^11.0|^12.0"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "aliases": {
+                        "Captcha": "EduLazaro\\Laracaptcha\\Facades\\Captcha"
+                    },
+                    "providers": [
+                        "EduLazaro\\Laracaptcha\\LaracaptchaServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "EduLazaro\\Laracaptcha\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Edu Lazaro",
+                    "email": "edu@edulazaro.com"
+                }
+            ],
+            "description": "Driver-based captcha for Laravel: Cloudflare Turnstile and Google reCAPTCHA v2/v3 behind a single API",
+            "support": {
+                "issues": "https://github.com/edulazaro/laracaptcha/issues",
+                "source": "https://github.com/edulazaro/laracaptcha/tree/1.0.2"
+            },
+            "time": "2026-08-29T02:35:46+00:00"
         },
         {
             "name": "egulias/email-validator",

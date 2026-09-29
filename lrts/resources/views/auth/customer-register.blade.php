@@ -160,6 +160,13 @@
             text-align: left;
             margin-bottom: 12px;
         }
+
+        /* Captcha wrapper — centers the widget above the submit button */
+        .captcha-wrapper {
+            display: flex;
+            justify-content: center;
+            margin: 14px 0 6px;
+        }
     </style>
 </head>
 <body>
@@ -211,6 +218,11 @@
             <div class="input-icon">
                 <i class="bi bi-lock-fill"></i>
                 <input type="password" name="password_confirmation" placeholder="CONFIRM PASSWORD" required>
+            </div>
+
+            {{-- Cloudflare Turnstile widget (renders based on CAPTCHA_DRIVER in .env) --}}
+            <div class="captcha-wrapper">
+                <x-laracaptcha::widget />
             </div>
 
             <button type="submit" class="btn-login">REGISTER</button>
