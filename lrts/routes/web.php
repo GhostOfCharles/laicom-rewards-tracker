@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\InventoryController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Auth\WebAuthController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\TicketController;
 
 // Protected Customer Routes
 Route::middleware(['auth'])->group(function () {
@@ -17,6 +18,10 @@ Route::middleware(['auth'])->group(function () {
     // Handle order form submission
     Route::post('/dashboard/submit-order', [CustomerController::class, 'submitOrder'])->name('customer.submit_order');
     Route::post('/rewards/{reward}/claim', [CustomerController::class, 'claimReward'])->name('customer.rewards.claim');
+
+    // Support tickets (customer)
+    Route::post('/tickets', [TicketController::class, 'store'])->name('customer.tickets.store');
+    Route::post('/tickets/{ticket}/reply', [TicketController::class, 'reply'])->name('customer.tickets.reply');
 });
 
 // 1. The main Entry Portal (Wireframe 1)

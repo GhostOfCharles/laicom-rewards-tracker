@@ -32,6 +32,11 @@ class User extends Authenticatable
         return $this->hasMany(EarnedReward::class);
     }
 
+        public function tickets()
+    {
+        return $this->hasMany(Ticket::class);
+    }
+
     /**
      * The attributes that should be hidden for serialization.
      *

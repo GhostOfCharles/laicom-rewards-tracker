@@ -35,7 +35,17 @@ class CustomerController extends Controller
 
         $pendingReceiptCount = $receipts->where('status', 'pending')->count();
 
-        return view('customer.dashboard', compact('receipts', 'products', 'promotions', 'availableRewards', 'pendingReceiptCount'));
+        // 5. Fetch Tickets for the Help drawer
+        $tickets = $user->tickets()
+            ->withCount('replies')
+            ->with(['replies' => fn ($q) => $q->orderBy('created_at')])
+            ->latest()
+            ->get();
+
+        return view('customer.dashboard', compact(
+            'receipts', 'products', 'promotions',
+            'availableRewards', 'pendingReceiptCount', 'tickets'
+        ));
     }
 
     public function submitOrder(Request $request)
