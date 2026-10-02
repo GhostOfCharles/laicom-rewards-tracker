@@ -463,7 +463,7 @@
 
                         <div class="mb-3">
                             <label class="form-label fw-bold small">SUBJECT</label>
-                            <input type="text" name="subject" class="form-control border-dark border-2 rounded-0 fw-bold" maxlength="200" required>
+                            <input type="text" name="subject" class="form-control border-dark border-2 rounded-0 fw-bold" minlength="3" maxlength="200" required>
                         </div>
 
                         <div class="mb-3">
@@ -489,7 +489,7 @@
 
                         <div class="mb-3">
                             <label class="form-label fw-bold small">MESSAGE</label>
-                            <textarea name="body" rows="5" class="form-control border-dark border-2 rounded-0" maxlength="5000" required></textarea>
+                            <textarea name="body" rows="5" class="form-control border-dark border-2 rounded-0" minlength="10" maxlength="5000" required></textarea>
                         </div>
 
                     </div>
@@ -537,8 +537,7 @@
                     <form action="{{ route('customer.tickets.reply', $ticket) }}" method="POST" class="mt-3">
                         @csrf
                         <label class="form-label fw-bold small">YOUR REPLY</label>
-                        <textarea name="body" rows="3" class="form-control border-dark border-2 rounded-0" required></textarea>
-                        <div class="text-end mt-2">
+                        <textarea name="body" rows="3" class="form-control border-dark border-2 rounded-0" minlength="10" required></textarea>
                             <button type="submit" class="btn laicom-btn-primary rounded-0 fw-bold">SEND REPLY</button>
                         </div>
                     </form>

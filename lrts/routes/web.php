@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Auth\WebAuthController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\TicketController;
+use App\Http\Controllers\Admin\TicketController as AdminTicketController;
 
 // Protected Customer Routes
 Route::middleware(['auth'])->group(function () {
@@ -19,9 +20,14 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/dashboard/submit-order', [CustomerController::class, 'submitOrder'])->name('customer.submit_order');
     Route::post('/rewards/{reward}/claim', [CustomerController::class, 'claimReward'])->name('customer.rewards.claim');
 
-    // Support tickets (customer)
-    Route::post('/tickets', [TicketController::class, 'store'])->name('customer.tickets.store');
-    Route::post('/tickets/{ticket}/reply', [TicketController::class, 'reply'])->name('customer.tickets.reply');
+    // Support tickets (customer) — rate-limited to prevent spam
+    Route::post('/tickets', [TicketController::class, 'store'])
+        ->middleware('throttle:5,1')
+        ->name('customer.tickets.store');
+
+    Route::post('/tickets/{ticket}/reply', [TicketController::class, 'reply'])
+        ->middleware('throttle:20,1')
+        ->name('customer.tickets.reply');
 });
 
 // 1. The main Entry Portal (Wireframe 1)
@@ -66,6 +72,11 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
     // Approve / Reject actions
     Route::post('/receipts/{id}/approve', [ClaimController::class, 'approve'])->name('admin.receipts.approve');
     Route::post('/receipts/{id}/reject', [ClaimController::class, 'reject'])->name('admin.receipts.reject');
+
+    // Support tickets (admin)
+    Route::get('/tickets', [AdminTicketController::class, 'index'])->name('admin.tickets');
+    Route::post('/tickets/{ticket}/reply', [AdminTicketController::class, 'reply'])->name('admin.tickets.reply');
+    Route::post('/tickets/{ticket}/status', [AdminTicketController::class, 'updateStatus'])->name('admin.tickets.status');
 
     Route::resource('products', PremiumProductController::class);
     Route::resource('promotions', PromotionController::class);

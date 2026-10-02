@@ -36,6 +36,9 @@
                     <li class="nav-item">
                         <a class="nav-link text-dark {{ request()->routeIs('admin.receipts*') ? 'active' : '' }}" href="{{ route('admin.receipts') }}"><i class="bi bi-receipt me-2"></i>RECEIPTS</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-dark {{ request()->routeIs('admin.tickets*') ? 'active' : '' }}" href="{{ route('admin.tickets') }}"><i class="bi bi-life-preserver me-2"></i>TICKETS</a>
+                    </li>
                 </ul>
             </div>
 

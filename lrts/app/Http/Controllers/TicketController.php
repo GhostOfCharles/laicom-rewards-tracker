@@ -11,11 +11,20 @@ class TicketController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'subject' => 'required|string|max:200',
+            'subject' => 'required|string|min:3|max:200',
             'category' => 'required|in:orders,rewards,promos,account,other',
-            'related_receipt_id' => 'nullable|exists:receipts,id',
-            'body' => 'required|string|max:5000',
+            'related_receipt_id' => [
+                'nullable',
+                \Illuminate\Validation\Rule::exists('receipts', 'id')->where('user_id', Auth::id()),
+            ],
+            'body' => 'required|string|min:10|max:5000',
+            'attachment' => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,pdf|max:5120',
         ]);
+
+        $attachmentPath = null;
+        if ($request->hasFile('attachment')) {
+            $attachmentPath = $request->file('attachment')->store('ticket-attachments', 'public');
+        }
 
         $ticket = Ticket::create([
             'user_id' => Auth::id(),
@@ -30,6 +39,7 @@ class TicketController extends Controller
             'user_id' => Auth::id(),
             'body' => $request->body,
             'is_internal_note' => false,
+            'attachment_path' => $attachmentPath,
         ]);
 
         return redirect()
@@ -40,20 +50,32 @@ class TicketController extends Controller
     public function reply(Request $request, Ticket $ticket)
     {
         abort_unless($ticket->user_id === Auth::id(), 403);
-        abort_if($ticket->status === 'closed', 403, 'This ticket is closed.');
+
+        if (in_array($ticket->status, ['resolved', 'closed'], true)) {
+            return back()->withErrors([
+                'error' => 'This ticket is no longer accepting replies. Please open a new ticket if you need further help.',
+            ]);
+        }
 
         $request->validate([
-            'body' => 'required|string|max:5000',
+            'body' => 'required|string|min:10|max:5000',
+            'attachment' => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,pdf|max:5120',
         ]);
+
+        $attachmentPath = null;
+        if ($request->hasFile('attachment')) {
+            $attachmentPath = $request->file('attachment')->store('ticket-attachments', 'public');
+        }
 
         $ticket->replies()->create([
             'user_id' => Auth::id(),
             'body' => $request->body,
             'is_internal_note' => false,
+            'attachment_path' => $attachmentPath,
         ]);
 
-        // Reopen if it was resolved
-        if ($ticket->status === 'resolved') {
+        // Customer reply moves the ticket back to the admin's queue
+        if (in_array($ticket->status, ['pending', 'in_progress'], true)) {
             $ticket->update(['status' => 'open', 'resolved_at' => null]);
         }
 
