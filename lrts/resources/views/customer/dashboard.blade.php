@@ -448,55 +448,154 @@
     </button>
 
     <!-- ============================================================
-         CREATE TICKET MODAL
+         CREATE TICKET MODAL (UPGRADED)
          ============================================================ -->
     <div class="modal fade" id="createTicketModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <form action="{{ route('customer.tickets.store') }}" method="POST" class="w-100">
+            <form action="{{ route('customer.tickets.store') }}" method="POST" class="w-100" enctype="multipart/form-data" id="createTicketForm">
                 @csrf
-                <div class="modal-content border-dark border-2 rounded-0">
-                    <div class="modal-header border-bottom border-dark text-white" style="background-color: #12284c;">
-                        <h6 class="modal-title fw-bold">CREATE NEW TICKET</h6>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                <div class="modal-content lrts-create-ticket">
+
+                    <!-- HEADER -->
+                    <div class="lrts-create-header">
+                        <div class="lrts-create-header-row">
+                            <h6 class="lrts-create-title">
+                                <i class="bi bi-life-preserver"></i> CREATE NEW TICKET
+                            </h6>
+                            <button type="button" class="lrts-create-close" data-bs-dismiss="modal" aria-label="Close">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </div>
+                        <div class="lrts-create-subtitle">
+                            We typically reply within 24 hours.
+                        </div>
                     </div>
-                    <div class="modal-body text-start">
+                    <div class="lrts-create-accent"></div>
 
-                        <div class="mb-3">
-                            <label class="form-label fw-bold small">SUBJECT</label>
-                            <input type="text" name="subject" class="form-control border-dark border-2 rounded-0 fw-bold" minlength="3" maxlength="200" required>
+                    <!-- BODY -->
+                    <div class="lrts-create-body">
+
+                        <!-- Subject -->
+                        <div class="lrts-create-field">
+                            <label class="lrts-create-label">
+                                <i class="bi bi-tag"></i> SUBJECT
+                            </label>
+                            <input type="text"
+                                   name="subject"
+                                   id="lrtsCreateSubject"
+                                   class="lrts-create-input"
+                                   placeholder="e.g. Missing reward for order ORD-2026-00481"
+                                   minlength="3"
+                                   maxlength="200"
+                                   required>
+                            <div class="lrts-create-counter" data-counter-for="lrtsCreateSubject" data-max="200">0 / 200</div>
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label fw-bold small">CATEGORY</label>
-                            <select name="category" class="form-select border-dark border-2 rounded-0 fw-bold" required>
-                                <option value="orders">Orders</option>
-                                <option value="rewards">Rewards</option>
-                                <option value="promos">Promos</option>
-                                <option value="account">Account</option>
-                                <option value="other" selected>Other</option>
-                            </select>
+                        <!-- Category chips -->
+                        <div class="lrts-create-field">
+                            <label class="lrts-create-label">
+                                <i class="bi bi-list-check"></i> CATEGORY
+                            </label>
+                            <input type="hidden" name="category" id="lrtsCreateCategory" value="" required>
+                            <div class="lrts-create-chips" id="lrtsCreateChips">
+                                <button type="button" class="lrts-create-chip" data-value="orders"><i class="bi bi-bag"></i> Orders</button>
+                                <button type="button" class="lrts-create-chip" data-value="rewards"><i class="bi bi-gift"></i> Rewards</button>
+                                <button type="button" class="lrts-create-chip" data-value="promos"><i class="bi bi-tags"></i> Promos</button>
+                                <button type="button" class="lrts-create-chip" data-value="account"><i class="bi bi-person"></i> Account</button>
+                                <button type="button" class="lrts-create-chip" data-value="other"><i class="bi bi-question-circle"></i> Other</button>
+                            </div>
+                            <div class="lrts-create-error" id="lrtsCategoryError" style="display:none;">Please select a category.</div>
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label fw-bold small">RELATED ORDER (OPTIONAL)</label>
-                            <select name="related_receipt_id" class="form-select border-dark border-2 rounded-0 fw-bold">
+                        <!-- Related order -->
+                        <div class="lrts-create-field">
+                            <label class="lrts-create-label">
+                                <i class="bi bi-receipt"></i> RELATED ORDER <span class="lrts-create-optional">(OPTIONAL)</span>
+                            </label>
+                            <select name="related_receipt_id" id="lrtsCreateReceipt" class="lrts-create-input">
                                 <option value="">— None —</option>
                                 @foreach ($receipts as $receipt)
-                                    <option value="{{ $receipt->id }}">#{{ $receipt->salesman_order_number }}</option>
+                                    <option value="{{ $receipt->id }}"
+                                            data-number="{{ $receipt->salesman_order_number }}"
+                                            data-date="{{ \Carbon\Carbon::parse($receipt->submitted_at)->format('M d, Y') }}"
+                                            data-status="{{ $receipt->status }}">
+                                        #{{ $receipt->salesman_order_number }}
+                                    </option>
                                 @endforeach
                             </select>
+                            <div class="lrts-create-receipt-preview" id="lrtsReceiptPreview" style="display:none;">
+                                <div class="lrts-create-receipt-preview-num" id="lrtsReceiptNum"></div>
+                                <div class="lrts-create-receipt-preview-meta">
+                                    <span id="lrtsReceiptDate"></span>
+                                    <span class="lrts-create-receipt-status" id="lrtsReceiptStatus"></span>
+                                </div>
+                            </div>
+                            <div class="lrts-create-hint" id="lrtsReceiptHint">
+                                Link this ticket to an existing order so we can trace it faster.
+                            </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label fw-bold small">MESSAGE</label>
-                            <textarea name="body" rows="5" class="form-control border-dark border-2 rounded-0" minlength="10" maxlength="5000" required></textarea>
+                        <!-- Message -->
+                        <div class="lrts-create-field">
+                            <label class="lrts-create-label">
+                                <i class="bi bi-chat-left-text"></i> MESSAGE
+                            </label>
+                            <textarea name="body"
+                                      id="lrtsCreateBody"
+                                      class="lrts-create-input lrts-create-textarea"
+                                      rows="5"
+                                      placeholder="Describe your issue in detail..."
+                                      minlength="10"
+                                      maxlength="5000"
+                                      required></textarea>
+                            <div class="lrts-create-counter" data-counter-for="lrtsCreateBody" data-max="5000">0 / 5000</div>
+                        </div>
+
+                        <!-- Attachment -->
+                        <div class="lrts-create-field">
+                            <label class="lrts-create-label">
+                                <i class="bi bi-paperclip"></i> ATTACHMENT <span class="lrts-create-optional">(OPTIONAL)</span>
+                            </label>
+                            <label for="lrtsCreateAttachment" class="lrts-create-dropzone" id="lrtsDropzone">
+                                <i class="bi bi-cloud-arrow-up lrts-create-dropzone-icon"></i>
+                                <div class="lrts-create-dropzone-text">
+                                    Drop a screenshot here, or <span>click to browse</span>
+                                </div>
+                                <div class="lrts-create-dropzone-hint">
+                                    Allowed: JPG, PNG, GIF, WEBP, PDF (Max 5MB)
+                                </div>
+                                <input type="file"
+                                       name="attachment"
+                                       id="lrtsCreateAttachment"
+                                       accept="image/jpeg,image/png,image/gif,image/webp,application/pdf"
+                                       data-max-size="5242880"
+                                       class="lrts-create-file-input">
+                            </label>
+                            <div class="lrts-create-file-info" id="lrtsFileInfo" style="display:none;">
+                                <i class="bi bi-file-earmark-check"></i>
+                                <span id="lrtsFileName"></span>
+                                <button type="button" class="lrts-create-file-remove" id="lrtsFileRemove" aria-label="Remove file">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+                            <div class="lrts-create-error" id="lrtsFileError" style="display:none;"></div>
                         </div>
 
                     </div>
-                    <div class="modal-footer border-top-0 justify-content-end">
-                        <button type="button" class="btn btn-outline-dark rounded-0 fw-bold" data-bs-dismiss="modal">CANCEL</button>
-                        <button type="submit" class="btn laicom-btn-accent rounded-0 fw-bold">SUBMIT</button>
+
+                    <!-- FOOTER -->
+                    <div class="lrts-create-footer">
+                        <div class="lrts-create-privacy">
+                            <i class="bi bi-shield-lock"></i> Your inquiry is private and only visible to Laicom support.
+                        </div>
+                        <div class="lrts-create-actions">
+                            <button type="button" class="lrts-create-btn-cancel" data-bs-dismiss="modal">CANCEL</button>
+                            <button type="submit" class="lrts-create-btn-submit">
+                                <i class="bi bi-send-fill"></i> SUBMIT TICKET
+                            </button>
+                        </div>
                     </div>
+
                 </div>
             </form>
         </div>
@@ -506,49 +605,151 @@
          VIEW TICKET MODALS (one per ticket)
          ============================================================ -->
     @foreach ($tickets as $ticket)
+    @php
+        $isResolved = in_array($ticket->status, ['resolved', 'closed'], true);
+        $badgeClass = match($ticket->status) {
+            'open'        => 'lrts-badge-open',
+            'pending'     => 'lrts-badge-pending',
+            'in_progress' => 'lrts-badge-progress',
+            'resolved'    => 'lrts-badge-resolved',
+            'closed'      => 'lrts-badge-closed',
+            default       => 'lrts-badge-closed',
+        };
+    @endphp
+
     <div class="modal fade" id="viewTicketModal{{ $ticket->id }}" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content border-dark border-2 rounded-0">
-                <div class="modal-header border-bottom border-dark text-white" style="background-color: #12284c;">
-                    <h6 class="modal-title fw-bold">
-                        #{{ str_pad($ticket->id, 4, '0', STR_PAD_LEFT) }} · {{ strtoupper($ticket->subject) }}
-                    </h6>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            <div class="modal-content lrts-ticket-modal">
+
+                <!-- HEADER -->
+                <div class="lrts-ticket-modal-header">
+                    <div class="lrts-ticket-modal-header-left">
+                        <span class="lrts-ticket-modal-num">#{{ str_pad($ticket->id, 4, '0', STR_PAD_LEFT) }}</span>
+                        <span class="lrts-ticket-modal-sep">·</span>
+                        <span class="lrts-ticket-modal-subject">{{ strtoupper($ticket->subject) }}</span>
+                    </div>
+                    <button type="button" class="lrts-ticket-modal-close" data-bs-dismiss="modal" aria-label="Close">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
                 </div>
 
-                <div class="modal-body">
-                    <div class="small text-muted mb-3 fw-bold">
-                        STATUS: {{ $ticket->statusLabel() }} · SUBMITTED {{ $ticket->created_at->format('M d, Y · g:i A') }}
-                    </div>
-
-                    <div class="lrts-thread">
-                        @foreach ($ticket->replies as $reply)
-                            @php $isMine = $reply->user_id === auth()->id(); @endphp
-                            <div class="lrts-thread-msg {{ $isMine ? 'is-me' : 'is-admin' }}">
-                                <div class="lrts-thread-meta">
-                                    {{ $isMine ? 'YOU' : 'SUPPORT' }} · {{ $reply->created_at->diffForHumans() }}
-                                </div>
-                                <div class="lrts-thread-body">{{ $reply->body }}</div>
-                            </div>
-                        @endforeach
-                    </div>
-
-                    @if ($ticket->status !== 'closed')
-                    <form action="{{ route('customer.tickets.reply', $ticket) }}" method="POST" class="mt-3">
-                        @csrf
-                        <label class="form-label fw-bold small">YOUR REPLY</label>
-                        <textarea name="body" rows="3" class="form-control border-dark border-2 rounded-0" minlength="10" required></textarea>
-                            <button type="submit" class="btn laicom-btn-primary rounded-0 fw-bold">SEND REPLY</button>
+                <!-- METADATA STRIP -->
+                <div class="lrts-ticket-modal-meta">
+                    <div class="lrts-ticket-modal-meta-item">
+                        <i class="bi bi-tag-fill lrts-ticket-modal-meta-icon"></i>
+                        <div>
+                            <div class="lrts-ticket-modal-meta-label">CATEGORY</div>
+                            <div class="lrts-ticket-modal-meta-value">{{ strtoupper($ticket->category ?? 'GENERAL') }}</div>
                         </div>
-                    </form>
-                    @else
-                        <div class="alert alert-secondary small fw-bold mt-3 mb-0">This ticket is closed.</div>
-                    @endif
+                    </div>
+                    <div class="lrts-ticket-modal-meta-item">
+                        <i class="bi bi-circle-fill lrts-ticket-modal-meta-icon"></i>
+                        <div>
+                            <div class="lrts-ticket-modal-meta-label">STATUS</div>
+                            <div class="lrts-ticket-modal-meta-value">
+                                <span class="lrts-badge {{ $badgeClass }}">{{ $ticket->statusLabel() }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="lrts-ticket-modal-meta-item">
+                        <i class="bi bi-clock-fill lrts-ticket-modal-meta-icon"></i>
+                        <div>
+                            <div class="lrts-ticket-modal-meta-label">SUBMITTED</div>
+                            <div class="lrts-ticket-modal-meta-value">{{ $ticket->created_at->format('M d, Y · g:i A') }}</div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="modal-footer border-top-0">
-                    <button type="button" class="btn btn-outline-dark rounded-0 fw-bold" data-bs-dismiss="modal">CLOSE</button>
+                <!-- THREAD -->
+                <div class="lrts-ticket-modal-thread">
+                    @forelse ($ticket->replies as $reply)
+                        @php $isMine = $reply->user_id === auth()->id(); @endphp
+
+                        <div class="lrts-ticket-msg {{ $isMine ? 'is-me' : 'is-support' }}">
+                            <div class="lrts-ticket-msg-head">
+                                <span class="lrts-ticket-msg-role">{{ $isMine ? 'YOU' : 'SUPPORT' }}</span>
+                                <span class="lrts-ticket-msg-dot">·</span>
+                                <span class="lrts-ticket-msg-time">{{ $reply->created_at->format('M d, g:i A') }}</span>
+                                <span class="lrts-ticket-msg-dot">·</span>
+                                <span class="lrts-ticket-msg-time">{{ $reply->created_at->diffForHumans() }}</span>
+                            </div>
+                            <div class="lrts-ticket-msg-body">{{ $reply->body }}</div>
+
+                            @if ($reply->attachment_path)
+                                <div class="lrts-ticket-msg-attachment">
+                                    @if (preg_match('/\.(jpg|jpeg|png|gif|webp)$/i', $reply->attachment_path))
+                                        <img src="{{ asset('storage/' . $reply->attachment_path) }}"
+                                             alt="attachment"
+                                             class="lrts-ticket-attachment-img lrts-zoomable-img"
+                                             data-src="{{ asset('storage/' . $reply->attachment_path) }}"
+                                             style="cursor: zoom-in;">
+                                    @else
+                                        <a href="{{ asset('storage/' . $reply->attachment_path) }}" target="_blank" class="lrts-ticket-attachment-file">
+                                            <i class="bi bi-file-earmark-pdf-fill"></i> View attachment
+                                        </a>
+                                    @endif
+                                </div>
+                            @endif
+                        </div>
+                    @empty
+                        <div class="lrts-ticket-modal-empty">No messages yet.</div>
+                    @endforelse
                 </div>
+
+                <!-- COMPOSER / LOCKED -->
+                @if (!$isResolved)
+                    <div class="lrts-ticket-modal-composer">
+                        <div class="lrts-ticket-modal-composer-label">YOUR REPLY</div>
+
+                        <form action="{{ route('customer.tickets.reply', $ticket) }}" method="POST" enctype="multipart/form-data">
+                            @csrf
+                            <textarea name="body"
+                                      rows="4"
+                                      class="lrts-ticket-modal-textarea"
+                                      placeholder="Type your reply..."
+                                      minlength="10"
+                                      required></textarea>
+
+                            <div class="lrts-ticket-modal-composer-foot">
+                                <div class="lrts-ticket-modal-attach">
+                                    <label for="replyAttachment{{ $ticket->id }}" class="lrts-ticket-modal-attach-btn">
+                                        <i class="bi bi-paperclip"></i> ATTACH FILE
+                                    </label>
+                                    <input type="file"
+                                           name="attachment"
+                                           id="replyAttachment{{ $ticket->id }}"
+                                           accept="image/jpeg,image/png,image/gif,image/webp,application/pdf"
+                                           class="lrts-ticket-modal-attach-input"
+                                           data-max-size="5242880">
+                                    <span class="lrts-ticket-modal-attach-name" data-for="replyAttachment{{ $ticket->id }}">NO FILE CHOSEN</span>
+                                </div>
+
+                                <button type="submit" class="lrts-ticket-modal-send">
+                                    SEND REPLY
+                                </button>
+                            </div>
+
+                            <div class="lrts-ticket-modal-hint">
+                                Allowed: JPG, JPEG, PNG, GIF, WEBP, PDF (Max 5MB)
+                            </div>
+                        </form>
+                    </div>
+                @else
+                    <div class="lrts-ticket-modal-locked">
+                        <div class="lrts-ticket-modal-locked-icon">
+                            <i class="bi bi-lock-fill"></i>
+                        </div>
+                        <div class="lrts-ticket-modal-locked-content">
+                            <div class="lrts-ticket-modal-locked-title">
+                                THIS TICKET IS {{ $ticket->statusLabel() }} AND NO LONGER ACCEPTING REPLIES.
+                            </div>
+                            <div class="lrts-ticket-modal-locked-text">
+                                If you need further help, please open a new ticket.
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
             </div>
         </div>
     </div>
@@ -654,6 +855,16 @@
         </div>
     @endforeach
 
+    <!-- ============================================================
+         IMAGE LIGHTBOX MODAL
+         ============================================================ -->
+    <div id="lrtsImageLightbox" class="lrts-lightbox" onclick="closeLightbox(event)">
+        <button type="button" class="lrts-lightbox-close" onclick="closeLightbox(event)" aria-label="Close image">
+            <i class="bi bi-x-lg"></i>
+        </button>
+        <img id="lrtsLightboxImg" src="" alt="Zoomed attachment" onclick="event.stopPropagation()">
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <!-- Sidebar toggle (mobile) -->
@@ -725,12 +936,10 @@
             document.getElementById('lrtsDrawer').setAttribute('aria-hidden', 'true');
         }
 
-        // Esc closes drawer
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') lrtsCloseDrawer();
         });
 
-        // Auto-open from URL params (after creating or replying to a ticket)
         document.addEventListener('DOMContentLoaded', () => {
             const params = new URLSearchParams(window.location.search);
 
@@ -749,6 +958,210 @@
                 if (modalEl) new bootstrap.Modal(modalEl).show();
             }
         });
+    </script>
+
+    <!-- Create Ticket modal: chips, counters, receipt preview, dropzone -->
+    <script>
+        (function () {
+            const form = document.getElementById('createTicketForm');
+            if (!form) return;
+
+            const MAX_FILE_BYTES = 5 * 1024 * 1024;
+
+            // Category chips
+            const chips = form.querySelectorAll('.lrts-create-chip');
+            const categoryInput = document.getElementById('lrtsCreateCategory');
+            const categoryError = document.getElementById('lrtsCategoryError');
+
+            chips.forEach((chip) => {
+                chip.addEventListener('click', () => {
+                    chips.forEach((c) => c.classList.remove('is-selected'));
+                    chip.classList.add('is-selected');
+                    categoryInput.value = chip.getAttribute('data-value');
+                    if (categoryError) categoryError.style.display = 'none';
+                });
+            });
+
+            // Character counters
+            form.querySelectorAll('[data-counter-for]').forEach((counter) => {
+                const inputId = counter.getAttribute('data-counter-for');
+                const max = parseInt(counter.getAttribute('data-max'), 10) || 0;
+                const input = document.getElementById(inputId);
+                if (!input) return;
+
+                const update = () => {
+                    const len = input.value.length;
+                    counter.textContent = len + ' / ' + max;
+                    counter.classList.remove('is-warn', 'is-over');
+                    if (len > max) {
+                        counter.classList.add('is-over');
+                    } else if (len > max * 0.85) {
+                        counter.classList.add('is-warn');
+                    }
+                };
+                input.addEventListener('input', update);
+                update();
+            });
+
+            // Related order preview
+            const receiptSelect = document.getElementById('lrtsCreateReceipt');
+            const preview = document.getElementById('lrtsReceiptPreview');
+            const previewNum = document.getElementById('lrtsReceiptNum');
+            const previewDate = document.getElementById('lrtsReceiptDate');
+            const previewStatus = document.getElementById('lrtsReceiptStatus');
+            const receiptHint = document.getElementById('lrtsReceiptHint');
+
+            if (receiptSelect) {
+                receiptSelect.addEventListener('change', () => {
+                    const opt = receiptSelect.options[receiptSelect.selectedIndex];
+                    if (!opt.value) {
+                        preview.style.display = 'none';
+                        receiptHint.style.display = 'block';
+                        return;
+                    }
+                    previewNum.textContent = '#' + opt.getAttribute('data-number');
+                    previewDate.textContent = opt.getAttribute('data-date');
+                    const status = opt.getAttribute('data-status');
+                    previewStatus.textContent = status.toUpperCase();
+                    previewStatus.className = 'lrts-create-receipt-status is-' + status;
+                    preview.style.display = 'block';
+                    receiptHint.style.display = 'none';
+                });
+            }
+
+            // Attachment dropzone
+            const fileInput = document.getElementById('lrtsCreateAttachment');
+            const dropzone = document.getElementById('lrtsDropzone');
+            const fileInfo = document.getElementById('lrtsFileInfo');
+            const fileName = document.getElementById('lrtsFileName');
+            const fileRemove = document.getElementById('lrtsFileRemove');
+            const fileError = document.getElementById('lrtsFileError');
+
+            function showFileInfo(file) {
+                fileName.textContent = file.name.toUpperCase();
+                fileInfo.style.display = 'flex';
+                dropzone.style.display = 'none';
+                fileError.style.display = 'none';
+                fileError.textContent = '';
+            }
+
+            function resetFile() {
+                fileInput.value = '';
+                fileInfo.style.display = 'none';
+                dropzone.style.display = 'flex';
+                fileError.style.display = 'none';
+                fileError.textContent = '';
+            }
+
+            function validateAndShow(file) {
+                if (!file) return;
+                if (file.size > MAX_FILE_BYTES) {
+                    const mb = (file.size / 1024 / 1024).toFixed(2);
+                    fileError.textContent = 'File is too large (' + mb + ' MB). Maximum is 5 MB.';
+                    fileError.style.display = 'block';
+                    fileInput.value = '';
+                    return;
+                }
+                showFileInfo(file);
+            }
+
+            if (fileInput) {
+                fileInput.addEventListener('change', () => {
+                    if (fileInput.files.length) validateAndShow(fileInput.files[0]);
+                    else resetFile();
+                });
+            }
+
+            if (fileRemove) {
+                fileRemove.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    resetFile();
+                });
+            }
+
+            if (dropzone) {
+                ['dragenter', 'dragover'].forEach((evt) => {
+                    dropzone.addEventListener(evt, (e) => {
+                        e.preventDefault();
+                        dropzone.classList.add('is-dragover');
+                    });
+                });
+                ['dragleave', 'drop'].forEach((evt) => {
+                    dropzone.addEventListener(evt, (e) => {
+                        e.preventDefault();
+                        dropzone.classList.remove('is-dragover');
+                    });
+                });
+                dropzone.addEventListener('drop', (e) => {
+                    const files = e.dataTransfer.files;
+                    if (files.length) {
+                        fileInput.files = files;
+                        validateAndShow(files[0]);
+                    }
+                });
+            }
+
+            // Submit validation
+            form.addEventListener('submit', (e) => {
+                if (!categoryInput.value) {
+                    e.preventDefault();
+                    if (categoryError) categoryError.style.display = 'block';
+                    return;
+                }
+
+                if (fileInput.files.length && fileInput.files[0].size > MAX_FILE_BYTES) {
+                    e.preventDefault();
+                    fileError.textContent = 'Please remove or replace the oversized file before submitting.';
+                    fileError.style.display = 'block';
+                }
+            });
+
+            // Reset on modal close
+            const modal = document.getElementById('createTicketModal');
+            if (modal) {
+                modal.addEventListener('hidden.bs.modal', () => {
+                    form.reset();
+                    chips.forEach((c) => c.classList.remove('is-selected'));
+                    categoryInput.value = '';
+                    resetFile();
+                    if (preview) preview.style.display = 'none';
+                    if (receiptHint) receiptHint.style.display = 'block';
+                    form.querySelectorAll('[data-counter-for]').forEach((c) => {
+                        const max = c.getAttribute('data-max');
+                        c.textContent = '0 / ' + max;
+                        c.classList.remove('is-warn', 'is-over');
+                    });
+                });
+            }
+        })();
+    </script>
+
+    <!-- Ticket view modals: attachment filename display -->
+    <script>
+        (function () {
+            document.querySelectorAll('.lrts-ticket-modal-attach-input').forEach((input) => {
+                input.addEventListener('change', () => {
+                    const nameSpan = document.querySelector('.lrts-ticket-modal-attach-name[data-for="' + input.id + '"]');
+                    if (!nameSpan) return;
+                    if (!input.files.length) {
+                        nameSpan.textContent = 'NO FILE CHOSEN';
+                        nameSpan.classList.remove('has-file', 'is-error');
+                        return;
+                    }
+                    const file = input.files[0];
+                    if (file.size > 5 * 1024 * 1024) {
+                        nameSpan.textContent = 'FILE TOO LARGE - MAX 5MB';
+                        nameSpan.classList.add('is-error');
+                        nameSpan.classList.remove('has-file');
+                        input.value = '';
+                        return;
+                    }
+                    nameSpan.textContent = file.name.toUpperCase();
+                    nameSpan.classList.add('has-file');
+                    nameSpan.classList.remove('is-error');
+                });
+            });
+        })();
     </script>
 
     <!-- Synchronized Dual-Listbox Logic (UNCHANGED) -->
@@ -846,6 +1259,45 @@
             if (processReceiptButton) {
                 processReceiptButton.disabled = true;
             }
+        });
+    </script>
+
+    <!-- Image Lightbox Logic -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const zoomableImages = document.querySelectorAll('.lrts-zoomable-img');
+            const lightbox = document.getElementById('lrtsImageLightbox');
+            const lightboxImg = document.getElementById('lrtsLightboxImg');
+
+            // Attach click event to all zoomable images
+            zoomableImages.forEach(img => {
+                img.addEventListener('click', function() {
+                    // Get the source from data-src or src
+                    const src = this.getAttribute('data-src') || this.src;
+                    lightboxImg.src = src;
+                    lightbox.classList.add('is-open');
+                    document.body.style.overflow = 'hidden'; // Prevent background scrolling
+                });
+            });
+
+            // Function to close the lightbox
+            window.closeLightbox = function(e) {
+                if (e) e.stopPropagation();
+                lightbox.classList.remove('is-open');
+                document.body.style.overflow = ''; // Restore background scrolling
+                
+                // Clear the src after the fade-out animation to save memory
+                setTimeout(() => {
+                    lightboxImg.src = '';
+                }, 200);
+            }
+
+            // Allow closing with the Escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && lightbox.classList.contains('is-open')) {
+                    closeLightbox();
+                }
+            });
         });
     </script>
 </body>

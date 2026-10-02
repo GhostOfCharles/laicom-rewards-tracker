@@ -132,9 +132,11 @@
                             @if ($reply->attachment_path)
                                 <div class="adm-thread-attachment">
                                     @if (preg_match('/\.(jpg|jpeg|png|gif|webp)$/i', $reply->attachment_path))
-                                        <a href="{{ asset('storage/' . $reply->attachment_path) }}" target="_blank">
-                                            <img src="{{ asset('storage/' . $reply->attachment_path) }}" alt="attachment" class="adm-attachment-img">
-                                        </a>
+                                        <img src="{{ asset('storage/' . $reply->attachment_path) }}"
+                                             class="adm-attachment-img lrts-zoomable-img"
+                                             data-src="{{ asset('storage/' . $reply->attachment_path) }}"
+                                             alt="attachment"
+                                             style="cursor: zoom-in;">
                                     @else
                                         <a href="{{ asset('storage/' . $reply->attachment_path) }}" target="_blank" class="adm-attachment-file">
                                             <i class="bi bi-file-earmark-pdf"></i> View attachment
@@ -155,9 +157,11 @@
                             @if ($reply->attachment_path)
                                 <div class="adm-thread-attachment">
                                     @if (preg_match('/\.(jpg|jpeg|png|gif|webp)$/i', $reply->attachment_path))
-                                        <a href="{{ asset('storage/' . $reply->attachment_path) }}" target="_blank">
-                                            <img src="{{ asset('storage/' . $reply->attachment_path) }}" alt="attachment" class="adm-attachment-img">
-                                        </a>
+                                        <img src="{{ asset('storage/' . $reply->attachment_path) }}"
+                                             class="adm-attachment-img lrts-zoomable-img"
+                                             data-src="{{ asset('storage/' . $reply->attachment_path) }}"
+                                             alt="attachment"
+                                             style="cursor: zoom-in;">
                                     @else
                                         <a href="{{ asset('storage/' . $reply->attachment_path) }}" target="_blank" class="adm-attachment-file">
                                             <i class="bi bi-file-earmark-pdf"></i> View attachment
@@ -247,6 +251,16 @@
 
 </div>
 
+{{-- ============================================================
+     IMAGE LIGHTBOX MODAL
+     ============================================================ --}}
+<div id="lrtsImageLightbox" class="lrts-lightbox" onclick="closeLightbox(event)">
+    <button type="button" class="lrts-lightbox-close" onclick="closeLightbox(event)" aria-label="Close image">
+        <i class="bi bi-x-lg"></i>
+    </button>
+    <img id="lrtsLightboxImg" src="" alt="Zoomed attachment" onclick="event.stopPropagation()">
+</div>
+
 <script>
     (function () {
         const input = document.getElementById('adminAttachment');
@@ -256,6 +270,42 @@
             label.textContent = input.files.length ? input.files[0].name : '';
         });
     })();
+
+    // Image Lightbox Logic
+    document.addEventListener('DOMContentLoaded', function() {
+        const zoomableImages = document.querySelectorAll('.lrts-zoomable-img');
+        const lightbox = document.getElementById('lrtsImageLightbox');
+        const lightboxImg = document.getElementById('lrtsLightboxImg');
+
+        // Attach click event to all zoomable images
+        zoomableImages.forEach(img => {
+            img.addEventListener('click', function() {
+                const src = this.getAttribute('data-src') || this.src;
+                lightboxImg.src = src;
+                lightbox.classList.add('is-open');
+                document.body.style.overflow = 'hidden'; // Prevent background scrolling
+            });
+        });
+
+        // Function to close the lightbox
+        window.closeLightbox = function(e) {
+            if (e) e.stopPropagation();
+            lightbox.classList.remove('is-open');
+            document.body.style.overflow = ''; // Restore background scrolling
+            
+            // Clear the src after the fade-out animation to save memory
+            setTimeout(() => {
+                lightboxImg.src = '';
+            }, 200);
+        }
+
+        // Allow closing with the Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && lightbox.classList.contains('is-open')) {
+                closeLightbox();
+            }
+        });
+    });
 </script>
 
 @endsection

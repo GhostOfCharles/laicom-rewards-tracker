@@ -1172,3 +1172,598 @@ body.lrts-drawer-open .lrts-chat-bubble {
     .lrts-ticket-meta-strip { grid-template-columns: 1fr; gap: 0.5rem; }
     .lrts-ticket-thread-view { max-height: 300px; }
 }
+
+/* ============================================================
+   Create Ticket Modal — Upgraded
+   ============================================================ */
+
+.lrts-create-ticket {
+    border: 2px solid var(--laicom-navy);
+    border-radius: 0;
+    overflow: hidden;
+    background: #fff;
+}
+
+/* Header */
+.lrts-create-header {
+    background: var(--laicom-navy);
+    color: #fff;
+    padding: 1rem 1.25rem 0.75rem;
+}
+.lrts-create-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+.lrts-create-title {
+    margin: 0;
+    font-weight: 900;
+    font-size: 0.95rem;
+    letter-spacing: 0.06em;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #fff;
+}
+.lrts-create-title i {
+    color: var(--laicom-red);
+    font-size: 1.05rem;
+}
+.lrts-create-close {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 1rem;
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: color 0.15s ease, transform 0.15s ease;
+}
+.lrts-create-close:hover {
+    color: var(--laicom-red);
+    transform: scale(1.15);
+}
+.lrts-create-subtitle {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: #a9b8d0;
+    margin-top: 0.35rem;
+}
+.lrts-create-accent {
+    height: 4px;
+    background: var(--laicom-red);
+}
+
+/* Body */
+.lrts-create-body {
+    padding: 1.25rem 1.25rem 1rem;
+    max-height: 68vh;
+    overflow-y: auto;
+}
+
+.lrts-create-field {
+    margin-bottom: 1.15rem;
+}
+.lrts-create-field:last-child {
+    margin-bottom: 0;
+}
+
+.lrts-create-label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.68rem;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--laicom-navy);
+    margin-bottom: 0.5rem;
+}
+.lrts-create-label i {
+    font-size: 0.85rem;
+    opacity: 0.75;
+}
+.lrts-create-optional {
+    color: #8a97ad;
+    font-weight: 700;
+    font-size: 0.62rem;
+    letter-spacing: 0.06em;
+    margin-left: 0.15rem;
+}
+
+/* Inputs */
+.lrts-create-input {
+    width: 100%;
+    border: 2px solid var(--laicom-navy);
+    border-radius: 0;
+    padding: 0.65rem 0.85rem;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--laicom-ink);
+    background: #fff;
+    transition: box-shadow 0.15s ease;
+}
+.lrts-create-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(18, 40, 76, 0.15);
+}
+.lrts-create-input::placeholder {
+    color: #8a97ad;
+    font-weight: 500;
+}
+
+.lrts-create-textarea {
+    resize: vertical;
+    min-height: 100px;
+    font-weight: 500;
+}
+
+/* Character counter */
+.lrts-create-counter {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #8a97ad;
+    letter-spacing: 0.04em;
+    text-align: right;
+    margin-top: 0.25rem;
+    transition: color 0.15s ease;
+}
+.lrts-create-counter.is-warn {
+    color: #d97706;
+}
+.lrts-create-counter.is-over {
+    color: var(--laicom-red);
+    font-weight: 900;
+}
+
+/* Category chips */
+.lrts-create-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+.lrts-create-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.45rem 0.85rem;
+    background: #fff;
+    border: 1.5px solid var(--laicom-navy);
+    color: var(--laicom-navy);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 0;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+.lrts-create-chip:hover {
+    background: #f4f7fb;
+}
+.lrts-create-chip.is-selected {
+    background: var(--laicom-navy);
+    color: #fff;
+}
+.lrts-create-chip.is-selected i {
+    color: var(--laicom-red);
+}
+.lrts-create-chip i {
+    font-size: 0.85rem;
+    opacity: 0.85;
+    transition: color 0.15s ease;
+}
+
+/* Related order preview */
+.lrts-create-receipt-preview {
+    margin-top: 0.5rem;
+    padding: 0.7rem 0.85rem;
+    background: #f4f7fb;
+    border-left: 4px solid var(--laicom-navy);
+    border-radius: 2px;
+}
+.lrts-create-receipt-preview-num {
+    font-size: 0.82rem;
+    font-weight: 900;
+    color: var(--laicom-navy);
+    letter-spacing: 0.03em;
+    margin-bottom: 0.2rem;
+}
+.lrts-create-receipt-preview-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #6c7a94;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.lrts-create-receipt-status {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.62rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+}
+.lrts-create-receipt-status.is-pending { background: #ffc107; color: #212529; }
+.lrts-create-receipt-status.is-approved { background: #198754; color: #fff; }
+.lrts-create-receipt-status.is-rejected { background: #dc3545; color: #fff; }
+
+.lrts-create-hint {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #8a97ad;
+    letter-spacing: 0.02em;
+    margin-top: 0.35rem;
+}
+
+/* Dropzone */
+.lrts-create-dropzone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 1.35rem 1rem;
+    border: 2px dashed var(--laicom-navy);
+    background: #fbfcfe;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+    text-align: center;
+    margin: 0;
+}
+.lrts-create-dropzone:hover {
+    background: #f0f5fb;
+}
+.lrts-create-dropzone.is-dragover {
+    background: #eaf0f8;
+    border-color: var(--laicom-red);
+}
+.lrts-create-dropzone-icon {
+    font-size: 1.6rem;
+    color: var(--laicom-navy);
+    margin-bottom: 0.15rem;
+}
+.lrts-create-dropzone-text {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--laicom-navy);
+    letter-spacing: 0.02em;
+}
+.lrts-create-dropzone-text span {
+    color: var(--laicom-red);
+    text-decoration: underline;
+}
+.lrts-create-dropzone-hint {
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: #8a97ad;
+    letter-spacing: 0.04em;
+}
+.lrts-create-file-input {
+    display: none;
+}
+
+/* File selected info */
+.lrts-create-file-info {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin-top: 0.5rem;
+    padding: 0.55rem 0.75rem;
+    background: #eaf0f8;
+    border-left: 4px solid var(--laicom-navy);
+}
+.lrts-create-file-info i {
+    font-size: 1rem;
+    color: var(--laicom-navy);
+}
+.lrts-create-file-info span {
+    flex: 1;
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: var(--laicom-navy);
+    letter-spacing: 0.03em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.lrts-create-file-remove {
+    background: transparent;
+    border: none;
+    color: var(--laicom-navy);
+    font-size: 0.85rem;
+    cursor: pointer;
+    padding: 0.15rem 0.35rem;
+    transition: color 0.15s ease;
+}
+.lrts-create-file-remove:hover {
+    color: var(--laicom-red);
+}
+
+/* Errors */
+.lrts-create-error {
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: var(--laicom-red);
+    letter-spacing: 0.03em;
+    margin-top: 0.35rem;
+}
+
+/* Footer */
+.lrts-create-footer {
+    border-top: 2px solid var(--laicom-navy);
+    background: #fbfcfe;
+    padding: 0.85rem 1.25rem 1rem;
+}
+.lrts-create-privacy {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #8a97ad;
+    letter-spacing: 0.03em;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.75rem;
+}
+.lrts-create-privacy i {
+    color: var(--laicom-navy);
+    font-size: 0.85rem;
+}
+.lrts-create-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+.lrts-create-btn-cancel {
+    padding: 0.6rem 1.2rem;
+    background: #fff;
+    border: 2px solid var(--laicom-navy);
+    color: var(--laicom-navy);
+    font-size: 0.76rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+.lrts-create-btn-cancel:hover {
+    background: #eaf0f8;
+}
+.lrts-create-btn-submit {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.6rem 1.5rem;
+    background: var(--laicom-navy);
+    border: 2px solid var(--laicom-navy);
+    color: #fff;
+    font-size: 0.76rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+.lrts-create-btn-submit:hover {
+    background: #0a1b35;
+    border-color: #0a1b35;
+}
+.lrts-create-btn-submit i {
+    font-size: 0.9rem;
+}
+
+/* Responsive */
+@media (max-width: 575.98px) {
+    .lrts-create-body { padding: 1rem; max-height: 70vh; }
+    .lrts-create-actions { flex-direction: column-reverse; }
+    .lrts-create-btn-cancel,
+    .lrts-create-btn-submit { width: 100%; justify-content: center; }
+    .lrts-create-chips { gap: 0.35rem; }
+    .lrts-create-chip { flex: 1 1 calc(50% - 0.35rem); justify-content: center; }
+}
+
+/* ============================================================
+   Ticket Modal — Chat UI Overhaul (Fixes glitchy images & layout)
+   ============================================================ */
+
+/* 1. Modal Container: Make it a fixed-height flexbox */
+.lrts-ticket-modal {
+    border: 2px solid var(--laicom-navy);
+    border-radius: 0;
+    display: flex;
+    flex-direction: column;
+    max-height: 85vh; /* Prevents modal from going off screen */
+    background: #fff;
+}
+
+/* 2. Header */
+.lrts-ticket-modal-header {
+    background: var(--laicom-navy);
+    color: #fff;
+    padding: 1rem 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid var(--laicom-navy);
+    flex-shrink: 0;
+}
+.lrts-ticket-modal-num { font-weight: 900; font-size: 1.1rem; }
+.lrts-ticket-modal-subject { font-weight: 700; font-size: 0.9rem; }
+.lrts-ticket-modal-close {
+    background: transparent; border: none; color: #fff; font-size: 1.2rem; cursor: pointer;
+}
+
+/* 3. Metadata Strip */
+.lrts-ticket-modal-meta {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    padding: 0.75rem 1.25rem;
+    flex-shrink: 0;
+}
+.lrts-ticket-modal-meta-item { display: flex; align-items: center; gap: 0.5rem; }
+.lrts-ticket-modal-meta-icon { color: var(--laicom-navy); opacity: 0.7; }
+.lrts-ticket-modal-meta-label { font-size: 0.65rem; font-weight: 900; color: #6c757d; text-transform: uppercase; }
+.lrts-ticket-modal-meta-value { font-size: 0.85rem; font-weight: 700; color: var(--laicom-navy); }
+
+/* 4. Thread (Scrollable area) */
+.lrts-ticket-modal-thread {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 1.5rem;
+    background: #f4f7fb; /* Light grey background */
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* 5. Individual Message Bubbles */
+.lrts-ticket-msg {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-left: 4px solid var(--laicom-navy); /* Blue left border for User */
+    padding: 1rem;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.lrts-ticket-msg.is-support {
+    border-left-color: var(--laicom-red); /* Red left border for Support */
+}
+
+.lrts-ticket-msg-head {
+    font-size: 0.7rem; font-weight: 900; color: var(--laicom-navy);
+    text-transform: uppercase; margin-bottom: 0.5rem;
+    display: flex; align-items: center; gap: 0.5rem;
+}
+.lrts-ticket-msg-body { font-size: 0.9rem; color: #333; line-height: 1.5; }
+
+/* 6. Attachments — FIXES THE GLITCHY IMAGE */
+.lrts-ticket-msg-attachment { margin-top: 1rem; }
+.lrts-ticket-attachment-img {
+    max-width: 100%;
+    max-height: 200px; /* Restricts image height */
+    object-fit: contain; /* Keeps aspect ratio */
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    cursor: pointer;
+    display: block;
+}
+.lrts-ticket-attachment-file {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    padding: 0.5rem 1rem; background: #e9ecef; border-radius: 4px;
+    color: var(--laicom-navy); font-weight: 700; text-decoration: none;
+    font-size: 0.8rem;
+}
+
+/* 7. Composer (Fixed at bottom) */
+.lrts-ticket-modal-composer {
+    padding: 1.25rem;
+    background: #fff;
+    border-top: 2px solid var(--laicom-navy);
+    flex-shrink: 0;
+}
+.lrts-ticket-modal-composer-label {
+    font-size: 0.75rem; font-weight: 900; color: var(--laicom-navy);
+    text-transform: uppercase; margin-bottom: 0.5rem;
+}
+.lrts-ticket-modal-textarea {
+    width: 100%; border: 1px solid #ced4da; border-radius: 4px;
+    padding: 0.75rem; font-size: 0.9rem; resize: vertical;
+    min-height: 80px; margin-bottom: 1rem;
+}
+.lrts-ticket-modal-textarea:focus {
+    border-color: var(--laicom-navy); outline: none;
+    box-shadow: 0 0 0 2px rgba(18, 40, 76, 0.1);
+}
+.lrts-ticket-modal-composer-foot {
+    display: flex; justify-content: space-between; align-items: center;
+}
+.lrts-ticket-modal-attach { display: flex; align-items: center; gap: 0.5rem; }
+.lrts-ticket-modal-attach-btn {
+    background: #fff; border: 1px solid var(--laicom-navy);
+    color: var(--laicom-navy); padding: 0.4rem 0.8rem;
+    font-size: 0.75rem; font-weight: 900; text-transform: uppercase;
+    cursor: pointer; border-radius: 4px; margin: 0;
+}
+.lrts-ticket-modal-attach-input { display: none; }
+.lrts-ticket-modal-attach-name { font-size: 0.75rem; color: #6c757d; font-weight: 600; }
+.lrts-ticket-modal-send {
+    background: var(--laicom-navy); color: #fff; border: none;
+    padding: 0.5rem 1.25rem; font-size: 0.8rem; font-weight: 900;
+    text-transform: uppercase; border-radius: 4px; cursor: pointer;
+}
+.lrts-ticket-modal-send:hover { background: #0a1b35; }
+.lrts-ticket-modal-hint { font-size: 0.7rem; color: #6c757d; margin-top: 0.5rem; }
+
+/* 8. Locked/Closed Ticket State */
+.lrts-ticket-modal-locked {
+    padding: 1.5rem; background: #f8f9fa; border-top: 2px solid #dee2e6;
+    display: flex; align-items: center; gap: 1rem; flex-shrink: 0;
+}
+.lrts-ticket-modal-locked-icon { font-size: 1.5rem; color: #6c757d; }
+.lrts-ticket-modal-locked-title { font-weight: 900; color: #6c757d; font-size: 0.85rem; }
+.lrts-ticket-modal-locked-text { font-size: 0.8rem; color: #6c757d; }
+
+/* ============================================================
+   Image Lightbox Modal
+   ============================================================ */
+.lrts-lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 9999; /* Higher than any Bootstrap modal */
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.lrts-lightbox.is-open {
+    display: flex;
+    opacity: 1;
+}
+
+.lrts-lightbox img {
+    max-width: 90%;
+    max-height: 85vh;
+    object-fit: contain;
+    border: 3px solid #fff;
+    border-radius: 4px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    animation: lrtsZoomIn 0.2s ease-out forwards;
+}
+
+.lrts-lightbox-close {
+    position: absolute;
+    top: 1.5rem;
+    right: 2rem;
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 2.5rem;
+    cursor: pointer;
+    line-height: 1;
+    transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.lrts-lightbox-close:hover {
+    color: var(--laicom-red);
+    transform: scale(1.1);
+}
+
+@keyframes lrtsZoomIn {
+    0% { transform: scale(0.95); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
