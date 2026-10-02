@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="{{ asset('css/laicom.css') }}">
 </head>
-<body class="laicom-page">
+<body class="laicom-page laicom-customer-dashboard">
 
     <!-- Navigation Bar -->
     <nav class="navbar navbar-expand-lg navbar-dark laicom-navbar py-3 shadow-sm">
@@ -1202,38 +1202,60 @@
                     mainLi.className = 'product-list-item d-flex align-items-center justify-content-between p-2';
                     mainLi.id = uniqueId + '-main';
 
-                    let imageHtml = productImage
-                        ? `<img src="${productImage}" alt="product" class="border border-dark me-3" style="width: 50px; height: 50px; object-fit: cover;">`
-                        : `<div class="border border-dark me-3 bg-light" style="width: 50px; height: 50px;"></div>`;
+                    const productInfo = document.createElement('div');
+                    productInfo.className = 'd-flex align-items-center flex-grow-1';
+                    const productThumbnail = document.createElement('img');
+                    productThumbnail.src = productImage || '{{ asset('images/laicom-logo.png') }}';
+                    productThumbnail.alt = productImage ? productName : '';
+                    productThumbnail.className = 'border border-dark me-3';
+                    productThumbnail.style.cssText = 'width: 50px; height: 50px; object-fit: contain;';
+                    productThumbnail.onerror = function() { this.src = '{{ asset('images/laicom-logo.png') }}'; };
+                    productInfo.appendChild(productThumbnail);
+                    const name = document.createElement('span');
+                    name.className = 'fw-bold small text-uppercase';
+                    name.textContent = productName;
+                    productInfo.appendChild(name);
 
-                    mainLi.innerHTML = `
-                        <div class="d-flex align-items-center flex-grow-1">
-                            ${imageHtml}
-                            <span class="fw-bold small text-uppercase">${productName}</span>
-                        </div>
-                        <div class="d-flex align-items-center">
-                            <div class="text-center me-3">
-                                <span class="d-block" style="font-size: 0.65rem; font-weight: 900;">QTY</span>
-                                <div class="qty-box bg-white">${qty}</div>
-                            </div>
-                            <button type="button" class="btn btn-dark rounded-0 fw-bold fs-5 px-3 py-0 remove-btn" data-target="${uniqueId}"><i class="bi bi-dash-lg"></i></button>
-                        </div>
-                    `;
+                    const productActions = document.createElement('div');
+                    productActions.className = 'd-flex align-items-center';
+                    const quantityBox = document.createElement('div');
+                    quantityBox.className = 'text-center me-3';
+                    const quantityLabel = document.createElement('span');
+                    quantityLabel.className = 'd-block';
+                    quantityLabel.style.cssText = 'font-size: 0.65rem; font-weight: 900;';
+                    quantityLabel.textContent = 'QTY';
+                    const quantityValue = document.createElement('div');
+                    quantityValue.className = 'qty-box bg-white';
+                    quantityValue.textContent = qty;
+                    quantityBox.append(quantityLabel, quantityValue);
+                    const removeButton = document.createElement('button');
+                    removeButton.type = 'button';
+                    removeButton.className = 'btn laicom-btn-primary fw-bold fs-5 px-3 py-0 remove-btn';
+                    removeButton.dataset.target = uniqueId;
+                    removeButton.setAttribute('aria-label', 'Remove ' + productName);
+                    removeButton.innerHTML = '<i class="bi bi-dash-lg" aria-hidden="true"></i>';
+                    productActions.append(quantityBox, removeButton);
+                    mainLi.append(productInfo, productActions);
                     mainListbox.appendChild(mainLi);
                     processReceiptButton.disabled = false;
 
                     const modalLi = document.createElement('li');
                     modalLi.id = uniqueId + '-modal';
-                    modalLi.innerHTML = `• ${productName} — QTY ${qty}`;
+                    modalLi.textContent = `• ${productName} — QTY ${qty}`;
                     modalSummaryList.appendChild(modalLi);
 
                     const hiddenWrapper = document.createElement('div');
                     hiddenWrapper.id = uniqueId + '-hidden';
 
-                    hiddenWrapper.innerHTML = `
-                        <input type="hidden" name="items[${itemIndex}][product_name]" value="${productName}">
-                        <input type="hidden" name="items[${itemIndex}][quantity]" value="${qty}">
-                    `;
+                    const productNameInput = document.createElement('input');
+                    productNameInput.type = 'hidden';
+                    productNameInput.name = `items[${itemIndex}][product_name]`;
+                    productNameInput.value = productName;
+                    const productQuantityInput = document.createElement('input');
+                    productQuantityInput.type = 'hidden';
+                    productQuantityInput.name = `items[${itemIndex}][quantity]`;
+                    productQuantityInput.value = qty;
+                    hiddenWrapper.append(productNameInput, productQuantityInput);
                     hiddenContainer.appendChild(hiddenWrapper);
 
                     mainLi.querySelector('.remove-btn').addEventListener('click', function() {

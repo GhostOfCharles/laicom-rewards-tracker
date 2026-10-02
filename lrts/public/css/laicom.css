@@ -3,6 +3,13 @@
 body { color: var(--laicom-ink); font-family: "Segoe UI", Tahoma, sans-serif; }
 .laicom-navbar, .laicom-sidebar-head, .laicom-section-title { background: var(--laicom-navy); color: #fff; }
 .laicom-page { background: linear-gradient(135deg, #f4f7fb 0%, #fff 45%, #edf2fa 100%); min-height: 100vh; }
+.laicom-customer-dashboard,
+.laicom-admin-dashboard {
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+}
 .laicom-card { border: 2px solid var(--laicom-navy); border-radius: 0; background: #fff; box-shadow: 7px 7px 0 rgba(18, 40, 76, .10); }
 .laicom-card .card-header { background: var(--laicom-navy); color: #fff; border-radius: 0; font-weight: 800; letter-spacing: .08em; }
 .laicom-btn-primary { background: var(--laicom-navy); border: 2px solid var(--laicom-navy); color: #fff; border-radius: 0; font-weight: 800; letter-spacing: .04em; }
@@ -12,8 +19,13 @@ body { color: var(--laicom-ink); font-family: "Segoe UI", Tahoma, sans-serif; }
 .laicom-thumbnail { width: 48px; height: 48px; object-fit: cover; border: 2px solid var(--laicom-navy); background: #fff; }
 .laicom-empty-image { object-fit: contain; padding: 5px; }
 .laicom-table thead th { background: #eaf0f8; color: var(--laicom-navy); border-color: var(--laicom-navy); font-size: .78rem; letter-spacing: .04em; }
-.laicom-modal .modal-content { border: 2px solid var(--laicom-navy); border-radius: 0; }
-.laicom-modal .modal-header { background: var(--laicom-navy); color: #fff; border-bottom: 2px solid var(--laicom-navy); }
+.modal-content.laicom-modal { border: 2px solid var(--laicom-navy); border-radius: 0; }
+.modal-content.laicom-modal .modal-header { background: var(--laicom-navy); color: #fff; border-bottom: 2px solid var(--laicom-navy); }
+.laicom-page .card, .laicom-page .modal-content, .laicom-page .form-control, .laicom-page .form-select,
+.laicom-page .btn:not(.rounded-pill) { border-radius: 0 !important; }
+.laicom-page :focus-visible { outline: 3px solid rgba(237, 27, 36, .7); outline-offset: 2px; }
+.laicom-page .promo-card, .laicom-page .promo-product, .laicom-page .lrts-ticket-row,
+.laicom-page .lrts-ticket-empty, .laicom-page .lrts-ticket-msg { border-radius: 0; }
 .laicom-bell { position: relative; color: var(--laicom-red); }
 .laicom-bell .badge { position: absolute; top: -7px; right: -10px; font-size: .6rem; }
 @media (max-width: 767.98px) { .laicom-card { box-shadow: 4px 4px 0 rgba(18, 40, 76, .10); } }
@@ -25,7 +37,9 @@ body { color: var(--laicom-ink); font-family: "Segoe UI", Tahoma, sans-serif; }
    ============================================================ */
 
 /* Shell */
-.lrts-shell { display: flex; min-height: calc(100vh - 70px); }
+.laicom-customer-dashboard { display: flex; flex-direction: column; }
+.laicom-customer-dashboard > .laicom-navbar { flex: 0 0 auto; }
+.lrts-shell { display: flex; flex: 1 1 auto; min-height: 0; overflow: hidden; }
 
 /* Sidebar */
 .lrts-sidebar {
@@ -35,6 +49,8 @@ body { color: var(--laicom-ink); font-family: "Segoe UI", Tahoma, sans-serif; }
     color: #fff;
     padding: 1.25rem 0.75rem;
     transition: transform 0.25s ease;
+    min-height: 0;
+    overflow-y: auto;
 }
 .lrts-sidebar .lrts-sidebar-heading {
     font-size: 0.7rem;
@@ -75,7 +91,7 @@ body { color: var(--laicom-ink); font-family: "Segoe UI", Tahoma, sans-serif; }
 }
 
 /* Main content area */
-.lrts-content { flex-grow: 1; padding: 1.75rem; min-width: 0; }
+.lrts-content { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior-y: contain; padding: 1.75rem; min-width: 0; }
 
 /* Mobile toggle button (distinct from .laicom-bell) */
 .lrts-menu-toggle {
@@ -110,6 +126,21 @@ body { color: var(--laicom-ink); font-family: "Segoe UI", Tahoma, sans-serif; }
         z-index: 1030;
     }
     .lrts-backdrop.is-open { display: block; }
+}
+
+/* Fixed-viewport admin workspace: navigation/header stay put while page content scrolls. */
+.laicom-admin-dashboard > .container-fluid,
+.laicom-admin-dashboard > .container-fluid > .row { height: 100%; min-height: 0; }
+.laicom-admin-dashboard > .container-fluid > .row { flex-wrap: nowrap; }
+.laicom-admin-dashboard .sidebar { height: 100%; min-height: 0; overflow-y: auto; overscroll-behavior-y: contain; }
+.laicom-admin-dashboard .admin-main { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.laicom-admin-dashboard .admin-main > .d-flex { flex: 0 0 auto; }
+.laicom-admin-dashboard .admin-scroll-content { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior-y: contain; }
+
+@media (max-width: 767.98px) {
+    .laicom-admin-dashboard > .container-fluid > .row { flex-direction: column; }
+    .laicom-admin-dashboard .sidebar { width: 100%; height: auto; max-height: 28dvh; flex: 0 0 auto; }
+    .laicom-admin-dashboard .admin-main { flex: 1 1 auto; width: 100%; }
 }
 /* ============================================================
    Promos Tab — Section Toggle (Option A: dual navy bars)

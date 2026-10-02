@@ -23,11 +23,12 @@ class ClaimController extends Controller
 
         foreach ($receipts as $receipt) {
             $rewards = [];
-            foreach ($receipt->items as $item) {
-                $matchingPromos = $promotions->where('buy_product_name', $item->product_name);
+            foreach ($receipt->items->groupBy('product_name') as $productName => $items) {
+                $purchaseQuantity = $items->sum('quantity');
+                $matchingPromos = $promotions->where('buy_product_name', $productName);
                 
                 foreach ($matchingPromos as $promo) {
-                    $multiplier = floor($item->quantity / $promo->required_quantity);
+                    $multiplier = intdiv($purchaseQuantity, $promo->required_quantity);
                     if ($multiplier > 0) {
                         $earnedQty = $multiplier * $promo->reward_quantity;
                         $pid = $promo->premium_product_id;
@@ -97,12 +98,20 @@ class ClaimController extends Controller
 
     public function reject($id)
     {
-        $receipt = Receipt::findOrFail($id);
-        if ($receipt->status !== 'pending') {
+        $wasRejected = DB::transaction(function () use ($id) {
+            $receipt = Receipt::lockForUpdate()->findOrFail($id);
+            if ($receipt->status !== 'pending') {
+                return false;
+            }
+
+            $receipt->update(['status' => 'rejected']);
+            return true;
+        });
+
+        if (! $wasRejected) {
             return back()->withErrors(['error' => 'Only processing receipts can be rejected.']);
         }
 
-        $receipt->update(['status' => 'rejected']);
         return back()->with('success', 'Receipt has been rejected.');
     }
 
@@ -111,9 +120,10 @@ class ClaimController extends Controller
         $promotions = Promotion::where('is_active', true)->get()->groupBy('buy_product_name');
         $rewards = [];
 
-        foreach ($receipt->items as $item) {
-            foreach ($promotions->get($item->product_name, collect()) as $promo) {
-                $quantity = intdiv($item->quantity, $promo->required_quantity) * $promo->reward_quantity;
+        foreach ($receipt->items->groupBy('product_name') as $productName => $items) {
+            $purchaseQuantity = $items->sum('quantity');
+            foreach ($promotions->get($productName, collect()) as $promo) {
+                $quantity = intdiv($purchaseQuantity, $promo->required_quantity) * $promo->reward_quantity;
                 if ($quantity > 0) {
                     $rewards[] = [
                         'promotion_id' => $promo->id,

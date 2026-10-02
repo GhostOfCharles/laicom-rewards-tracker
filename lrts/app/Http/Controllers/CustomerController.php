@@ -8,6 +8,7 @@ use App\Models\Inventory;
 use App\Models\Receipt;
 use App\Models\Promotion;
 use App\Models\EarnedReward;
+use Illuminate\Support\Facades\DB;
 
 class CustomerController extends Controller
 {
@@ -38,7 +39,10 @@ class CustomerController extends Controller
         // 5. Fetch Tickets for the Help drawer
         $tickets = $user->tickets()
             ->withCount('replies')
-            ->with(['replies' => fn ($q) => $q->orderBy('created_at')])
+            ->with(['replies' => fn ($query) => $query
+                ->where('is_internal_note', false)
+                ->with('user')
+                ->orderBy('created_at')])
             ->latest()
             ->get();
 
@@ -53,7 +57,7 @@ class CustomerController extends Controller
         $request->validate([
             'salesman_order_number' => 'required|string|unique:receipts,salesman_order_number',
             'items' => 'required|array|min:1',
-            'items.*.product_name' => 'required|string',
+            'items.*.product_name' => 'required|string|exists:inventories,name',
             'items.*.quantity' => 'required|integer|min:1',
         ], [
             'items.required' => 'You must add at least one product to your item listbox.',
@@ -78,16 +82,27 @@ class CustomerController extends Controller
 
     public function claimReward(EarnedReward $reward)
     {
-        abort_unless($reward->user_id === Auth::id(), 403);
-
-        if ($reward->claim_status !== 'unclaimed') {
-            return back()->withErrors(['error' => 'This reward is no longer available to claim.']);
+        if ($reward->user_id !== Auth::id()) {
+            abort(403);
         }
 
-        $reward->update([
-            'claim_status' => 'claimed',
-            'claimed_at' => now(),
-        ]);
+        $claimed = DB::transaction(function () use ($reward) {
+            $lockedReward = EarnedReward::lockForUpdate()->findOrFail($reward->id);
+            if ($lockedReward->claim_status !== 'unclaimed') {
+                return false;
+            }
+
+            $lockedReward->update([
+                'claim_status' => 'claimed',
+                'claimed_at' => now(),
+            ]);
+
+            return true;
+        });
+
+        if (! $claimed) {
+            return back()->withErrors(['error' => 'This reward is no longer available to claim.']);
+        }
 
         return back()->with('success', 'Reward marked as claimed. Please keep this record for your reference.');
     }

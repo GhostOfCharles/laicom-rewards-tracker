@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
+use EduLazaro\Laracaptcha\Rules\Captcha;
+use EduLazaro\Laracaptcha\Facades\Captcha as CaptchaFacade;
 
 class WebAuthController extends Controller
 {
@@ -25,6 +27,7 @@ class WebAuthController extends Controller
             'store_name' => 'required|string|max:255',
             'phone_number' => 'required|string|max:50',
             'password' => 'required|string|min:6|confirmed',
+            CaptchaFacade::responseField() => ['required', new Captcha],
         ]);
 
         $user = User::create([

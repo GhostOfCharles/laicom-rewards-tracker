@@ -13,7 +13,7 @@ use App\Http\Controllers\TicketController;
 use App\Http\Controllers\Admin\TicketController as AdminTicketController;
 
 // Protected Customer Routes
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'customer'])->group(function () {
     Route::get('/dashboard', [CustomerController::class, 'index'])->name('customer.dashboard');
 
     // Handle order form submission
@@ -78,6 +78,10 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
     Route::post('/tickets/{ticket}/reply', [AdminTicketController::class, 'reply'])->name('admin.tickets.reply');
     Route::post('/tickets/{ticket}/status', [AdminTicketController::class, 'updateStatus'])->name('admin.tickets.status');
 
-    Route::resource('products', PremiumProductController::class);
-    Route::resource('promotions', PromotionController::class);
+    Route::post('/products', [PremiumProductController::class, 'store'])->name('products.store');
+    Route::put('/products/{id}', [PremiumProductController::class, 'update'])->name('products.update');
+    Route::delete('/products/{id}', [PremiumProductController::class, 'destroy'])->name('products.destroy');
+    Route::post('/promotions', [PromotionController::class, 'store'])->name('promotions.store');
+    Route::put('/promotions/{id}', [PromotionController::class, 'update'])->name('promotions.update');
+    Route::delete('/promotions/{id}', [PromotionController::class, 'destroy'])->name('promotions.destroy');
 });

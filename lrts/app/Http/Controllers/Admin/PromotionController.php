@@ -4,21 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Promotion;
-use App\Models\Inventory;
 use Illuminate\Http\Request;
 
 class PromotionController extends Controller
 {
-    public function index()
-    {
-        return redirect()->route('admin.dashboard');
-    }
-
-    public function create()
-    {
-        return redirect()->route('admin.dashboard');
-    }
-
     public function store(Request $request)
     {
         $request->validate([
@@ -43,17 +32,6 @@ class PromotionController extends Controller
         ]);
 
         return redirect()->back()->with('success', 'Promotion created successfully.');
-    }
-
-    public function show(string $id)
-    {
-        $promotion = Promotion::with('premiumProduct')->findOrFail($id);
-        return response()->json($promotion);
-    }
-
-    public function edit(string $id)
-    {
-        return redirect()->route('admin.dashboard');
     }
 
     public function update(Request $request, string $id)

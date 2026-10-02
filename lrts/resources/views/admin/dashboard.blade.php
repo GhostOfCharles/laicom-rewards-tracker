@@ -12,24 +12,36 @@
 <!-- Premium Products Section -->
 <div class="mb-5">
     <div class="d-flex justify-content-between align-items-center mb-2">
-        <h6 class="mb-0 fw-bold">PREMIUM PRODUCTS</h6>
-        <button class="btn btn-sm btn-outline-dark" data-bs-toggle="modal" data-bs-target="#addPremiumProductModal" title="Add New Premium Product"><i class="bi bi-plus-lg"></i></button>
+        <div><h6 class="mb-0 fw-bold">PREMIUM PRODUCTS</h6><span class="small text-muted">Promotional reward stock</span></div>
+        <button type="button" class="btn btn-sm laicom-btn-primary" data-bs-toggle="modal" data-bs-target="#addPremiumProductModal" title="Add New Premium Product" aria-label="Add premium product"><i class="bi bi-plus-lg"></i></button>
     </div>
+
+    <form method="GET" action="{{ route('admin.dashboard') }}" class="d-flex align-items-center gap-2 mb-2">
+        <label for="premium_category" class="small fw-bold mb-0">SORT BY CATEGORY</label>
+        <select id="premium_category" name="premium_category" class="form-select form-select-sm border-dark border-2 rounded-0 w-auto" onchange="this.form.submit()">
+            <option value="">All categories</option>
+            @foreach (\App\Models\PremiumProduct::CATEGORIES as $value => $label)
+                <option value="{{ $value }}" {{ $premiumCategory === $value ? 'selected' : '' }}>{{ $label }}</option>
+            @endforeach
+        </select>
+    </form>
 
     <div class="table-responsive laicom-card p-1">
         <table class="table table-bordered laicom-table mb-0 text-center align-middle">
             <thead class="table-light">
                 <tr>
-                    <th>PRODUCT NAME</th>
-                    <th>STOCK</th>
-                    <th>STATUS</th>
-                    <th>ACTIONS</th>
+                    <th scope="col">PRODUCT NAME</th>
+                    <th scope="col">CATEGORY</th>
+                    <th scope="col">STOCK</th>
+                    <th scope="col">STATUS</th>
+                    <th scope="col">ACTIONS</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse($premiumProducts as $premium)
                 <tr>
                     <td class="text-start fw-bold"><img src="{{ $premium->image_path ? asset('storage/' . $premium->image_path) : asset('images/laicom-logo.png') }}" onerror="this.src='{{ asset('images/laicom-logo.png') }}'" alt="{{ $premium->name }}" class="laicom-thumbnail {{ $premium->image_path ? '' : 'laicom-empty-image' }} me-2">{{ $premium->name }}</td>
+                    <td>{{ $premium->categoryLabel() }}</td>
                     <td>{{ $premium->stock }}</td>
                     <td>
                         @if($premium->stock > 50)
@@ -53,7 +65,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="4" class="text-center py-3 text-muted fw-bold">NO PREMIUM PRODUCTS FOUND</td>
+                    <td colspan="5" class="text-center py-3 text-muted fw-bold">NO PREMIUM PRODUCTS FOUND</td>
                 </tr>
                 @endforelse
             </tbody>
@@ -65,7 +77,7 @@
 <div>
     <div class="d-flex justify-content-between align-items-center mb-2">
         <h6 class="mb-0 fw-bold">ACTIVE PROMOTIONS</h6>
-        <button class="btn btn-sm btn-outline-dark" data-bs-toggle="modal" data-bs-target="#addPromotionModal" title="Add Active Promotion"><i class="bi bi-plus-lg"></i></button>
+        <button type="button" class="btn btn-sm laicom-btn-primary" data-bs-toggle="modal" data-bs-target="#addPromotionModal" title="Add Active Promotion" aria-label="Add promotion"><i class="bi bi-plus-lg"></i></button>
     </div>
 
     <div class="table-responsive border border-dark border-2 p-1">
@@ -112,7 +124,7 @@
 <!-- Add New Premium Product Modal -->
 <div class="modal fade" id="addPremiumProductModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
-        <div class="modal-content border-dark border-2 rounded-0">
+        <div class="modal-content laicom-modal">
             <div class="modal-header border-bottom border-dark">
                 <h5 class="modal-title fw-bold">ADD NEW PREMIUM PRODUCT</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -130,8 +142,15 @@
                         <input type="number" name="initial_stock" class="form-control border-dark rounded-0" required min="0">
                     </div>
                     <div class="mb-3 text-start">
+                        <label class="form-label fw-bold small">CATEGORY:</label>
+                        <select name="category" class="form-select border-dark border-2 rounded-0" required>
+                            <option value="" selected disabled>Select a category</option>
+                            @foreach (\App\Models\PremiumProduct::CATEGORIES as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach
+                        </select>
+                    </div>
+                    <div class="mb-3 text-start">
                         <label class="form-label fw-bold small">PRODUCT PICTURE:</label>
-                        <input type="file" name="image" class="form-control border-dark rounded-0" accept="image/*">
+                        <input type="file" name="image" class="form-control border-dark rounded-0" accept="image/png,image/jpeg,image/gif">
                     </div>
                     <div class="modal-footer border-top-0 justify-content-end px-0 pb-0">
                         <button type="button" class="btn btn-outline-dark rounded-0" data-bs-dismiss="modal">CANCEL</button>
@@ -144,7 +163,7 @@
 </div>
 
 <!-- Dynamic Edit Premium Product Modals (NEW — was missing) -->
-@foreach($premiumProducts as $premium)
+@foreach($allPremiumProducts as $premium)
 <div class="modal fade" id="editPremiumProductModal{{ $premium->id }}" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content border-dark border-2 rounded-0">
@@ -166,10 +185,21 @@
                         <input type="number" name="stock" class="form-control border-dark rounded-0" value="{{ $premium->stock }}" required min="0">
                     </div>
                     <div class="mb-3">
+                        <label class="form-label fw-bold small">CATEGORY:</label>
+                        <select name="category" class="form-select border-dark border-2 rounded-0" required>
+                            @if (! $premium->category || ! array_key_exists($premium->category, \App\Models\PremiumProduct::CATEGORIES))
+                                <option value="" selected disabled>Select a category for this legacy item</option>
+                            @endif
+                            @foreach (\App\Models\PremiumProduct::CATEGORIES as $value => $label)
+                                <option value="{{ $value }}" {{ $premium->category === $value ? 'selected' : '' }}>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label fw-bold small">PRODUCT PICTURE:</label>
-                        <input type="file" name="image" class="form-control border-dark rounded-0" accept="image/*">
-                        @if($premium->image_path)
-                            <div class="small text-muted mt-1">CURRENT: {{ basename($premium->image_path) }}</div>
+                        <input type="file" name="image" class="form-control border-dark rounded-0" accept="image/png,image/jpeg,image/gif">
+                        @if ($premium->image_path)
+                            <div class="small text-muted mt-2 d-flex align-items-center gap-2"><img src="{{ asset('storage/' . $premium->image_path) }}" alt="Current {{ $premium->name }} image" class="laicom-thumbnail">Current image</div>
                         @endif
                     </div>
 
@@ -187,7 +217,7 @@
 <!-- Add Active Promotion Modal -->
 <div class="modal fade" id="addPromotionModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
-        <div class="modal-content border-dark border-2 rounded-0">
+        <div class="modal-content laicom-modal">
             <div class="modal-header border-bottom border-dark">
                 <h5 class="modal-title fw-bold">ADD ACTIVE PROMOTION</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -220,7 +250,7 @@
                         <label class="form-label fw-bold small">SELECTED FREE PRODUCT:</label>
                         <select name="premium_product_id" class="form-select border-dark rounded-0" required>
                             <option selected disabled value="">Choose a premium reward...</option>
-                            @foreach($premiumProducts as $premium)
+                            @foreach($allPremiumProducts as $premium)
                                 <option value="{{ $premium->id }}">{{ $premium->name }}</option>
                             @endforeach
                         </select>
@@ -244,7 +274,7 @@
 @foreach($promotions as $promo)
 <div class="modal fade" id="editPromotionModal{{ $promo->id }}" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
-        <div class="modal-content border-dark border-2 rounded-0">
+        <div class="modal-content laicom-modal">
             <div class="modal-header border-bottom border-dark">
                 <h5 class="modal-title fw-bold">EDIT ACTIVE PROMOTION</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -279,7 +309,7 @@
                     <div class="mb-3">
                         <label class="form-label fw-bold small">SELECTED FREE PRODUCT:</label>
                         <select name="premium_product_id" class="form-select border-dark rounded-0" required>
-                            @foreach($premiumProducts as $premium)
+                            @foreach($allPremiumProducts as $premium)
                                 <option value="{{ $premium->id }}" {{ $promo->premium_product_id == $premium->id ? 'selected' : '' }}>
                                     {{ $premium->name }}
                                 </option>

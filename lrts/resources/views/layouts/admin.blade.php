@@ -14,7 +14,7 @@
         .sidebar .nav-link:hover, .sidebar .nav-link.active { background-color: #12284c; color: #fff !important; }
     </style>
 </head>
-<body class="laicom-page">
+<body class="laicom-page laicom-admin-dashboard">
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar Navigation -->
@@ -43,16 +43,24 @@
             </div>
 
             <!-- Main Content Area -->
-            <div class="col-md-9 col-lg-10 p-4">
+            <div class="col-md-9 col-lg-10 p-4 admin-main">
                 <div class="d-flex align-items-center justify-content-between border-bottom border-2 border-dark pb-3 mb-4">
                     <div><div class="small text-muted fw-bold">LAICOM REWARDS TRACKER SYSTEM</div><h4 class="mb-0 fw-bold" style="color: #12284c;">ADMIN WORKSPACE</h4></div>
                     <form action="{{ route('logout') }}" method="POST">@csrf<button type="submit" class="btn laicom-btn-primary btn-sm">LOGOUT</button></form>
                 </div>
-                @yield('content')
+                <div class="admin-scroll-content">
+                    @yield('content')
+                </div>
             </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Bootstrap modals must escape the internally scrolling content region.
+        document.querySelectorAll('.laicom-admin-dashboard .modal').forEach((modal) => {
+            document.body.appendChild(modal);
+        });
+    </script>
 </body>
 </html>

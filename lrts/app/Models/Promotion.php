@@ -9,6 +9,15 @@ class Promotion extends Model
     'required_quantity', 'reward_quantity', 'start_date', 'end_date', 'is_active'
     ];
 
+    protected function casts(): array
+    {
+        return [
+            'start_date' => 'date',
+            'end_date' => 'date',
+            'is_active' => 'boolean',
+        ];
+    }
+
     public function premiumProduct() {
         return $this->belongsTo(PremiumProduct::class);
     }

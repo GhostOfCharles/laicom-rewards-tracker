@@ -22,7 +22,7 @@
 
         <table class="table table-borderless mb-0">
             <tbody>
-                @forelse($receipts as $receipt)
+                @forelse ($receipts as $receipt)
                 <tr class="border-bottom border-dark">
                     <td class="text-start pb-3">
                         <div class="fw-bold">ORDER NO: {{ $receipt->salesman_order_number }}</div>
@@ -48,6 +48,7 @@
                     </td>
                 </tr>
 
+                @push('modals')
                 <!-- Dynamic View Products Modal for this specific loop iteration -->
                 <div class="modal fade" id="viewProductsModal{{ $receipt->id }}" tabindex="-1" aria-hidden="true">
                     <div class="modal-dialog">
@@ -75,6 +76,9 @@
                     </div>
                 </div>
 
+                @endpush
+
+                @push('modals')
                 <!-- Dynamic View Claimable Rewards Modal -->
                 <div class="modal fade" id="viewRewardsModal{{ $receipt->id }}" tabindex="-1" aria-hidden="true">
                     <div class="modal-dialog">
@@ -112,6 +116,8 @@
                     </div>
                 </div>
 
+                @endpush
+
                 @empty
                 <tr>
                     <td colspan="2" class="text-center py-4 text-muted fw-bold">NO PENDING RECEIPTS IN QUEUE</td>
@@ -121,4 +127,5 @@
         </table>
     </div>
 </div>
+@stack('modals')
 @endsection

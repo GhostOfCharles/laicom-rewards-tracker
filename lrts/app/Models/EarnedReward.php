@@ -20,4 +20,14 @@ class EarnedReward extends Model
     {
         return $this->belongsTo(Receipt::class);
     }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function promotion()
+    {
+        return $this->belongsTo(Promotion::class);
+    }
 }

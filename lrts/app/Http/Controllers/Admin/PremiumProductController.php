@@ -4,26 +4,18 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\PremiumProduct;
+use App\Models\Inventory;
 use Illuminate\Http\Request;
 
 class PremiumProductController extends Controller
 {
-    public function index()
-    {
-        //
-    }
-
-    public function create()
-    {
-        //
-    }
-
     public function store(Request $request)
     {
         $request->validate([
             'name' => 'required|string|max:255',
             'item_code' => 'required|string|unique:premium_products,item_code',
             'initial_stock' => 'required|integer|min:0',
+            'category' => ['required', 'in:' . implode(',', array_keys(Inventory::CATEGORIES))],
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
@@ -37,19 +29,10 @@ class PremiumProductController extends Controller
             'item_code' => $request->item_code,
             'image_path' => $imagePath,
             'stock' => $request->initial_stock ?? 0,
+            'category' => $request->category,
         ]);
 
         return redirect()->route('admin.dashboard')->with('success', 'Premium product added successfully!');
-    }
-
-    public function show(string $id)
-    {
-        //
-    }
-
-    public function edit(string $id)
-    {
-        //
     }
 
     public function update(Request $request, string $id)
@@ -59,6 +42,7 @@ class PremiumProductController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'stock' => 'required|integer|min:0',
+            'category' => ['required', 'in:' . implode(',', array_keys(Inventory::CATEGORIES))],
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
@@ -70,6 +54,7 @@ class PremiumProductController extends Controller
         $product->update([
             'name' => $request->name,
             'stock' => $request->stock,
+            'category' => $request->category,
             'image_path' => $imagePath,
         ]);
 
