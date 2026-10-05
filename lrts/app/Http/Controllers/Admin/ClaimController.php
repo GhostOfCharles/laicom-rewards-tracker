@@ -54,7 +54,7 @@ class ClaimController extends Controller
     public function approve($id)
     {
         try {
-            DB::transaction(function () use ($id) {
+            $hasExpiredReward = DB::transaction(function () use ($id) {
                 $receipt = Receipt::with('items')->lockForUpdate()->findOrFail($id);
 
                 if ($receipt->status !== 'pending') {
@@ -75,6 +75,9 @@ class ClaimController extends Controller
                     }
                 }
 
+                // Approval continues even when a linked perishable reward product has expired.
+                $hasExpiredReward = $premiumProducts->contains(fn (PremiumProduct $product) => $product->isExpired());
+
                 foreach ($pendingRewards as $reward) {
                     $premiumProducts->get($reward['premium_product_id'])->decrement('stock', $reward['reward_quantity']);
                     EarnedReward::create([
@@ -88,12 +91,19 @@ class ClaimController extends Controller
                 }
 
                 $receipt->update(['status' => 'approved']);
+
+                return $hasExpiredReward;
             });
         } catch (\RuntimeException $exception) {
             return back()->withErrors(['error' => $exception->getMessage()]);
         }
 
-        return back()->with('success', 'Receipt approved successfully. Premium inventory has been deducted.');
+        $message = 'Receipt approved successfully. Premium inventory has been deducted.';
+        if ($hasExpiredReward) {
+            $message .= ' Warning: one or more linked perishable premium products have expired.';
+        }
+
+        return back()->with('success', $message);
     }
 
     public function reject($id)

@@ -192,17 +192,27 @@ class ReportController extends Controller
             $stock = (int) $product->stock;
             $status = $stock === 0 ? 'OUT OF STOCK' : ($stock <= 10 ? 'LOW' : ($stock <= 50 ? 'MID' : 'HIGH'));
 
-            return [$product->name, $product->item_code, $stock, $issued, $claimed, $issued, $status];
+            $daysUntilExpiry = $product->daysUntilExpiry();
+            $expiry = match ($product->expiryStatus()) {
+                'non_perishable' => 'N/A',
+                'expired' => 'Expired ' . abs($daysUntilExpiry ?? 0) . ' days ago',
+                'expiring_soon' => 'Expires in ' . ($daysUntilExpiry ?? 0) . ' days',
+                default => 'Expires ' . ($product->expiry_date?->format('M d, Y') ?? 'date unavailable'),
+            };
+
+            return [$product->name, $product->item_code, $stock, $issued, $claimed, $issued, $status, $expiry];
         })->all();
 
         return [
             'title' => self::REPORTS['premium_stock'],
-            'columns' => ['Product Name', 'Item Code', 'Current Stock', 'Rewards Issued', 'Rewards Claimed', 'Net Outflow (Issued)', 'Stock Status'],
+            'columns' => ['Product Name', 'Item Code', 'Current Stock', 'Rewards Issued', 'Rewards Claimed', 'Net Outflow (Issued)', 'Stock Status', 'Expiry'],
             'rows' => $rows,
             'summaries' => [
                 ['Total Rewards Issued', array_sum(array_column($rows, 3))],
                 ['Total Rewards Claimed', array_sum(array_column($rows, 4))],
                 ['Products Below Low-Stock Threshold (10 or Less)', $products->where('stock', '<=', 10)->count()],
+                ['Premium Products Expiring Within 30 Days', $products->filter(fn (PremiumProduct $product) => $product->isExpiringSoon())->count()],
+                ['Premium Products Already Expired', $products->filter(fn (PremiumProduct $product) => $product->isExpired())->count()],
             ],
         ];
     }

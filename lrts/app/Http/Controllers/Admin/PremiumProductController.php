@@ -17,6 +17,9 @@ class PremiumProductController extends Controller
             'initial_stock' => 'required|integer|min:0',
             'category' => ['required', 'in:' . implode(',', array_keys(Inventory::CATEGORIES))],
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'is_perishable' => 'required|boolean',
+            'entry_date' => ['nullable', 'date', 'required_if:is_perishable,1', 'before_or_equal:' . today()->addYear()->toDateString()],
+            'expiry_date' => ['nullable', 'date', 'required_if:is_perishable,1', 'after:entry_date', 'before_or_equal:' . today()->addYears(5)->toDateString()],
         ]);
 
         $imagePath = null;
@@ -30,6 +33,9 @@ class PremiumProductController extends Controller
             'image_path' => $imagePath,
             'stock' => $request->initial_stock ?? 0,
             'category' => $request->category,
+            'is_perishable' => $request->boolean('is_perishable'),
+            'entry_date' => $request->boolean('is_perishable') ? $request->input('entry_date') : null,
+            'expiry_date' => $request->boolean('is_perishable') ? $request->input('expiry_date') : null,
         ]);
 
         return redirect()->route('admin.dashboard')->with('success', 'Premium product added successfully!');
@@ -44,6 +50,9 @@ class PremiumProductController extends Controller
             'stock' => 'required|integer|min:0',
             'category' => ['required', 'in:' . implode(',', array_keys(Inventory::CATEGORIES))],
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'is_perishable' => 'required|boolean',
+            'entry_date' => ['nullable', 'date', 'required_if:is_perishable,1', 'before_or_equal:' . today()->addYear()->toDateString()],
+            'expiry_date' => ['nullable', 'date', 'required_if:is_perishable,1', 'after:entry_date', 'before_or_equal:' . today()->addYears(5)->toDateString()],
         ]);
 
         $imagePath = $product->image_path;
@@ -56,6 +65,9 @@ class PremiumProductController extends Controller
             'stock' => $request->stock,
             'category' => $request->category,
             'image_path' => $imagePath,
+            'is_perishable' => $request->boolean('is_perishable'),
+            'entry_date' => $request->boolean('is_perishable') ? $request->input('entry_date') : null,
+            'expiry_date' => $request->boolean('is_perishable') ? $request->input('expiry_date') : null,
         ]);
 
         return redirect()->route('admin.dashboard')->with('success', 'Premium product updated successfully.');

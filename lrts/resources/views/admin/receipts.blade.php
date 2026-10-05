@@ -35,6 +35,9 @@
                     </td>
                     <td class="text-end align-middle pb-3" style="width: 150px;">
                         <div class="badge {{ $receipt->status === 'approved' ? 'bg-success' : ($receipt->status === 'rejected' ? 'bg-danger' : 'bg-warning text-dark') }} border border-dark rounded-0 w-100 py-2 mb-2">STATUS: {{ $receipt->status === 'pending' ? 'PROCESSING' : strtoupper($receipt->status) }}</div>
+                        @if($receipt->status === 'approved' && $receipt->earnedRewards->contains(fn ($reward) => $reward->premiumProduct?->isExpired()))
+                            <div class="badge bg-danger border border-dark rounded-0 w-100 py-2 mb-2">WARNING: EXPIRED REWARD PRODUCT</div>
+                        @endif
                         @if($receipt->status === 'pending')
                             <form action="{{ route('admin.receipts.approve', $receipt->id) }}" method="POST" class="mb-1" onsubmit="return confirm('Approve this receipt and deduct reward stock?');">
                                 @csrf

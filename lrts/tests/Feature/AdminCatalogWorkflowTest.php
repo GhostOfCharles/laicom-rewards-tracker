@@ -72,6 +72,7 @@ class AdminCatalogWorkflowTest extends TestCase
             'item_code' => 'PRM-MUG-1',
             'category' => 'home_care',
             'initial_stock' => 20,
+            'is_perishable' => 0,
             'image' => UploadedFile::fake()->createWithContent('mug.png', file_get_contents(public_path('images/laicom-logo.png'))),
         ])->assertRedirect(route('admin.dashboard'));
 
@@ -86,6 +87,7 @@ class AdminCatalogWorkflowTest extends TestCase
             'name' => 'Reward Mug',
             'category' => 'food',
             'stock' => 18,
+            'is_perishable' => 0,
         ])->assertRedirect(route('admin.dashboard'));
 
         $this->assertDatabaseHas('premium_products', [

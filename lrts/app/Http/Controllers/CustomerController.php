@@ -86,10 +86,17 @@ class CustomerController extends Controller
             abort(403);
         }
 
-        $claimed = DB::transaction(function () use ($reward) {
+        $claimResult = DB::transaction(function () use ($reward) {
             $lockedReward = EarnedReward::lockForUpdate()->findOrFail($reward->id);
             if ($lockedReward->claim_status !== 'unclaimed') {
-                return false;
+                return 'unavailable';
+            }
+
+            $premiumProduct = $lockedReward->premium_product_id
+                ? \App\Models\PremiumProduct::lockForUpdate()->find($lockedReward->premium_product_id)
+                : null;
+            if ($premiumProduct?->isExpired()) {
+                return 'expired';
             }
 
             $lockedReward->update([
@@ -97,10 +104,14 @@ class CustomerController extends Controller
                 'claimed_at' => now(),
             ]);
 
-            return true;
+            return 'claimed';
         });
 
-        if (! $claimed) {
+        if ($claimResult === 'expired') {
+            return back()->withErrors(['error' => 'This reward is no longer available because the linked premium product has expired. Please contact support.']);
+        }
+
+        if ($claimResult !== 'claimed') {
             return back()->withErrors(['error' => 'This reward is no longer available to claim.']);
         }
 

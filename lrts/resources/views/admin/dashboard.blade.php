@@ -12,17 +12,24 @@
 <!-- Premium Products Section -->
 <div class="mb-5">
     <div class="d-flex justify-content-between align-items-center mb-2">
-        <div><h6 class="mb-0 fw-bold">PREMIUM PRODUCTS</h6><span class="small text-muted">Promotional reward stock</span></div>
+        <div><h6 class="mb-0 fw-bold">PREMIUM PRODUCTS @if($premiumExpiryAlertCount > 0)<span class="badge bg-danger rounded-0 align-middle ms-1">{{ $premiumExpiryAlertCount }}</span>@endif</h6><span class="small text-muted">Promotional reward stock</span></div>
         <button type="button" class="btn btn-sm laicom-btn-primary" data-bs-toggle="modal" data-bs-target="#addPremiumProductModal" title="Add New Premium Product" aria-label="Add premium product"><i class="bi bi-plus-lg"></i></button>
     </div>
 
-    <form method="GET" action="{{ route('admin.dashboard') }}" class="d-flex align-items-center gap-2 mb-2">
+    <form method="GET" action="{{ route('admin.dashboard') }}" class="d-flex flex-wrap align-items-center gap-2 mb-2">
         <label for="premium_category" class="small fw-bold mb-0">SORT BY CATEGORY</label>
         <select id="premium_category" name="premium_category" class="form-select form-select-sm border-dark border-2 rounded-0 w-auto" onchange="this.form.submit()">
             <option value="">All categories</option>
             @foreach (\App\Models\PremiumProduct::CATEGORIES as $value => $label)
                 <option value="{{ $value }}" {{ $premiumCategory === $value ? 'selected' : '' }}>{{ $label }}</option>
             @endforeach
+        </select>
+        <label for="premium_expiry" class="small fw-bold mb-0 ms-2">FILTER BY EXPIRY</label>
+        <select id="premium_expiry" name="premium_expiry" class="form-select form-select-sm border-dark border-2 rounded-0 w-auto" onchange="this.form.submit()">
+            <option value="" {{ $premiumExpiry === '' ? 'selected' : '' }}>All</option>
+            <option value="perishable" {{ $premiumExpiry === 'perishable' ? 'selected' : '' }}>Perishable only</option>
+            <option value="expiring_soon" {{ $premiumExpiry === 'expiring_soon' ? 'selected' : '' }}>Expiring soon</option>
+            <option value="expired" {{ $premiumExpiry === 'expired' ? 'selected' : '' }}>Expired</option>
         </select>
     </form>
 
@@ -34,6 +41,7 @@
                     <th scope="col">CATEGORY</th>
                     <th scope="col">STOCK</th>
                     <th scope="col">STATUS</th>
+                    <th scope="col">EXPIRY</th>
                     <th scope="col">ACTIONS</th>
                 </tr>
             </thead>
@@ -53,6 +61,17 @@
                         @endif
                     </td>
                     <td>
+                        @if($premium->expiryStatus() === 'non_perishable')
+                            <span class="small text-muted">N/A</span>
+                        @elseif($premium->expiryStatus() === 'expired')
+                            <span class="badge bg-danger rounded-0">EXPIRED</span>
+                        @elseif($premium->expiryStatus() === 'expiring_soon')
+                            <span class="badge bg-warning text-dark rounded-0">{{ $premium->daysUntilExpiry() }} days left</span>
+                        @else
+                            <span class="badge bg-success rounded-0">{{ $premium->expiry_date?->format('M d, Y') ?? 'No expiry date' }}</span>
+                        @endif
+                    </td>
+                    <td>
                         <div class="d-flex justify-content-center gap-1">
                             <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editPremiumProductModal{{ $premium->id }}"><i class="bi bi-pencil-square"></i></button>
                             <form action="{{ route('products.destroy', $premium->id) }}" method="POST" onsubmit="return confirm('Delete this premium product? Products used by rewards cannot be deleted.');">
@@ -65,7 +84,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="5" class="text-center py-3 text-muted fw-bold">NO PREMIUM PRODUCTS FOUND</td>
+                    <td colspan="6" class="text-center py-3 text-muted fw-bold">NO PREMIUM PRODUCTS FOUND</td>
                 </tr>
                 @endforelse
             </tbody>
@@ -148,6 +167,24 @@
                             @foreach (\App\Models\PremiumProduct::CATEGORIES as $value => $label)<option value="{{ $value }}">{{ $label }}</option>@endforeach
                         </select>
                     </div>
+                    <div class="mb-2 text-start">
+                        <input type="hidden" name="is_perishable" value="0">
+                        <div class="form-check">
+                            <input type="checkbox" name="is_perishable" value="1" class="form-check-input premium-perishable-toggle" id="addPremiumPerishable">
+                            <label class="form-check-label fw-bold small" for="addPremiumPerishable">This is a perishable food item</label>
+                        </div>
+                        <div class="small text-muted">Enable expiry tracking for food or consumable rewards.</div>
+                    </div>
+                    <div class="premium-expiry-fields d-none" id="addPremiumExpiryFields">
+                        <div class="mb-3 text-start">
+                            <label class="form-label fw-bold small">ENTRY DATE:</label>
+                            <input type="date" name="entry_date" class="form-control border-dark rounded-0">
+                        </div>
+                        <div class="mb-3 text-start">
+                            <label class="form-label fw-bold small">EXPIRY DATE:</label>
+                            <input type="date" name="expiry_date" class="form-control border-dark rounded-0">
+                        </div>
+                    </div>
                     <div class="mb-3 text-start">
                         <label class="form-label fw-bold small">PRODUCT PICTURE:</label>
                         <input type="file" name="image" class="form-control border-dark rounded-0" accept="image/png,image/jpeg,image/gif">
@@ -194,6 +231,24 @@
                                 <option value="{{ $value }}" {{ $premium->category === $value ? 'selected' : '' }}>{{ $label }}</option>
                             @endforeach
                         </select>
+                    </div>
+                    <div class="mb-2">
+                        <input type="hidden" name="is_perishable" value="0">
+                        <div class="form-check">
+                            <input type="checkbox" name="is_perishable" value="1" class="form-check-input premium-perishable-toggle" id="editPremiumPerishable{{ $premium->id }}" {{ $premium->is_perishable ? 'checked' : '' }} aria-controls="editPremiumExpiryFields{{ $premium->id }}">
+                            <label class="form-check-label fw-bold small" for="editPremiumPerishable{{ $premium->id }}">This is a perishable food item</label>
+                        </div>
+                        <div class="small text-muted">Enable expiry tracking for food or consumable rewards.</div>
+                    </div>
+                    <div class="premium-expiry-fields {{ $premium->is_perishable ? '' : 'd-none' }}" id="editPremiumExpiryFields{{ $premium->id }}">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">ENTRY DATE:</label>
+                            <input type="date" name="entry_date" class="form-control border-dark rounded-0" value="{{ $premium->entry_date?->format('Y-m-d') }}">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">EXPIRY DATE:</label>
+                            <input type="date" name="expiry_date" class="form-control border-dark rounded-0" value="{{ $premium->expiry_date?->format('Y-m-d') }}">
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold small">PRODUCT PICTURE:</label>
@@ -332,4 +387,15 @@
 </div>
 @endforeach
 
+<script>
+    (() => {
+        document.querySelectorAll('.premium-perishable-toggle').forEach((toggle) => {
+            const form = toggle.closest('form');
+            const fields = form?.querySelector('.premium-expiry-fields');
+            const updateFields = () => fields?.classList.toggle('d-none', !toggle.checked);
+            toggle.addEventListener('change', updateFields);
+            updateFields();
+        });
+    })();
+</script>
 @endsection
