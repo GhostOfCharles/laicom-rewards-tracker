@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
 use App\Models\User;
 use EduLazaro\Laracaptcha\Rules\Captcha;
 use EduLazaro\Laracaptcha\Facades\Captcha as CaptchaFacade;
@@ -21,12 +22,25 @@ class WebAuthController extends Controller
     // Handle Customer Registration
     public function register(Request $request)
     {
+        $request->merge([
+            'phone_number' => preg_replace('/\D/', '', (string) $request->phone_number),
+        ]);
+
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'store_name' => 'required|string|max:255',
-            'phone_number' => 'required|string|max:50',
-            'password' => 'required|string|min:6|confirmed',
+            'phone_number' => ['required', 'string', 'regex:/^09\d{9}$/'],
+            'password' => [
+                'required',
+                'confirmed',
+                'string',
+                Password::min(8)
+                    ->letters()
+                    ->mixedCase()
+                    ->numbers()
+                    ->symbols(),
+            ],
             CaptchaFacade::responseField() => ['required', new Captcha],
         ]);
 

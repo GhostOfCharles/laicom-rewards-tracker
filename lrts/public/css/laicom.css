@@ -1798,3 +1798,59 @@ body.lrts-drawer-open .lrts-chat-bubble {
     0% { transform: scale(0.95); opacity: 0; }
     100% { transform: scale(1); opacity: 1; }
 }
+
+/* Customer registration password and phone feedback */
+.pw-input-wrap { margin-bottom: 4px; }
+.input-icon input.pw-input { padding-right: 68px; }
+.pw-toggle {
+    position: absolute;
+    z-index: 1;
+    top: 50%;
+    right: 18px;
+    transform: translateY(-50%);
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #12284c;
+    font-size: .62rem;
+    font-weight: 900;
+    letter-spacing: .06em;
+    cursor: pointer;
+}
+.pw-toggle:focus-visible { outline: 2px solid #ed1b24; outline-offset: 3px; }
+.pw-strength { width: 100%; margin: 0 0 10px; text-align: left; }
+.pw-strength-bars { display: flex; gap: 4px; }
+.pw-bar {
+    height: 4px;
+    flex: 1 1 0;
+    background: #e3e8ef;
+    transition: background-color .15s ease;
+}
+.pw-bar.is-weak { background: #ed1b24; }
+.pw-bar.is-medium { background: #f59e0b; }
+.pw-bar.is-strong { background: #198754; }
+.pw-strength-label {
+    margin-top: 4px;
+    font-size: .68rem;
+    font-weight: 800;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+}
+.pw-strength-label.is-weak { color: #ed1b24; }
+.pw-strength-label.is-medium { color: #b76e00; }
+.pw-strength-label.is-strong { color: #198754; }
+.pw-reqs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 10px;
+    margin: 3px 0 0;
+    padding: 0;
+    list-style: none;
+}
+.pw-req { color: #6c757d; font-size: .62rem; line-height: 1.4; white-space: nowrap; }
+.pw-req::before { content: "○"; margin-right: 3px; font-weight: 800; }
+.pw-req.is-met { color: #198754; }
+.pw-req.is-met::before { content: "✓"; }
+.pw-match { margin: -8px 0 10px; text-align: left; font-size: .68rem; font-weight: 800; }
+.pw-match.is-match { color: #198754; }
+.pw-match.is-mismatch { color: #ed1b24; }
