@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Inventory;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -18,7 +19,7 @@ class InventoryController extends Controller
         return view('admin.inventory', compact('inventory', 'category'));
     }
 
-    public function store(Request $request)
+    public function store(Request $request, ActivityLogger $activityLogger)
     {
         $request->validate([
             'name' => 'required|string|max:255',
@@ -34,7 +35,7 @@ class InventoryController extends Controller
             $imagePath = $request->file('image')->store('inventory', 'public');
         }
 
-        DB::transaction(function () use ($request, $imagePath) {
+        DB::transaction(function () use ($request, $imagePath, $activityLogger) {
             $item = Inventory::create([
                 'name' => $request->name,
                 'category' => $request->category,
@@ -53,12 +54,13 @@ class InventoryController extends Controller
                     'notes' => 'Initial stock recorded when inventory item was created.',
                 ]);
             }
+            $activityLogger->record('inventory.created', 'Inventory item ' . $item->name . ' created.', $item, $item->only(['name', 'category', 'stock_balance', 'entry_date', 'expiry_date']));
         });
 
         return redirect()->route('admin.inventory')->with('success', 'Inventory item added successfully.');
     }
 
-    public function update(Request $request, string $id)
+    public function update(Request $request, string $id, ActivityLogger $activityLogger)
     {
         $request->validate([
             'name' => 'required|string|max:255',
@@ -75,10 +77,11 @@ class InventoryController extends Controller
             $imagePath = $request->file('image')->store('inventory', 'public');
         }
 
-        DB::transaction(function () use ($request, $item, $imagePath) {
+        DB::transaction(function () use ($request, $item, $imagePath, $activityLogger) {
             $item = Inventory::query()->lockForUpdate()->findOrFail($item->id);
             $oldStock = (int) $item->stock_balance;
             $newStock = (int) $request->stock_balance;
+            $before = $item->only(['name', 'category', 'entry_date', 'expiry_date', 'image_path']);
 
             $item->update([
                 'name' => $request->name,
@@ -96,15 +99,30 @@ class InventoryController extends Controller
                     'reference' => 'Admin edit',
                     'notes' => 'Stock balance changed from ' . $oldStock . ' to ' . $newStock . '.',
                 ]);
+                $activityLogger->record('inventory.stock_adjusted', 'Stock adjusted for inventory item ' . $item->name . '.', $item, ['old' => $oldStock, 'new' => $newStock, 'delta' => $newStock - $oldStock]);
             }
+
+            $changes = [];
+            foreach (['name', 'category', 'entry_date', 'expiry_date', 'image_path'] as $field) {
+                $oldValue = $before[$field] instanceof \Carbon\CarbonInterface ? $before[$field]->toDateString() : $before[$field];
+                $newValue = $item->getAttribute($field) instanceof \Carbon\CarbonInterface ? $item->getAttribute($field)->toDateString() : $item->getAttribute($field);
+                if ($oldValue != $newValue) $changes[$field] = ['old' => $oldValue, 'new' => $newValue];
+            }
+            if ($changes) $activityLogger->record('inventory.updated', 'Inventory item ' . $item->name . ' updated.', $item, ['changes' => $changes]);
         });
 
         return redirect()->route('admin.inventory')->with('success', 'Inventory item updated.');
     }
 
-    public function destroy(string $id)
+    public function destroy(string $id, ActivityLogger $activityLogger)
     {
-        Inventory::findOrFail($id)->delete();
+        DB::transaction(function () use ($id, $activityLogger) {
+            $item = Inventory::query()->lockForUpdate()->findOrFail($id);
+            $properties = $item->only(['name', 'category', 'stock_balance']);
+            $name = $item->name;
+            $item->delete();
+            $activityLogger->record('inventory.deleted', 'Inventory item ' . $name . ' deleted.', $item, $properties);
+        });
         return redirect()->route('admin.inventory')->with('success', 'Inventory item removed.');
     }
 }

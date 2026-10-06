@@ -2,119 +2,107 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use App\Models\Inventory;
-use App\Models\Receipt;
 use App\Models\Promotion;
-use App\Models\EarnedReward;
+use App\Models\Receipt;
+use App\Models\User;
+use App\Services\ActivityLogger;
+use App\Services\ClaimService;
+use App\Services\ReceiptSubmissionService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use RuntimeException;
 
 class CustomerController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $user = Auth::user();
-
-        // 1. Fetch Receipts for the Tracker
+        /** @var User $user */
+        $user = $request->user();
         $receipts = $user->receipts()
-            ->with(['items', 'earnedRewards.premiumProduct'])
+            ->with(['items', 'earnedRewards.premiumProduct', 'earnedRewards.releaser', 'activityLogs.user'])
+            ->latest('submitted_at')
+            ->get();
+        $products = Inventory::orderBy('name')->get();
+        $promotions = Promotion::with('premiumProduct')->where('is_active', true)
+            ->where(fn ($query) => $query->whereNull('start_date')->orWhereDate('start_date', '<=', today()))
+            ->where(fn ($query) => $query->whereNull('end_date')->orWhereDate('end_date', '>=', today()))
+            ->get();
+        $claimableReceipts = $receipts->filter(fn (Receipt $receipt) => $receipt->status === 'approved'
+            && $receipt->earnedRewards->contains(fn ($reward) => in_array($reward->claim_status, ['unclaimed', 'claim_requested'], true)));
+        $claimHistory = $user->earnedRewards()
+            ->with(['premiumProduct', 'receipt'])
+            ->whereIn('claim_status', ['claimed', 'voided', 'expired'])
             ->latest()
             ->get();
-
-        // 2. Fetch Products for the Order Form Combo Box
-        $products = Inventory::orderBy('name')->get();
-
-        // 3. Fetch Active Promotions for the Promos tab
-        $promotions = Promotion::with('premiumProduct')->where('is_active', 1)->get();
-
-        // 4. Fetch Unclaimed Rewards specifically for this user
-        $availableRewards = EarnedReward::with('premiumProduct')
-            ->where('user_id', $user->id)
-            ->where('claim_status', 'unclaimed')
-            ->get();
-
         $pendingReceiptCount = $receipts->where('status', 'pending')->count();
-
-        // 5. Fetch Tickets for the Help drawer
+        $notifications = $user->customerNotifications()->latest('created_at')->limit(10)->get();
+        $unreadNotificationCount = $user->customerNotifications()->whereNull('read_at')->count();
         $tickets = $user->tickets()
             ->withCount('replies')
-            ->with(['replies' => fn ($query) => $query
-                ->where('is_internal_note', false)
-                ->with('user')
-                ->orderBy('created_at')])
+            ->with(['replies' => fn ($query) => $query->where('is_internal_note', false)->with('user')->orderBy('created_at')])
             ->latest()
             ->get();
 
         return view('customer.dashboard', compact(
-            'receipts', 'products', 'promotions',
-            'availableRewards', 'pendingReceiptCount', 'tickets'
+            'receipts', 'products', 'promotions', 'claimableReceipts', 'claimHistory',
+            'pendingReceiptCount', 'notifications', 'unreadNotificationCount', 'tickets'
         ));
     }
 
-    public function submitOrder(Request $request)
+    public function submitOrder(Request $request, ReceiptSubmissionService $submissions)
     {
-        $request->validate([
-            'salesman_order_number' => 'required|string|unique:receipts,salesman_order_number',
-            'items' => 'required|array|min:1',
-            'items.*.product_name' => 'required|string|exists:inventories,name',
-            'items.*.quantity' => 'required|integer|min:1',
-        ], [
-            'items.required' => 'You must add at least one product to your item listbox.',
-        ]);
-
-        $receipt = Receipt::create([
-            'user_id' => Auth::id(),
-            'salesman_order_number' => $request->salesman_order_number,
-            'status' => 'pending',
-        ]);
-
-        foreach ($request->items as $item) {
-            $receipt->items()->create([
-                'product_name' => $item['product_name'],
-                'quantity' => $item['quantity'],
-                'unit_price' => 0,
-            ]);
-        }
+        $submissions->createFromRequest($request, $request->user());
 
         return redirect()->route('customer.dashboard')->with('success', 'Order submitted successfully! It is now pending admin review.');
     }
 
-    public function claimReward(EarnedReward $reward)
+    public function cancelReceipt(Request $request, Receipt $receipt, ActivityLogger $activityLogger)
     {
-        if ($reward->user_id !== Auth::id()) {
-            abort(403);
+        abort_unless($receipt->user_id === $request->user()->id, 403);
+
+        try {
+            DB::transaction(function () use ($receipt, $request, $activityLogger) {
+                $locked = Receipt::query()->lockForUpdate()->findOrFail($receipt->id);
+                abort_unless($locked->user_id === $request->user()->id, 403);
+                if ($locked->status !== 'pending') {
+                    throw new RuntimeException('Only processing receipts can be cancelled.');
+                }
+
+                $locked->update(['status' => 'cancelled', 'cancelled_at' => now()]);
+                $activityLogger->record('receipt.cancelled', 'Customer cancelled order ' . $locked->salesman_order_number . '.', $locked, [
+                    'order_number' => $locked->salesman_order_number,
+                ]);
+            });
+        } catch (RuntimeException $exception) {
+            return back()->withErrors(['error' => $exception->getMessage()]);
         }
 
-        $claimResult = DB::transaction(function () use ($reward) {
-            $lockedReward = EarnedReward::lockForUpdate()->findOrFail($reward->id);
-            if ($lockedReward->claim_status !== 'unclaimed') {
-                return 'unavailable';
-            }
-
-            $premiumProduct = $lockedReward->premium_product_id
-                ? \App\Models\PremiumProduct::lockForUpdate()->find($lockedReward->premium_product_id)
-                : null;
-            if ($premiumProduct?->isExpired()) {
-                return 'expired';
-            }
-
-            $lockedReward->update([
-                'claim_status' => 'claimed',
-                'claimed_at' => now(),
-            ]);
-
-            return 'claimed';
-        });
-
-        if ($claimResult === 'expired') {
-            return back()->withErrors(['error' => 'This reward is no longer available because the linked premium product has expired. Please contact support.']);
-        }
-
-        if ($claimResult !== 'claimed') {
-            return back()->withErrors(['error' => 'This reward is no longer available to claim.']);
-        }
-
-        return back()->with('success', 'Reward marked as claimed. Please keep this record for your reference.');
+        return redirect()->route('customer.dashboard', ['tab' => 'tracker'])->with('success', 'Receipt cancelled. Its order number is available again.');
     }
+
+    public function claimReceipt(Request $request, Receipt $receipt, ClaimService $claims)
+    {
+        try {
+            $code = $claims->requestClaim($receipt, $request->user());
+        } catch (RuntimeException $exception) {
+            return back()->withErrors(['error' => $exception->getMessage()]);
+        }
+
+        return redirect()->route('customer.dashboard', ['tab' => 'promos', 'section' => 'claims'])
+            ->with('success', 'Your claim code is ' . $code . '. Show it to Laicom staff to receive your rewards.');
+    }
+
+    public function orderSlip(Request $request, Receipt $receipt)
+    {
+        abort_unless($receipt->user_id === $request->user()->id, 403);
+        return $this->privateFile($receipt->slip_path);
+    }
+
+    public function markNotificationsRead(Request $request)
+    {
+        $request->user()->customerNotifications()->whereNull('read_at')->update(['read_at' => now()]);
+        return response()->json(['ok' => true]);
+    }
+
 }

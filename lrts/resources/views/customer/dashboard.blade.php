@@ -23,17 +23,17 @@
 
             <div class="d-flex align-items-center text-white ms-auto">
                 <span class="me-3 fw-semibold small d-none d-md-inline">WELCOME, {{ strtoupper(auth()->user()->name) }}</span>
-                <div class="dropdown me-3">
+                <div class="dropdown me-3" id="customerNotificationsDropdown">
                     <button type="button" class="btn btn-sm btn-outline-light rounded-0 laicom-bell" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Open notifications">
                         <i class="bi bi-bell-fill fs-6"></i>
-                        @if ($pendingReceiptCount + $availableRewards->count() > 0)<span class="badge rounded-pill bg-danger">{{ $pendingReceiptCount + $availableRewards->count() }}</span>@endif
+                        @if ($unreadNotificationCount > 0)<span class="badge rounded-pill bg-danger">{{ $unreadNotificationCount }}</span>@endif
                     </button>
                     <div class="dropdown-menu dropdown-menu-end shadow border border-dark rounded-0 p-0" style="min-width: 290px;">
                         <div class="px-3 py-2 fw-bold text-white" style="background-color: #12284c;">NOTIFICATIONS</div>
-                        @if ($pendingReceiptCount > 0)<div class="px-3 py-2 small border-bottom"><i class="bi bi-hourglass-split text-warning me-2"></i>{{ $pendingReceiptCount }} receipt(s) are processing.</div>@endif
-                        @if ($availableRewards->count() > 0)<div class="px-3 py-2 small border-bottom"><i class="bi bi-gift-fill text-success me-2"></i>{{ $availableRewards->count() }} reward(s) are ready to claim.</div>@endif
-                        @if ($pendingReceiptCount === 0 && $availableRewards->isEmpty())<div class="px-3 py-3 small text-muted">You are all caught up.</div>@endif
-                        <button type="button" class="dropdown-item small fw-bold text-center py-2" onclick="document.getElementById('tracker-tab').click()">VIEW REWARD TRACKER</button>
+                        @forelse($notifications as $notification)
+                            <div class="px-3 py-2 small border-bottom {{ $notification->read_at ? 'text-muted' : 'fw-bold' }}"><span>{{ $notification->title }}</span><div>{{ $notification->body }}</div><time class="text-muted">{{ $notification->created_at?->diffForHumans() }}</time></div>
+                        @empty<div class="px-3 py-3 small text-muted">You are all caught up.</div>@endforelse
+                        <button type="button" class="dropdown-item small fw-bold text-center py-2" onclick="document.getElementById('tracker-tab').click()">VIEW ORDER TRACKER</button>
                     </div>
                 </div>
                 <form action="{{ route('logout') }}" method="POST" class="d-inline">
@@ -117,7 +117,7 @@
                                         <option value="{{ $product->name }}" data-image="{{ $product->image_path ? asset('storage/' . $product->image_path) : '' }}">{{ $product->name }}</option>
                                     @endforeach
                                 </select>
-                                <input type="number" id="product_quantity" class="form-control border-dark border-2 rounded-0 me-2 fw-bold text-center" min="1" value="1" style="width: 70px;">
+                                <input type="number" id="product_quantity" class="form-control border-dark border-2 rounded-0 me-2 fw-bold text-center" min="1" max="9999" step="1" value="1" style="width: 70px;">
                                 <button type="button" id="add_item_btn" class="btn laicom-btn-primary px-3 py-1" aria-label="Add selected product"><i class="bi bi-plus-lg"></i></button>
                             </div>
 
@@ -136,54 +136,21 @@
                     </div>
                 </div>
 
-                <!-- TAB 2: MY REWARD TRACKER -->
+                <!-- TAB 2: MY ORDER TRACKER -->
                 <div class="tab-pane fade" id="tracker" role="tabpanel">
-                    <div class="card laicom-card">
-                        <div class="card-header">SUBMITTED ORDERS</div>
-                        <div class="card-body p-0">
-                            <div class="table-responsive">
-                                <table class="table table-hover mb-0 align-middle text-center">
-                                    <thead class="border-bottom border-dark">
-                                        <tr>
-                                            <th class="py-3">ORDER NO.</th>
-                                            <th class="py-3">DATE SUBMITTED</th>
-                                            <th class="py-3">STATUS</th>
-                                            <th class="py-3">DETAILS</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @forelse ($receipts as $receipt)
-                                        <tr>
-                                            <td class="fw-bold">{{ $receipt->salesman_order_number }}</td>
-                                            <td class="small">{{ \Carbon\Carbon::parse($receipt->submitted_at)->format('M d, Y') }}</td>
-                                            <td>
-                                                @if ($receipt->status === 'pending')
-                                                    <span class="badge bg-warning text-dark border border-dark w-75 py-2">PROCESSING</span>
-                                                @elseif ($receipt->status === 'approved')
-                                                    <span class="badge bg-success border border-dark w-75 py-2">APPROVED</span>
-                                                @else
-                                                    <span class="badge bg-danger border border-dark w-75 py-2">REJECTED</span>
-                                                @endif
-                                            </td>
-                                            <td>
-                                                <div class="d-flex justify-content-center gap-1">
-                                                    <button type="button" class="btn btn-sm btn-outline-dark fw-bold" data-bs-toggle="modal" data-bs-target="#viewOrderModal{{ $receipt->id }}">VIEW PRODUCTS</button>
-                                                    @if ($receipt->earnedRewards->isNotEmpty())
-                                                        <button type="button" class="btn btn-sm btn-outline-dark fw-bold" data-bs-toggle="modal" data-bs-target="#viewRewardsModal{{ $receipt->id }}">REWARDS</button>
-                                                    @endif
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        @empty
-                                        <tr>
-                                            <td colspan="4" class="py-4 text-muted fw-bold">NO ORDERS SUBMITTED YET</td>
-                                        </tr>
-                                        @endforelse
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
+                    <div class="card laicom-card"><div class="card-header">SUBMITTED ORDERS</div><div class="card-body p-0"><div class="table-responsive">
+                        <table class="table table-hover mb-0 align-middle text-center"><thead class="border-bottom border-dark"><tr><th class="py-3">ORDER NO.</th><th class="py-3">ORDER DATE</th><th class="py-3">STATUS</th><th class="py-3">REWARDS</th><th class="py-3">ACTIONS</th></tr></thead><tbody>
+                        @forelse ($receipts as $receipt)
+                            @php $rewardStatus = $receipt->earnedRewards->contains(fn($reward) => $reward->claim_status === 'claim_requested') ? 'CLAIM REQUESTED' : ($receipt->earnedRewards->contains(fn($reward) => $reward->claim_status === 'claimed') ? 'RELEASED' : ($receipt->earnedRewards->contains(fn($reward) => $reward->claim_status === 'unclaimed') ? 'AVAILABLE' : '—')); @endphp
+                            <tr><td class="fw-bold">{{ $receipt->salesman_order_number }}</td><td class="small">{{ $receipt->order_date?->format('M d, Y') ?? $receipt->submitted_at?->format('M d, Y') ?? '—' }}</td><td>
+                                <span class="badge border border-dark w-75 py-2 {{ $receipt->status === 'approved' ? 'bg-success' : ($receipt->status === 'pending' ? 'bg-warning text-dark' : ($receipt->status === 'cancelled' ? 'bg-secondary' : 'bg-danger')) }}">{{ $receipt->status === 'pending' ? 'PROCESSING' : strtoupper($receipt->status) }}</span>
+                            </td><td><span class="small fw-bold">{{ $rewardStatus }}</span></td><td><div class="d-flex justify-content-center gap-1 flex-wrap">
+                                <button type="button" class="btn btn-sm btn-outline-dark fw-bold" data-bs-toggle="modal" data-bs-target="#viewOrderModal{{ $receipt->id }}">ORDER DETAILS</button>
+                                @if($receipt->status === 'pending')<form method="POST" action="{{ route('customer.receipts.cancel', $receipt) }}" onsubmit="return confirm('Cancel this processing order?');">@csrf<button type="submit" class="btn btn-sm btn-outline-danger fw-bold">CANCEL</button></form>@endif
+                            </div></td></tr>
+                        @empty<tr><td colspan="5" class="py-4 text-muted fw-bold">NO ORDERS SUBMITTED YET</td></tr>@endforelse
+                        </tbody></table>
+                    </div></div></div>
                 </div>
 
                 <!-- TAB 3: PROMOS & CLAIMS -->
@@ -191,16 +158,17 @@
 
                     <!-- Section Toggle -->
                     <div class="row g-0 lrts-section-toggle">
-                        <div class="col-6">
+                        <div class="col-4">
                             <button type="button" class="lrts-section-btn is-active" data-promos-section="promotions">
                                 ACTIVE PROMOTIONS
                             </button>
                         </div>
-                        <div class="col-6">
+                        <div class="col-4">
                             <button type="button" class="lrts-section-btn" data-promos-section="claims">
                                 CLAIMABLE REWARDS
                             </button>
                         </div>
+                        <div class="col-4"><button type="button" class="lrts-section-btn" data-promos-section="history">CLAIM HISTORY</button></div>
                     </div>
 
                     <!-- Section: Active Promotions -->
@@ -281,43 +249,31 @@
                         <div class="card laicom-card">
                             <div class="card-header">MY CLAIMABLE REWARDS</div>
                             <div class="card-body">
-                                <p class="small text-muted fw-bold mb-4">These rewards have been approved and are ready for you to claim physically.</p>
-
-                                @if ($availableRewards->count() > 0)
-                                    <div class="table-responsive border border-dark">
-                                        <table class="table mb-0 text-center align-middle small">
-                                            <thead class="table-light">
-                                                <tr>
-                                                    <th>PREMIUM ITEM</th>
-                                                    <th>QTY</th>
-                                                    <th>ACTION</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                @foreach ($availableRewards as $reward)
-                                                <tr>
-                                                    <td class="fw-bold text-start">{{ $reward->premiumProduct->name ?? 'Unknown' }}</td>
-                                                    <td class="fw-bold fs-6">{{ $reward->reward_quantity }}</td>
-                                                    <td>
-                                                        <form action="{{ route('customer.rewards.claim', $reward) }}" method="POST" onsubmit="return confirm('Mark this reward as claimed?');">
-                                                            @csrf
-                                                            <button type="submit" class="btn btn-sm btn-dark fw-bold px-3">CLAIM</button>
-                                                        </form>
-                                                    </td>
-                                                </tr>
-                                                @endforeach
-                                            </tbody>
-                                        </table>
-                                    </div>
+                                <p class="small text-muted fw-bold mb-4">Request your approved rewards to receive a claim code. Laicom staff will confirm the handover when you collect them.</p>
+                                @if ($claimableReceipts->count() > 0)
+                                    @foreach($claimableReceipts as $claimReceipt)
+                                        @php $claimCode = $claimReceipt->earnedRewards->first(fn($reward) => $reward->claim_status === 'claim_requested')?->claim_code; @endphp
+                                        <div class="border border-dark mb-3 p-3 bg-white"><div class="d-flex flex-wrap justify-content-between gap-2 align-items-center"><div><strong>ORDER #{{ $claimReceipt->salesman_order_number }}</strong><div class="small text-muted">{{ $claimReceipt->earnedRewards->whereIn('claim_status', ['unclaimed', 'claim_requested'])->sum('reward_quantity') }} rewards · approved {{ $claimReceipt->reviewed_at?->format('M d, Y') ?? '' }}</div></div>
+                                            @if($claimCode)<div class="text-end"><span class="badge bg-warning text-dark border border-dark rounded-0">REQUESTED</span><div class="fw-bold fs-5">{{ $claimCode }}</div><small>Show this code to Laicom staff.</small></div>@endif
+                                            @if($claimReceipt->earnedRewards->contains(fn($reward) => $reward->claim_status === 'unclaimed'))<form method="POST" action="{{ route('customer.receipts.claim', $claimReceipt) }}" onsubmit="return confirm('Request all available rewards for this order?');">@csrf<button class="btn laicom-btn-primary btn-sm fw-bold" type="submit">{{ $claimCode ? 'REQUEST REMAINING REWARDS' : 'REQUEST CLAIM CODE' }}</button></form>@endif
+                                        </div><div class="table-responsive mt-2"><table class="table table-sm mb-0 align-middle"><thead><tr><th>PREMIUM ITEM</th><th>QTY</th><th>STATUS</th></tr></thead><tbody>
+                                            @foreach($claimReceipt->earnedRewards->whereIn('claim_status', ['unclaimed', 'claim_requested']) as $reward)<tr><td>{{ $reward->premiumProduct?->name ?? $reward->reward_product_name ?? 'Reward item' }}</td><td>{{ number_format($reward->reward_quantity) }}</td><td>{{ strtoupper(str_replace('_', ' ', $reward->claim_status)) }}</td></tr>@endforeach
+                                        </tbody></table></div>
+                                        <button type="button" class="btn btn-sm btn-link px-0" data-open-reward-ticket data-receipt-id="{{ $claimReceipt->id }}">Report a problem with these rewards</button></div>
+                                    @endforeach
                                 @else
                                     <div class="border border-dark p-4 text-center bg-light">
                                         <i class="bi bi-box-seam text-muted" style="font-size: 2rem;"></i>
-                                        <p class="mt-2 mb-0 fw-bold text-muted">YOU HAVE NO UNCLAIMED REWARDS</p>
+                                        <p class="mt-2 mb-0 fw-bold text-muted">YOU HAVE NO REWARDS WAITING FOR A CLAIM REQUEST</p>
                                     </div>
                                 @endif
                             </div>
                         </div>
                     </div>
+
+                    <div class="lrts-section-pane" data-promos-pane="history"><div class="card laicom-card"><div class="card-header">REWARD CLAIM HISTORY</div><div class="card-body p-0"><div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>ORDER</th><th>REWARD</th><th>QTY</th><th>STATUS</th><th>UPDATED</th><th>DETAILS</th></tr></thead><tbody>
+                        @forelse($claimHistory as $reward)<tr><td>{{ $reward->receipt?->salesman_order_number ?? '—' }}</td><td>{{ $reward->premiumProduct?->name ?? $reward->reward_product_name ?? 'Reward item' }}</td><td>{{ $reward->reward_quantity }}</td><td>{{ strtoupper($reward->claim_status) }}</td><td>{{ ($reward->claimed_at ?? $reward->voided_at ?? $reward->expired_at ?? $reward->updated_at)?->format('M d, Y') ?? '—' }}</td><td>{{ $reward->void_reason ?? ($reward->releaser?->name ? 'Released by ' . $reward->releaser->name : '—') }}</td></tr>@empty<tr><td colspan="6" class="py-4 text-center text-muted">No completed claims yet.</td></tr>@endforelse
+                    </tbody></table></div></div></div></div>
 
                 </div>
 
@@ -331,9 +287,9 @@
                             <div class="accordion accordion-flush" id="faqAccordion">
                                 @php
                                     $faqs = [
-                                        ['q' => 'How do I submit a new order?', 'a' => 'Go to Submit New Order, select products from the dropdown, enter quantities, then click Process Receipt and enter the order number from your salesman.'],
+                                        ['q' => 'How do I submit a new order?', 'a' => 'Go to Submit New Order, select products and quantities, enter the order number and date, and upload a clear receipt image before submitting.'],
                                         ['q' => 'Why is my order still "Processing"?', 'a' => 'Orders are reviewed by admin before rewards are issued. This usually takes less than 24 hours.'],
-                                        ['q' => 'How do I claim a reward?', 'a' => 'Go to Promos & Claim → Claimable Rewards, click CLAIM, and present the confirmation at the store to physically receive your item.'],
+                                        ['q' => 'How do I claim a reward?', 'a' => 'After your order is approved, open Promos & Claim and request a claim code. Show it to Laicom staff, who will confirm the physical handover.'],
                                         ['q' => 'What if my reward is missing?', 'a' => 'Submit an inquiry here in the Help tab. Include your order number and the reward you expected so we can trace it.'],
                                         ['q' => 'How do I contact support?', 'a' => 'Click the chat bubble in the bottom-right corner, or use the Open Support Chat button below.'],
                                     ];
@@ -678,13 +634,13 @@
                             @if ($reply->attachment_path)
                                 <div class="lrts-ticket-msg-attachment">
                                     @if (preg_match('/\.(jpg|jpeg|png|gif|webp)$/i', $reply->attachment_path))
-                                        <img src="{{ asset('storage/' . $reply->attachment_path) }}"
+                                        <img src="{{ route('customer.tickets.attachment', $reply) }}"
                                              alt="attachment"
                                              class="lrts-ticket-attachment-img lrts-zoomable-img"
-                                             data-src="{{ asset('storage/' . $reply->attachment_path) }}"
+                                             data-src="{{ route('customer.tickets.attachment', $reply) }}"
                                              style="cursor: zoom-in;">
                                     @else
-                                        <a href="{{ asset('storage/' . $reply->attachment_path) }}" target="_blank" class="lrts-ticket-attachment-file">
+                                        <a href="{{ route('customer.tickets.attachment', $reply) }}" target="_blank" class="lrts-ticket-attachment-file">
                                             <i class="bi bi-file-earmark-pdf-fill"></i> View attachment
                                         </a>
                                     @endif
@@ -760,7 +716,7 @@
          ============================================================ -->
     <div class="modal fade" id="processReceiptModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <form id="orderForm" action="{{ route('customer.submit_order') }}" method="POST" class="w-100">
+            <form id="orderForm" action="{{ route('customer.submit_order') }}" method="POST" enctype="multipart/form-data" class="w-100">
                 @csrf
                 <div class="modal-content border-dark border-3 rounded-0 bg-light shadow">
                     <div class="modal-header border-bottom border-dark bg-white py-2">
@@ -770,10 +726,9 @@
 
                         <p class="small fw-bold mb-3 text-uppercase">PLEASE ENTER THE ORDER NUMBER PROVIDED BY YOUR SALESMAN TO LOG YOUR PURCHASE AND CHECK ELIGIBLE REWARDS.</p>
 
-                        <div class="mb-4">
-                            <label class="form-label fw-bold small mb-1">SALESMAN ORDER NUMBER:</label>
-                            <input type="text" name="salesman_order_number" class="form-control border-dark border-2 rounded-0 fw-bold" placeholder="E.G. ORD-2026-00481" required>
-                        </div>
+                        <div class="row g-2 mb-3"><div class="col-md-6"><label class="form-label fw-bold small mb-1">SALESMAN ORDER NUMBER:</label><input type="text" name="salesman_order_number" value="{{ old('salesman_order_number') }}" maxlength="100" class="form-control border-dark border-2 rounded-0 fw-bold" placeholder="E.G. ORD-2026-00481" required></div><div class="col-md-6"><label class="form-label fw-bold small mb-1">ORDER DATE:</label><input type="date" name="order_date" value="{{ old('order_date', today()->toDateString()) }}" max="{{ today()->toDateString() }}" min="{{ today()->subDays((int) config('lrts.order_max_age_days', 60))->toDateString() }}" class="form-control border-dark border-2 rounded-0 fw-bold" required></div></div>
+                        <div class="mb-3"><label class="form-label fw-bold small mb-1">RECEIPT PHOTO (REQUIRED):</label><input type="file" name="slip" id="receiptSlipInput" class="form-control border-dark border-2 rounded-0" accept="image/jpeg,image/png,image/webp" required><small class="text-muted">JPG, PNG, or WebP · up to {{ (int) (config('lrts.slip_max_kb', 5120) / 1024) }} MB</small><div id="receiptSlipPreview" class="small mt-1 text-muted">No image selected.</div></div>
+                        <div class="mb-3"><label class="form-label fw-bold small mb-1">NOTE (OPTIONAL):</label><textarea name="customer_note" maxlength="500" rows="2" class="form-control border-dark border-2 rounded-0" placeholder="Anything staff should know?">{{ old('customer_note') }}</textarea></div>
 
                         <label class="form-label fw-bold small mb-1">SUMMARY OF LOGGED ITEMS:</label>
                         <div class="border border-dark border-2 overflow-auto bg-white p-2" style="height: 120px;">
@@ -787,7 +742,7 @@
                     </div>
                     <div class="modal-footer border-top-0 bg-white justify-content-end p-3">
                         <button type="button" class="btn btn-outline-dark fw-bold rounded-0 px-4 border-2" data-bs-dismiss="modal">CANCEL</button>
-                        <button type="submit" class="btn btn-dark fw-bold rounded-0 px-4 border-2">SUBMIT</button>
+                        <button type="submit" id="submitOrderButton" class="btn btn-dark fw-bold rounded-0 px-4 border-2">SUBMIT</button>
                     </div>
                 </div>
             </form>
@@ -804,40 +759,15 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body text-start">
-                    <h6 class="fw-bold border-bottom border-dark pb-1 mb-2">LOGGED PURCHASES:</h6>
-                    <ul class="list-unstyled small fw-bold mb-4">
-                        @forelse ($receipt->items as $item)
-                            <li>• {{ $item->quantity }}X {{ $item->product_name }}</li>
-                        @empty
-                            <li class="text-muted">No items recorded.</li>
-                        @endforelse
-                    </ul>
-
-                    <h6 class="fw-bold border-bottom border-dark pb-1 mb-2">EARNED REWARDS:</h6>
-                    @if ($receipt->status === 'pending')
-                        <div class="alert alert-warning py-2 small fw-bold mb-0">Rewards will be calculated upon admin approval.</div>
-                    @elseif ($receipt->status === 'rejected')
-                        <div class="alert alert-danger py-2 small fw-bold mb-0">Order rejected. No rewards issued.</div>
-                    @else
-                        @if ($receipt->earnedRewards->count() > 0)
-                            <ul class="list-unstyled fw-bold mb-0">
-                                @foreach ($receipt->earnedRewards as $reward)
-                                    <li class="text-success mb-2">
-                                        <i class="bi bi-gift-fill me-2"></i> {{ $reward->reward_quantity }}X {{ $reward->premiumProduct->name ?? 'Premium Item' }}
-                                        @if ($reward->claim_status === 'claimed')
-                                            <span class="badge bg-secondary ms-2">CLAIMED</span>
-                                        @else
-                                            <span class="badge bg-success ms-2">AVAILABLE</span>
-                                        @endif
-                                    </li>
-                                @endforeach
-                            </ul>
-                        @else
-                            <p class="small text-muted fw-bold mb-0">No promotions applied to this order.</p>
-                        @endif
-                    @endif
-                </div>
-                <div class="modal-footer border-top-0 justify-content-end">
+                    <div class="row g-2 small border-bottom pb-2 mb-3"><div class="col-6"><strong>ORDER DATE</strong><br>{{ $receipt->order_date?->format('M d, Y') ?? '—' }}</div><div class="col-6"><strong>SUBMITTED</strong><br>{{ $receipt->submitted_at?->format('M d, Y H:i') ?? '—' }}</div><div class="col-6"><strong>STATUS</strong><br>{{ $receipt->status === 'pending' ? 'PROCESSING' : strtoupper($receipt->status) }}</div><div class="col-6"><strong>ORDER NUMBER</strong><br>{{ $receipt->salesman_order_number }}</div></div>
+                    @if($receipt->slip_path)<div class="mb-3"><strong class="small">UPLOADED RECEIPT</strong><div><a href="{{ route('customer.receipts.slip', $receipt) }}" target="_blank" rel="noopener"><img src="{{ route('customer.receipts.slip', $receipt) }}" alt="Uploaded receipt" style="max-width:100%;max-height:260px;object-fit:contain" class="border mt-1"></a></div></div>@endif
+                    @if($receipt->customer_note)<p class="small"><strong>YOUR NOTE:</strong> {{ $receipt->customer_note }}</p>@endif
+                    <h6 class="fw-bold border-bottom border-dark pb-1 mb-2">PURCHASED PRODUCTS</h6><ul class="list-unstyled small fw-bold mb-3">@forelse($receipt->items as $item)<li>{{ $item->quantity }} × {{ $item->product_name }}</li>@empty<li class="text-muted">No items recorded.</li>@endforelse</ul>
+                    <h6 class="fw-bold border-bottom border-dark pb-1 mb-2">REWARD STATUS</h6>
+                    @if($receipt->status === 'pending')<div class="alert alert-warning py-2 small mb-2">Staff will review this receipt before rewards are selected.</div>@elseif($receipt->status === 'rejected')<div class="alert alert-danger py-2 small mb-2">{{ $receipt->rejection_reason ?: 'This order was rejected.' }}</div>@elseif($receipt->status === 'cancelled')<div class="alert alert-secondary py-2 small mb-2">This order was cancelled.</div>@endif
+                    @forelse($receipt->earnedRewards as $reward)<div class="d-flex justify-content-between border-bottom py-2 small"><span>{{ $reward->reward_quantity }} × {{ $reward->premiumProduct?->name ?? $reward->reward_product_name ?? 'Reward item' }}</span><strong>{{ strtoupper(str_replace('_', ' ', $reward->claim_status)) }}</strong></div>@empty @if($receipt->status === 'approved')<div class="small text-muted">No promotions applied to this order.</div>@endif @endforelse
+                    @if($receipt->activityLogs->isNotEmpty())<h6 class="fw-bold border-bottom border-dark pb-1 mt-3 mb-2">ORDER TIMELINE</h6><ul class="list-unstyled small mb-0">@foreach($receipt->activityLogs->sortBy('created_at') as $log)<li class="mb-1"><strong>{{ $log->created_at?->format('M d, Y H:i') }}</strong> · {{ $log->description }}</li>@endforeach</ul>@endif
+                </div>                <div class="modal-footer border-top-0 justify-content-end">
                     <button type="button" class="btn btn-outline-dark rounded-0 fw-bold" data-bs-dismiss="modal">CLOSE</button>
                 </div>
             </div>
@@ -943,14 +873,18 @@
         document.addEventListener('DOMContentLoaded', () => {
             const params = new URLSearchParams(window.location.search);
 
-            if (params.get('tab') === 'help') {
-                const helpTab = document.getElementById('help-tab');
-                if (helpTab) helpTab.click();
-            }
+            const requestedTab = params.get('tab');
+            if (requestedTab === 'help') document.getElementById('help-tab')?.click();
+            if (requestedTab === 'tracker') document.getElementById('tracker-tab')?.click();
+            if (requestedTab === 'promos') document.getElementById('promos-tab')?.click();
+            if (requestedTab === 'order') document.getElementById('order-tab')?.click();
 
             if (params.get('open_drawer') === '1') {
                 lrtsOpenDrawer();
             }
+
+            if (params.get('tab') === 'promos' && params.get('section') === 'history') document.querySelector('[data-promos-section="history"]')?.click();
+            if (params.get('tab') === 'promos' && params.get('section') === 'claims') document.querySelector('[data-promos-section="claims"]')?.click();
 
             const ticketId = params.get('ticket');
             if (ticketId) {
@@ -1185,8 +1119,12 @@
                     const productImage = selectedOption.getAttribute('data-image');
                     const qty = quantity.value;
 
-                    if (productName === 'Choose a product...' || !productName || qty < 1) {
-                        alert('Please select a valid product and quantity.');
+                    if (productName === 'Choose a product...' || !productName || qty < 1 || qty > 9999 || !Number.isInteger(Number(qty))) {
+                        alert('Please select a valid product and a whole-number quantity from 1 to 9,999.');
+                        return;
+                    }
+                    if (mainListbox.querySelectorAll('li.product-list-item').length >= 50) {
+                        alert('An order can contain no more than 50 product lines.');
                         return;
                     }
 
@@ -1318,6 +1256,47 @@
             document.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape' && lightbox.classList.contains('is-open')) {
                     closeLightbox();
+                }
+            });
+        });
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const dropdown = document.getElementById('customerNotificationsDropdown');
+            dropdown?.addEventListener('show.bs.dropdown', async () => {
+                try {
+                    const response = await fetch(@json(route('customer.notifications.read')), {
+                        method: 'POST',
+                        headers: {'X-CSRF-TOKEN': @json(csrf_token()), 'Accept': 'application/json'}
+                    });
+                    if (response.ok) dropdown.querySelector('.badge')?.remove();
+                } catch (_) {}
+            });
+
+            document.querySelectorAll('[data-open-reward-ticket]').forEach(button => button.addEventListener('click', () => {
+                const receiptSelect = document.getElementById('lrtsCreateReceipt');
+                const receiptId = button.dataset.receiptId;
+                const option = receiptSelect?.querySelector(`option[value="${receiptId}"]`);
+                if (!option) return;
+                receiptSelect.value = receiptId;
+                document.getElementById('lrtsCreateSubject').value = `Reward question for order ${option.dataset.number}`;
+                document.getElementById('lrtsCreateCategory').value = 'rewards';
+                document.querySelectorAll('#lrtsCreateChips .lrts-create-chip').forEach(chip => chip.classList.toggle('is-selected', chip.dataset.value === 'rewards'));
+                const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('createTicketModal'));
+                modal.show();
+            }));
+
+            const slipInput = document.getElementById('receiptSlipInput');
+            slipInput?.addEventListener('change', () => {
+                const file = slipInput.files?.[0];
+                document.getElementById('receiptSlipPreview').textContent = file ? `${file.name} · ${(file.size / 1024 / 1024).toFixed(2)} MB` : 'No image selected.';
+            });
+
+            document.getElementById('orderForm')?.addEventListener('submit', event => {
+                if (!document.querySelector('#hidden_inputs_container input[name$="[product_name]"]')) {
+                    event.preventDefault();
+                    alert('Add at least one purchased product before submitting.');
                 }
             });
         });

@@ -11,6 +11,10 @@ use App\Http\Controllers\Auth\WebAuthController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\Admin\TicketController as AdminTicketController;
+use App\Http\Controllers\Admin\ActivityLogController;
+use App\Http\Controllers\Admin\ClaimsQueueController;
+use App\Http\Controllers\ReceiptSlipController;
+use App\Http\Controllers\TicketAttachmentController;
 
 // Protected Customer Routes
 Route::middleware(['auth', 'customer'])->group(function () {
@@ -18,7 +22,10 @@ Route::middleware(['auth', 'customer'])->group(function () {
 
     // Handle order form submission
     Route::post('/dashboard/submit-order', [CustomerController::class, 'submitOrder'])->name('customer.submit_order');
-    Route::post('/rewards/{reward}/claim', [CustomerController::class, 'claimReward'])->name('customer.rewards.claim');
+    Route::post('/receipts/{receipt}/claim', [CustomerController::class, 'claimReceipt'])->name('customer.receipts.claim');
+    Route::post('/receipts/{receipt}/cancel', [CustomerController::class, 'cancelReceipt'])->name('customer.receipts.cancel');
+    Route::get('/receipts/{receipt}/slip', [ReceiptSlipController::class, 'customer'])->name('customer.receipts.slip');
+    Route::post('/notifications/read', [CustomerController::class, 'markNotificationsRead'])->name('customer.notifications.read');
 
     // Support tickets (customer) — rate-limited to prevent spam
     Route::post('/tickets', [TicketController::class, 'store'])
@@ -28,6 +35,7 @@ Route::middleware(['auth', 'customer'])->group(function () {
     Route::post('/tickets/{ticket}/reply', [TicketController::class, 'reply'])
         ->middleware('throttle:20,1')
         ->name('customer.tickets.reply');
+    Route::get('/tickets/attachments/{reply}', [TicketAttachmentController::class, 'customer'])->name('customer.tickets.attachment');
 });
 
 // 1. The main Entry Portal (Wireframe 1)
@@ -39,7 +47,7 @@ Route::get('/', function () {
 Route::get('/login', function () {
     return view('auth.customer-login');
 })->name('login.customer');
-Route::post('/login', [WebAuthController::class, 'login'])->name('login.customer.submit');
+Route::post('/login', [WebAuthController::class, 'login'])->middleware('throttle:5,1')->name('login.customer.submit');
 
 // 3. Customer Registration (Wireframe 3)
 Route::get('/register', [WebAuthController::class, 'showRegister'])->name('register.customer');
@@ -49,7 +57,7 @@ Route::post('/register', [WebAuthController::class, 'register'])->name('register
 Route::get('/admin/login', function () {
     return view('auth.admin-login');
 })->name('login.admin');
-Route::post('/admin/login', [WebAuthController::class, 'login'])->name('login.admin.submit');
+Route::post('/admin/login', [WebAuthController::class, 'login'])->middleware('throttle:5,1')->name('login.admin.submit');
 
 // 5. Logout
 Route::post('/logout', [WebAuthController::class, 'logout'])->name('logout');
@@ -68,10 +76,21 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
 
     // Receipts — reads from DB via ClaimController
     Route::get('/receipts', [ClaimController::class, 'index'])->name('admin.receipts');
+    Route::get('/receipts/{receipt}/slip', [ReceiptSlipController::class, 'admin'])->name('admin.receipts.slip');
 
     // Approve / Reject actions
     Route::post('/receipts/{id}/approve', [ClaimController::class, 'approve'])->name('admin.receipts.approve');
     Route::post('/receipts/{id}/reject', [ClaimController::class, 'reject'])->name('admin.receipts.reject');
+    Route::post('/receipts/{receipt}/release', [ClaimController::class, 'release'])->name('admin.receipts.release');
+    Route::post('/rewards/{reward}/release', [ClaimController::class, 'releaseReward'])->name('admin.rewards.release');
+    Route::post('/rewards/{reward}/void', [ClaimController::class, 'voidReward'])->name('admin.rewards.void');
+
+    Route::get('/claims', [ClaimsQueueController::class, 'index'])->name('admin.claims');
+    Route::post('/claims/{code}/release', [ClaimsQueueController::class, 'release'])->name('admin.claims.release');
+    Route::post('/claims/receipt/{receipt}/release', [ClaimsQueueController::class, 'releaseReceipt'])->name('admin.claims.release-receipt');
+    Route::get('/activity-log', [ActivityLogController::class, 'index'])->name('admin.activity-log');
+    Route::get('/tickets/attachments/{reply}', [TicketAttachmentController::class, 'admin'])->name('admin.tickets.attachment');
+    Route::get('/products/{product}/stock-history', [PremiumProductController::class, 'stockHistory'])->name('admin.products.stock-history');
 
     // Support tickets (admin)
     Route::get('/tickets', [AdminTicketController::class, 'index'])->name('admin.tickets');

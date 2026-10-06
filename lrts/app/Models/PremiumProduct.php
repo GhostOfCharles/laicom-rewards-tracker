@@ -67,4 +67,9 @@ class PremiumProduct extends Model
     public function earnedRewards() {
         return $this->hasMany(EarnedReward::class);
     }
+
+    public function stockMovements()
+    {
+        return $this->hasMany(PremiumStockMovement::class);
+    }
 }

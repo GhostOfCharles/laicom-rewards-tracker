@@ -117,6 +117,9 @@ class AdminCatalogWorkflowTest extends TestCase
             'required_quantity' => 3,
             'premium_product_id' => $reward->id,
             'reward_quantity' => 2,
+            'start_date' => today()->toDateString(),
+            'end_date' => today()->addMonth()->toDateString(),
+            'is_active' => 1,
         ])->assertRedirect();
 
         $promotion = Promotion::where('title', 'Soap bottle reward')->firstOrFail();
@@ -129,6 +132,9 @@ class AdminCatalogWorkflowTest extends TestCase
             'required_quantity' => 4,
             'premium_product_id' => $reward->id,
             'reward_quantity' => 1,
+            'start_date' => today()->toDateString(),
+            'end_date' => today()->addMonth()->toDateString(),
+            'is_active' => 1,
         ])->assertRedirect();
 
         $this->assertDatabaseHas('promotions', [

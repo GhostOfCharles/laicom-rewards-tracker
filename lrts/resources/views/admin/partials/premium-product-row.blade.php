@@ -30,6 +30,7 @@
     </td>
     <td>
         <div class="d-flex justify-content-center gap-1 text-nowrap">
+            <a class="btn btn-sm btn-outline-primary" href="{{ route('admin.products.stock-history', $premium) }}" target="_blank" rel="noopener" aria-label="Stock history for {{ $premium->name }}"><i class="bi bi-clock-history"></i></a>
             <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editPremiumProductModal{{ $premium->id }}" aria-label="Edit {{ $premium->name }}"><i class="bi bi-pencil-square"></i></button>
             <form action="{{ route('products.destroy', $premium->id) }}" method="POST" onsubmit="return confirm('Delete this premium product? Products used by rewards cannot be deleted.');">
                 @csrf

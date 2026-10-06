@@ -40,6 +40,16 @@ class User extends Authenticatable
         return $this->hasMany(EarnedReward::class);
     }
 
+    public function activityLogs()
+    {
+        return $this->hasMany(ActivityLog::class);
+    }
+
+    public function customerNotifications()
+    {
+        return $this->hasMany(CustomerNotification::class);
+    }
+
         public function tickets()
     {
         return $this->hasMany(Ticket::class);

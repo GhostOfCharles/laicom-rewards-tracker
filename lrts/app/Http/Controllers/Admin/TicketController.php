@@ -4,8 +4,13 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Ticket;
+use App\Models\CustomerNotification;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Throwable;
 
 class TicketController extends Controller
 {
@@ -31,7 +36,7 @@ class TicketController extends Controller
         return view('admin.tickets', compact('tickets', 'selectedTicket', 'filter'));
     }
 
-    public function reply(Request $request, Ticket $ticket)
+    public function reply(Request $request, Ticket $ticket, ActivityLogger $activityLogger)
     {
         $request->validate([
             'body' => 'required|string|min:10|max:5000',
@@ -43,21 +48,40 @@ class TicketController extends Controller
 
         $attachmentPath = null;
         if ($request->hasFile('attachment')) {
-            $attachmentPath = $request->file('attachment')->store('ticket-attachments', 'public');
+            $attachmentPath = $request->file('attachment')->store('ticket-attachments', 'private');
         }
 
-        $ticket->replies()->create([
-            'user_id' => Auth::id(),
-            'body' => $request->body,
-            'is_internal_note' => $isInternal,
-            'attachment_path' => $attachmentPath,
-        ]);
-
-        // Only public replies bump the status
-        if (!$isInternal) {
-            if (in_array($ticket->status, ['open', 'in_progress'], true)) {
-                $ticket->update(['status' => 'pending', 'resolved_at' => null]);
-            }
+        try {
+            DB::transaction(function () use ($ticket, $isInternal, $request, $attachmentPath, $activityLogger) {
+                $locked = Ticket::query()->lockForUpdate()->findOrFail($ticket->id);
+                $locked->replies()->create([
+                    'user_id' => Auth::id(),
+                    'body' => $request->body,
+                    'is_internal_note' => $isInternal,
+                    'attachment_path' => $attachmentPath,
+                ]);
+                if ($isInternal) {
+                    $activityLogger->record('ticket.internal_note', 'Internal note added to ticket #' . $locked->id . '.', $locked);
+                } else {
+                    $activityLogger->record('ticket.replied', 'Admin replied to ticket #' . $locked->id . '.', $locked);
+                    CustomerNotification::create([
+                        'user_id' => $locked->user_id,
+                        'type' => 'ticket.replied',
+                        'title' => 'Support replied',
+                        'body' => 'Support replied to your ticket: ' . $locked->subject,
+                        'receipt_id' => $locked->related_receipt_id,
+                        'created_at' => now(),
+                    ]);
+                    if (in_array($locked->status, ['open', 'in_progress'], true)) {
+                        $oldStatus = $locked->status;
+                        $locked->update(['status' => 'pending', 'resolved_at' => null]);
+                        $activityLogger->record('ticket.status_changed', 'Ticket #' . $locked->id . ' moved to pending after admin reply.', $locked, ['old' => $oldStatus, 'new' => 'pending']);
+                    }
+                }
+            });
+        } catch (Throwable $exception) {
+            if ($attachmentPath) Storage::disk('private')->delete($attachmentPath);
+            throw $exception;
         }
 
         return redirect()
@@ -65,7 +89,7 @@ class TicketController extends Controller
             ->with('success', $isInternal ? 'Internal note added.' : 'Reply sent.');
     }
 
-    public function updateStatus(Request $request, Ticket $ticket)
+    public function updateStatus(Request $request, Ticket $ticket, ActivityLogger $activityLogger)
     {
         $request->validate([
             'status' => 'required|in:open,pending,in_progress,resolved,closed',
@@ -80,7 +104,14 @@ class TicketController extends Controller
             $updates['resolved_at'] = null;
         }
 
-        $ticket->update($updates);
+        DB::transaction(function () use ($ticket, $updates, $newStatus, $activityLogger) {
+            $locked = Ticket::query()->lockForUpdate()->findOrFail($ticket->id);
+            $oldStatus = $locked->status;
+            $locked->update($updates);
+            if ($oldStatus !== $newStatus) {
+                $activityLogger->record('ticket.status_changed', 'Ticket #' . $locked->id . ' marked as ' . strtoupper(str_replace('_', ' ', $newStatus)) . '.', $locked, ['old' => $oldStatus, 'new' => $newStatus]);
+            }
+        });
 
         return redirect()
             ->route('admin.tickets', ['ticket' => $ticket->id, 'status' => $request->query('status', 'all')])

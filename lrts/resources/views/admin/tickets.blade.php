@@ -132,13 +132,13 @@
                             @if ($reply->attachment_path)
                                 <div class="adm-thread-attachment">
                                     @if (preg_match('/\.(jpg|jpeg|png|gif|webp)$/i', $reply->attachment_path))
-                                        <img src="{{ asset('storage/' . $reply->attachment_path) }}"
+                                        <img src="{{ route('admin.tickets.attachment', $reply) }}"
                                              class="adm-attachment-img lrts-zoomable-img"
-                                             data-src="{{ asset('storage/' . $reply->attachment_path) }}"
+                                             data-src="{{ route('admin.tickets.attachment', $reply) }}"
                                              alt="attachment"
                                              style="cursor: zoom-in;">
                                     @else
-                                        <a href="{{ asset('storage/' . $reply->attachment_path) }}" target="_blank" class="adm-attachment-file">
+                                        <a href="{{ route('admin.tickets.attachment', $reply) }}" target="_blank" class="adm-attachment-file">
                                             <i class="bi bi-file-earmark-pdf"></i> View attachment
                                         </a>
                                     @endif
@@ -157,13 +157,13 @@
                             @if ($reply->attachment_path)
                                 <div class="adm-thread-attachment">
                                     @if (preg_match('/\.(jpg|jpeg|png|gif|webp)$/i', $reply->attachment_path))
-                                        <img src="{{ asset('storage/' . $reply->attachment_path) }}"
+                                        <img src="{{ route('admin.tickets.attachment', $reply) }}"
                                              class="adm-attachment-img lrts-zoomable-img"
-                                             data-src="{{ asset('storage/' . $reply->attachment_path) }}"
+                                             data-src="{{ route('admin.tickets.attachment', $reply) }}"
                                              alt="attachment"
                                              style="cursor: zoom-in;">
                                     @else
-                                        <a href="{{ asset('storage/' . $reply->attachment_path) }}" target="_blank" class="adm-attachment-file">
+                                        <a href="{{ route('admin.tickets.attachment', $reply) }}" target="_blank" class="adm-attachment-file">
                                             <i class="bi bi-file-earmark-pdf"></i> View attachment
                                         </a>
                                     @endif

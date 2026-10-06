@@ -6,7 +6,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ReceiptController;
 
 // Public route for Flutter mobile login
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
 
 // Protected routes (requires Sanctum token)
 Route::middleware('auth:sanctum')->group(function () {

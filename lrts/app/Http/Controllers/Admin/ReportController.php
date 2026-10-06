@@ -8,8 +8,10 @@ use App\Models\EarnedReward;
 use App\Models\Inventory;
 use App\Models\PremiumProduct;
 use App\Models\Promotion;
+use App\Models\PremiumStockMovement;
 use App\Models\Receipt;
 use App\Models\StockMovement;
+use App\Services\RewardCalculator;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -29,7 +31,7 @@ class ReportController extends Controller
         'last_12_months', 'year_to_date', 'all_time', 'custom',
     ];
 
-    public function index(Request $request)
+    public function index(Request $request, RewardCalculator $calculator)
     {
         $validated = $request->validate([
             'report_type' => ['nullable', 'in:' . implode(',', array_keys(self::REPORTS))],
@@ -45,7 +47,7 @@ class ReportController extends Controller
         $report = match ($reportType) {
             'premium_stock' => $this->premiumStockReport($from, $to),
             'inventory_movement' => $this->inventoryMovementReport($from, $to),
-            default => $this->promotionPerformanceReport($from, $to),
+            default => $this->promotionPerformanceReport($from, $to, $calculator),
         };
 
         if (isset($validated['export_format'])) {
@@ -77,6 +79,7 @@ class ReportController extends Controller
             $firstDates = array_filter([
                 Receipt::min('submitted_at'),
                 EarnedReward::min('created_at'),
+                PremiumStockMovement::min('created_at'),
                 StockMovement::min('created_at'),
             ]);
             $from = $firstDates
@@ -98,25 +101,26 @@ class ReportController extends Controller
         return [$from, $to, $from->format('M d, Y') . ' to ' . $to->format('M d, Y')];
     }
 
-    private function promotionPerformanceReport(CarbonImmutable $from, CarbonImmutable $to): array
+    private function promotionPerformanceReport(CarbonImmutable $from, CarbonImmutable $to, RewardCalculator $calculator): array
     {
-        $qualificationRows = DB::table('promotions as p')
-            ->joinSub(
-                DB::table('receipt_items')
-                    ->select('receipt_id', 'product_name')
-                    ->selectRaw('SUM(quantity) as purchased_quantity')
-                    ->groupBy('receipt_id', 'product_name'),
-                'qualified_items',
-                fn ($join) => $join->on('qualified_items.product_name', '=', 'p.buy_product_name')
-            )
-            ->join('receipts as r', 'r.id', '=', 'qualified_items.receipt_id')
-            ->whereColumn('qualified_items.purchased_quantity', '>=', 'p.required_quantity')
-            ->whereBetween('r.submitted_at', [$from, $to])
-            ->select('p.id', 'r.status')
-            ->selectRaw('COUNT(DISTINCT r.id) as receipt_count')
-            ->groupBy('p.id', 'r.status')
-            ->get()
-            ->groupBy('id');
+        $qualifiedReceiptIds = [];
+        Receipt::query()->with('items')->whereBetween('submitted_at', [$from, $to])->where('status', '<>', 'cancelled')
+            ->orderBy('id')->chunkById(100, function ($receipts) use ($calculator, &$qualifiedReceiptIds) {
+                foreach ($receipts as $receipt) {
+                    foreach ($calculator->forReceipt($receipt, includeInactivePromotions: true) as $group) {
+                        foreach ($group['options'] as $option) {
+                            $qualifiedReceiptIds[$option['promotion_id']][$receipt->status][$receipt->id] = true;
+                        }
+                    }
+                }
+            });
+        $qualificationRows = collect($qualifiedReceiptIds)->map(function ($statuses, $promotionId) {
+            return collect($statuses)->map(fn ($ids, $status) => (object) [
+                'id' => $promotionId,
+                'status' => $status,
+                'receipt_count' => count($ids),
+            ]);
+        });
 
         $issuedByPromotion = EarnedReward::query()
             ->whereBetween('created_at', [$from, $to])
@@ -168,9 +172,13 @@ class ReportController extends Controller
         $submitted = Receipt::whereBetween('submitted_at', [$from, $to])->count();
         $approved = Receipt::whereBetween('submitted_at', [$from, $to])->where('status', 'approved')->count();
         $rejected = Receipt::whereBetween('submitted_at', [$from, $to])->where('status', 'rejected')->count();
-        $pending = max(0, $submitted - $approved - $rejected);
+        $cancelled = Receipt::whereBetween('submitted_at', [$from, $to])->where('status', 'cancelled')->count();
+        $pending = Receipt::whereBetween('submitted_at', [$from, $to])->where('status', 'pending')->count();
         $rewardsIssued = (int) EarnedReward::whereBetween('created_at', [$from, $to])->sum('reward_quantity');
         $rewardsClaimed = (int) EarnedReward::where('claim_status', 'claimed')->whereBetween('created_at', [$from, $to])->sum('reward_quantity');
+        $rewardsRequested = (int) EarnedReward::where('claim_status', 'claim_requested')->whereBetween('created_at', [$from, $to])->sum('reward_quantity');
+        $rewardsVoided = (int) EarnedReward::where('claim_status', 'voided')->whereBetween('created_at', [$from, $to])->sum('reward_quantity');
+        $rewardsExpired = (int) EarnedReward::where('claim_status', 'expired')->whereBetween('created_at', [$from, $to])->sum('reward_quantity');
 
         $promotionChartRows = collect($promotionChartRows)
             ->sortByDesc('issued')
@@ -186,8 +194,12 @@ class ReportController extends Controller
                 ['Total Receipts Submitted', $submitted],
                 ['Total Approved', $approved],
                 ['Total Rejected', $rejected],
+                ['Total Cancelled', $cancelled],
                 ['Total Rewards Issued', $rewardsIssued],
+                ['Rewards Awaiting Physical Release', $rewardsRequested],
                 ['Total Rewards Claimed', $rewardsClaimed],
+                ['Total Rewards Voided', $rewardsVoided],
+                ['Total Rewards Expired', $rewardsExpired],
             ],
             'charts' => [
                 'approval' => [
@@ -196,6 +208,7 @@ class ReportController extends Controller
                         ['label' => 'Approved', 'value' => $approved, 'color' => '#12284c'],
                         ['label' => 'Rejected', 'value' => $rejected, 'color' => '#e3343f'],
                         ['label' => 'Pending', 'value' => $pending, 'color' => '#8492a6'],
+                        ['label' => 'Cancelled', 'value' => $cancelled, 'color' => '#cbd5e1'],
                     ],
                 ],
                 'bar_charts' => [[
@@ -215,13 +228,20 @@ class ReportController extends Controller
 
     private function premiumStockReport(CarbonImmutable $from, CarbonImmutable $to): array
     {
+        $stockChangeByProduct = DB::table('premium_stock_movements')
+            ->whereBetween('created_at', [$from, $to])
+            ->select('premium_product_id')
+            ->selectRaw('SUM(quantity) as net_change')
+            ->groupBy('premium_product_id')
+            ->pluck('net_change', 'premium_product_id');
+
         $products = PremiumProduct::query()
             ->withSum(['earnedRewards as range_rewards_issued' => fn ($query) => $query->whereBetween('created_at', [$from, $to])], 'reward_quantity')
             ->withSum(['earnedRewards as range_rewards_claimed' => fn ($query) => $query->where('claim_status', 'claimed')->whereBetween('claimed_at', [$from, $to])], 'reward_quantity')
             ->orderBy('name')
             ->get();
 
-        $rows = $products->map(function (PremiumProduct $product) {
+        $rows = $products->map(function (PremiumProduct $product) use ($stockChangeByProduct) {
             $issued = (int) ($product->range_rewards_issued ?? 0);
             $claimed = (int) ($product->range_rewards_claimed ?? 0);
             $stock = (int) $product->stock;
@@ -235,7 +255,8 @@ class ReportController extends Controller
                 default => 'Expires ' . ($product->expiry_date?->format('M d, Y') ?? 'date unavailable'),
             };
 
-            return [$product->name, $product->item_code, $stock, $issued, $claimed, $issued, $status, $expiry];
+            $netStockChange = (int) ($stockChangeByProduct[$product->id] ?? 0);
+            return [$product->name, $product->item_code, $stock, $issued, $claimed, $netStockChange, $status, $expiry];
         })->all();
 
         $stockChartRows = collect($rows)->sortByDesc(fn (array $row) => $row[2])->take(5)->map(fn (array $row) => ['title' => $row[0] . ' (' . $row[1] . ')', 'primary' => $row[2], 'secondary' => null])->values()->all();
@@ -243,11 +264,12 @@ class ReportController extends Controller
 
         return [
             'title' => self::REPORTS['premium_stock'],
-            'columns' => ['Product Name', 'Item Code', 'Current Stock', 'Rewards Issued', 'Rewards Claimed', 'Net Outflow (Issued)', 'Stock Status', 'Expiry'],
+            'columns' => ['Product Name', 'Item Code', 'Current Stock', 'Rewards Issued', 'Rewards Claimed', 'Net Stock Change', 'Stock Status', 'Expiry'],
             'rows' => $rows,
             'summaries' => [
                 ['Total Rewards Issued', array_sum(array_column($rows, 3))],
                 ['Total Rewards Claimed', array_sum(array_column($rows, 4))],
+                ['Net Stock Change In Period', array_sum(array_column($rows, 5))],
                 ['Products Below Low-Stock Threshold (10 or Less)', $products->where('stock', '<=', 10)->count()],
                 ['Premium Products Expiring Within 30 Days', $products->filter(fn (PremiumProduct $product) => $product->isExpiringSoon())->count()],
                 ['Premium Products Already Expired', $products->filter(fn (PremiumProduct $product) => $product->isExpired())->count()],

@@ -47,22 +47,25 @@ class AuthorizationAndSupportTest extends TestCase
             ->assertOk()
             ->assertSee('I need help with my approved reward.')
             ->assertDontSee('Private admin review note.');
+        $this->actingAs($customer)->get(route('customer.tickets.attachment', $ticket->replies()->where('is_internal_note', true)->firstOrFail()))
+            ->assertForbidden();
     }
 
     public function test_customer_support_ticket_attachment_upload_is_saved_and_owner_can_reply(): void
     {
-        Storage::fake('public');
+        Storage::fake('private');
         $customer = User::factory()->create(['role' => 'customer']);
         $this->actingAs($customer)->post(route('customer.tickets.store'), [
             'subject' => 'Order status question',
             'category' => 'orders',
             'body' => 'Please check the status of my latest order.',
-            'attachment' => UploadedFile::fake()->createWithContent('order.png', file_get_contents(public_path('images/laicom-logo.png'))),
+            'attachment' => $this->fakePng('order.png'),
         ])->assertRedirect();
 
         $ticket = Ticket::where('user_id', $customer->id)->firstOrFail();
         $reply = $ticket->replies()->firstOrFail();
-        Storage::disk('public')->assertExists($reply->attachment_path);
+        Storage::disk('private')->assertExists($reply->attachment_path);
+        $this->get(route('customer.tickets.attachment', $reply))->assertOk();
 
         $this->post(route('customer.tickets.reply', $ticket), [
             'body' => 'Thank you, I have more information to add.',
@@ -72,6 +75,25 @@ class AuthorizationAndSupportTest extends TestCase
             'ticket_id' => $ticket->id,
             'body' => 'Thank you, I have more information to add.',
         ]);
+    }
+
+    public function test_receipt_slip_is_available_only_to_its_owner_and_staff(): void
+    {
+        Storage::fake('private');
+        Storage::disk('private')->put('receipt-slips/private-slip.png', 'private receipt image');
+        $owner = User::factory()->create(['role' => 'customer']);
+        $otherCustomer = User::factory()->create(['role' => 'customer']);
+        $admin = User::factory()->create(['role' => 'admin']);
+        $receipt = Receipt::create([
+            'user_id' => $owner->id,
+            'salesman_order_number' => 'PRIVATE-SLIP-1',
+            'status' => 'pending',
+            'slip_path' => 'receipt-slips/private-slip.png',
+        ]);
+
+        $this->actingAs($owner)->get(route('customer.receipts.slip', $receipt))->assertOk();
+        $this->actingAs($otherCustomer)->get(route('customer.receipts.slip', $receipt))->assertForbidden();
+        $this->actingAs($admin)->get(route('admin.receipts.slip', $receipt))->assertOk();
     }
 
     public function test_api_login_and_receipt_submission_resolve_to_the_api_controllers(): void
@@ -85,8 +107,11 @@ class AuthorizationAndSupportTest extends TestCase
         ])->assertOk()->assertJsonPath('message', 'Login successful.');
 
         $token = $login->json('token');
-        $this->withHeader('Authorization', 'Bearer ' . $token)->postJson('/api/receipts', [
+        Storage::fake('private');
+        $this->withHeader('Authorization', 'Bearer ' . $token)->post('/api/receipts', [
             'salesman_order_number' => 'API-ORDER-1',
+            'order_date' => today()->toDateString(),
+            'slip' => $this->fakePng('api-receipt.png'),
             'items' => [['product_name' => 'Dish Soap', 'quantity' => 2]],
         ])->assertCreated();
 
@@ -99,11 +124,18 @@ class AuthorizationAndSupportTest extends TestCase
         $adminToken = $admin->createToken('test')->plainTextToken;
         // The test application reuses guards between requests; clear Sanctum's cached customer.
         Auth::forgetGuards();
-        $this->withHeader('Authorization', 'Bearer ' . $adminToken)->postJson('/api/receipts', [
+        $this->withHeader('Authorization', 'Bearer ' . $adminToken)->post('/api/receipts', [
             'salesman_order_number' => 'API-ADMIN-ORDER',
+            'order_date' => today()->toDateString(),
+            'slip' => $this->fakePng('api-admin-receipt.png'),
             'items' => [['product_name' => 'Dish Soap', 'quantity' => 2]],
         ])->assertForbidden();
 
         $this->assertDatabaseMissing('receipts', ['salesman_order_number' => 'API-ADMIN-ORDER']);
+    }
+
+    private function fakePng(string $name): UploadedFile
+    {
+        return UploadedFile::fake()->createWithContent($name, base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j5WQAAAAASUVORK5CYII='));
     }
 }

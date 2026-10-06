@@ -34,10 +34,16 @@
                         <a class="nav-link text-dark {{ request()->routeIs('admin.reports') ? 'active' : '' }}" href="{{ route('admin.reports') }}"><i class="bi bi-bar-chart me-2"></i>REPORTS</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-dark {{ request()->routeIs('admin.receipts*') ? 'active' : '' }}" href="{{ route('admin.receipts') }}"><i class="bi bi-receipt me-2"></i>RECEIPTS</a>
+                        <a class="nav-link text-dark {{ request()->routeIs('admin.receipts*') ? 'active' : '' }}" href="{{ route('admin.receipts') }}"><i class="bi bi-receipt me-2"></i>RECEIPTS @if(($adminNavCounts['receipts'] ?? 0) > 0)<span class="badge text-bg-danger ms-1">{{ $adminNavCounts['receipts'] }}</span>@endif</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-dark {{ request()->routeIs('admin.tickets*') ? 'active' : '' }}" href="{{ route('admin.tickets') }}"><i class="bi bi-life-preserver me-2"></i>TICKETS</a>
+                        <a class="nav-link text-dark {{ request()->routeIs('admin.claims*') ? 'active' : '' }}" href="{{ route('admin.claims') }}"><i class="bi bi-gift me-2"></i>CLAIMS @if(($adminNavCounts['claims'] ?? 0) > 0)<span class="badge text-bg-danger ms-1">{{ $adminNavCounts['claims'] }}</span>@endif</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-dark {{ request()->routeIs('admin.tickets*') ? 'active' : '' }}" href="{{ route('admin.tickets') }}"><i class="bi bi-life-preserver me-2"></i>TICKETS @if(($adminNavCounts['tickets'] ?? 0) > 0)<span class="badge text-bg-danger ms-1">{{ $adminNavCounts['tickets'] }}</span>@endif</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-dark {{ request()->routeIs('admin.activity-log') ? 'active' : '' }}" href="{{ route('admin.activity-log') }}"><i class="bi bi-clock-history me-2"></i>ACTIVITY LOG</a>
                     </li>
                 </ul>
             </div>
@@ -62,5 +68,6 @@
             document.body.appendChild(modal);
         });
     </script>
+    @stack('scripts')
 </body>
 </html>
