@@ -84,6 +84,80 @@
             @endforeach
         </div>
 
+        @php
+            $approvalChart = $charts['approval'] ?? ['total' => 0, 'segments' => []];
+            $chartCircumference = 2 * pi() * 43;
+            $chartOffset = 0;
+        @endphp
+        <section class="lrts-report-chart-grid mb-4" aria-label="{{ $reports[$reportType] }} charts">
+            @if ($reportType === 'promo_performance')
+                <article class="lrts-report-chart-card">
+                    <h6 class="lrts-report-chart-title">APPROVAL BREAKDOWN</h6>
+                    <div class="lrts-report-chart-body lrts-report-donut-layout">
+                        <div class="lrts-report-donut-wrap">
+                            <svg class="lrts-report-donut" viewBox="0 0 120 120" role="img" aria-label="{{ $approvalChart['total'] }} receipts: {{ $approvalChart['segments'][0]['value'] }} approved, {{ $approvalChart['segments'][1]['value'] }} rejected, {{ $approvalChart['segments'][2]['value'] }} pending">
+                                <circle cx="60" cy="60" r="43" fill="none" stroke="#e8edf4" stroke-width="18" />
+                                @if ($approvalChart['total'] > 0)
+                                    @foreach ($approvalChart['segments'] as $segment)
+                                        @if ($segment['value'] > 0)
+                                            @php
+                                                $segmentLength = ($segment['value'] / $approvalChart['total']) * $chartCircumference;
+                                                $segmentOffset = $chartOffset;
+                                                $chartOffset += $segmentLength;
+                                            @endphp
+                                            <circle cx="60" cy="60" r="43" fill="none" stroke="{{ $segment['color'] }}" stroke-width="18" stroke-dasharray="{{ number_format($segmentLength, 3, '.', '') }} {{ number_format($chartCircumference, 3, '.', '') }}" stroke-dashoffset="{{ number_format(-$segmentOffset, 3, '.', '') }}" transform="rotate(-90 60 60)" />
+                                        @endif
+                                    @endforeach
+                                @endif
+                                <text x="60" y="57" text-anchor="middle" class="lrts-report-donut-total">{{ number_format($approvalChart['total']) }}</text>
+                                <text x="60" y="72" text-anchor="middle" class="lrts-report-donut-caption">RECEIPTS</text>
+                            </svg>
+                        </div>
+                        <ul class="lrts-report-chart-legend mb-0" aria-label="Receipt statuses">
+                            @foreach ($approvalChart['segments'] as $segment)
+                                <li><span class="lrts-report-legend-swatch" style="background-color: {{ $segment['color'] }}"></span><span>{{ $segment['label'] }}</span><strong>{{ number_format($segment['value']) }}</strong></li>
+                            @endforeach
+                        </ul>
+                    </div>
+                </article>
+            @endif
+
+            @foreach (($charts['bar_charts'] ?? []) as $barChart)
+                @php
+                    $chartRows = $barChart['rows'];
+                    $chartValues = collect($chartRows)->flatMap(fn ($row) => [$row['primary'], $row['secondary'] ?? 0]);
+                    $chartMaximum = max(0, (int) $chartValues->max());
+                @endphp
+                <article class="lrts-report-chart-card">
+                    <h6 class="lrts-report-chart-title">{{ $barChart['title'] }}</h6>
+                    <div class="lrts-report-chart-body">
+                        <div class="lrts-report-bar-legend">
+                            <span><i class="is-primary"></i>{{ $barChart['primary_label'] }}</span>
+                            @if ($barChart['secondary_label'])<span><i class="is-secondary"></i>{{ $barChart['secondary_label'] }}</span>@endif
+                        </div>
+                        @forelse ($chartRows as $chartRow)
+                            @php
+                                $primaryWidth = $chartMaximum > 0 ? ($chartRow['primary'] / $chartMaximum) * 100 : 0;
+                                $secondaryWidth = $chartMaximum > 0 && ($chartRow['secondary'] ?? 0) > 0 ? ($chartRow['secondary'] / $chartMaximum) * 100 : 0;
+                            @endphp
+                            <div class="lrts-report-promotion-bar-row">
+                                <div class="lrts-report-promotion-bar-label" title="{{ $chartRow['title'] }}">{{ $chartRow['title'] }}</div>
+                                <div class="lrts-report-bar-pair">
+                                    <div class="lrts-report-bar-line" aria-label="{{ $barChart['primary_label'] }}: {{ $chartRow['primary'] }}"><span class="lrts-report-bar"><i class="is-primary" style="width: {{ number_format($primaryWidth, 2, '.', '') }}%"></i></span><strong>{{ number_format($chartRow['primary']) }}</strong></div>
+                                    @if ($barChart['secondary_label'])
+                                        <div class="lrts-report-bar-line" aria-label="{{ $barChart['secondary_label'] }}: {{ $chartRow['secondary'] }}"><span class="lrts-report-bar"><i class="is-secondary" style="width: {{ number_format($secondaryWidth, 2, '.', '') }}%"></i></span><strong>{{ number_format($chartRow['secondary']) }}</strong></div>
+                                    @endif
+                                </div>
+                            </div>
+                        @empty
+                            <p class="small text-muted text-center py-4 mb-0">No products or promotions are available to chart yet.</p>
+                        @endforelse
+                        @if ($barChart['note'])<p class="small text-muted mb-0 mt-3">{{ $barChart['note'] }}</p>@endif
+                    </div>
+                </article>
+            @endforeach
+        </section>
+
         @if ($reportType === 'inventory_movement')
             <p class="small text-muted">Inventory movement history begins when the stock ledger is introduced. Existing historical opening balances cannot be reconstructed, so this report labels the current balance instead.</p>
         @elseif ($reportType === 'premium_stock')

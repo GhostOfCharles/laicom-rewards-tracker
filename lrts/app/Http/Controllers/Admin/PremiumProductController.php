@@ -12,7 +12,7 @@ class PremiumProductController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => ['required', 'string', 'max:255', $this->uniqueProductNameRule()],
             'item_code' => 'required|string|unique:premium_products,item_code',
             'initial_stock' => 'required|integer|min:0',
             'category' => ['required', 'in:' . implode(',', array_keys(Inventory::CATEGORIES))],
@@ -46,7 +46,7 @@ class PremiumProductController extends Controller
         $product = PremiumProduct::findOrFail($id);
 
         $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => ['required', 'string', 'max:255', $this->uniqueProductNameRule($product)],
             'stock' => 'required|integer|min:0',
             'category' => ['required', 'in:' . implode(',', array_keys(Inventory::CATEGORIES))],
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
@@ -83,5 +83,26 @@ class PremiumProductController extends Controller
 
         $product->delete();
         return back()->with('success', 'Premium product removed.');
+    }
+
+    private function uniqueProductNameRule(?PremiumProduct $currentProduct = null): \Closure
+    {
+        return function (string $attribute, mixed $value, \Closure $fail) use ($currentProduct): void {
+            $normalizedName = mb_strtolower(trim((string) $value));
+
+            // Let existing case-only legacy duplicates keep working until an admin can distinguish them.
+            if ($currentProduct && $normalizedName === mb_strtolower(trim($currentProduct->name))) {
+                return;
+            }
+
+            $query = PremiumProduct::query()->whereRaw('LOWER(TRIM(name)) = ?', [$normalizedName]);
+            if ($currentProduct) {
+                $query->where('id', '<>', $currentProduct->id);
+            }
+
+            if ($query->exists()) {
+                $fail('A premium product with this name already exists. Add a distinguishing product name to avoid duplicates.');
+            }
+        };
     }
 }

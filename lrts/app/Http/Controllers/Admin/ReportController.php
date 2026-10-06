@@ -62,6 +62,7 @@ class ReportController extends Controller
             'columns' => $report['columns'],
             'rows' => $report['rows'],
             'summaries' => $report['summaries'],
+            'charts' => $report['charts'] ?? [],
         ]);
     }
 
@@ -133,7 +134,8 @@ class ReportController extends Controller
             ->pluck('total', 'promotion_id');
 
         $promotions = Promotion::with('premiumProduct')->orderBy('id')->get();
-        $rows = $promotions->map(function (Promotion $promotion) use ($qualificationRows, $issuedByPromotion, $claimedByPromotion) {
+        $promotionChartRows = [];
+        $rows = $promotions->map(function (Promotion $promotion) use ($qualificationRows, $issuedByPromotion, $claimedByPromotion, &$promotionChartRows) {
             $activity = $qualificationRows->get($promotion->id, collect());
             $qualified = (int) $activity->sum('receipt_count');
             $approved = (int) $activity->where('status', 'approved')->sum('receipt_count');
@@ -141,6 +143,11 @@ class ReportController extends Controller
             $issued = (int) ($issuedByPromotion[$promotion->id] ?? 0);
             $claimed = (int) ($claimedByPromotion[$promotion->id] ?? 0);
             $rewardName = $promotion->premiumProduct?->name ?? 'Deleted reward product';
+            $promotionChartRows[] = [
+                'title' => $promotion->title ?: "BUY {$promotion->required_quantity} {$promotion->buy_product_name} GET {$promotion->reward_quantity} {$rewardName}",
+                'issued' => $issued,
+                'claimed' => $claimed,
+            ];
 
             return [
                 $promotion->title ?: "BUY {$promotion->required_quantity} {$promotion->buy_product_name} GET {$promotion->reward_quantity} {$rewardName}",
@@ -161,8 +168,15 @@ class ReportController extends Controller
         $submitted = Receipt::whereBetween('submitted_at', [$from, $to])->count();
         $approved = Receipt::whereBetween('submitted_at', [$from, $to])->where('status', 'approved')->count();
         $rejected = Receipt::whereBetween('submitted_at', [$from, $to])->where('status', 'rejected')->count();
+        $pending = max(0, $submitted - $approved - $rejected);
         $rewardsIssued = (int) EarnedReward::whereBetween('created_at', [$from, $to])->sum('reward_quantity');
         $rewardsClaimed = (int) EarnedReward::where('claim_status', 'claimed')->whereBetween('created_at', [$from, $to])->sum('reward_quantity');
+
+        $promotionChartRows = collect($promotionChartRows)
+            ->sortByDesc('issued')
+            ->take(5)
+            ->values()
+            ->all();
 
         return [
             'title' => self::REPORTS['promo_performance'],
@@ -174,6 +188,27 @@ class ReportController extends Controller
                 ['Total Rejected', $rejected],
                 ['Total Rewards Issued', $rewardsIssued],
                 ['Total Rewards Claimed', $rewardsClaimed],
+            ],
+            'charts' => [
+                'approval' => [
+                    'total' => $submitted,
+                    'segments' => [
+                        ['label' => 'Approved', 'value' => $approved, 'color' => '#12284c'],
+                        ['label' => 'Rejected', 'value' => $rejected, 'color' => '#e3343f'],
+                        ['label' => 'Pending', 'value' => $pending, 'color' => '#8492a6'],
+                    ],
+                ],
+                'bar_charts' => [[
+                    'title' => 'REWARDS ISSUED VS CLAIMED',
+                    'primary_label' => 'ISSUED',
+                    'secondary_label' => 'CLAIMED',
+                    'rows' => array_map(fn (array $promotion) => [
+                        'title' => $promotion['title'],
+                        'primary' => $promotion['issued'],
+                        'secondary' => $promotion['claimed'],
+                    ], $promotionChartRows),
+                    'note' => count($promotionChartRows) === 5 ? 'Showing the five promotions with the most rewards issued in this period.' : null,
+                ]],
             ],
         ];
     }
@@ -203,6 +238,9 @@ class ReportController extends Controller
             return [$product->name, $product->item_code, $stock, $issued, $claimed, $issued, $status, $expiry];
         })->all();
 
+        $stockChartRows = collect($rows)->sortByDesc(fn (array $row) => $row[2])->take(5)->map(fn (array $row) => ['title' => $row[0] . ' (' . $row[1] . ')', 'primary' => $row[2], 'secondary' => null])->values()->all();
+        $rewardChartRows = collect($rows)->sortByDesc(fn (array $row) => $row[3])->take(5)->map(fn (array $row) => ['title' => $row[0] . ' (' . $row[1] . ')', 'primary' => $row[3], 'secondary' => $row[4]])->values()->all();
+
         return [
             'title' => self::REPORTS['premium_stock'],
             'columns' => ['Product Name', 'Item Code', 'Current Stock', 'Rewards Issued', 'Rewards Claimed', 'Net Outflow (Issued)', 'Stock Status', 'Expiry'],
@@ -213,6 +251,12 @@ class ReportController extends Controller
                 ['Products Below Low-Stock Threshold (10 or Less)', $products->where('stock', '<=', 10)->count()],
                 ['Premium Products Expiring Within 30 Days', $products->filter(fn (PremiumProduct $product) => $product->isExpiringSoon())->count()],
                 ['Premium Products Already Expired', $products->filter(fn (PremiumProduct $product) => $product->isExpired())->count()],
+            ],
+            'charts' => [
+                'bar_charts' => [
+                    ['title' => 'CURRENT REWARD STOCK BY PRODUCT', 'primary_label' => 'IN STOCK', 'secondary_label' => null, 'rows' => $stockChartRows, 'note' => count($stockChartRows) === 5 ? 'Showing the five products with the most stock.' : null],
+                    ['title' => 'REWARDS ISSUED VS CLAIMED', 'primary_label' => 'ISSUED', 'secondary_label' => 'CLAIMED', 'rows' => $rewardChartRows, 'note' => null],
+                ],
             ],
         ];
     }
@@ -246,6 +290,13 @@ class ReportController extends Controller
             return [$item->name, $item->categoryLabel(), (int) $item->stock_balance, $inflow, $outflow, $inflow - $outflow, $expiryStatus];
         })->all();
 
+        $movementChartRows = collect($rows)
+            ->sortByDesc(fn (array $row) => $row[3] + $row[4])
+            ->take(5)
+            ->map(fn (array $row) => ['title' => $row[0], 'primary' => $row[3], 'secondary' => $row[4]])
+            ->values()
+            ->all();
+
         return [
             'title' => self::REPORTS['inventory_movement'],
             'columns' => ['Product Name', 'Category', 'Current Stock', 'Total Inflow', 'Total Outflow', 'Net Change', 'Expiry Status'],
@@ -255,6 +306,15 @@ class ReportController extends Controller
                 ['Total Outflow Quantity', array_sum(array_column($rows, 4))],
                 ['Items Currently Expired', $inventory->filter(fn (Inventory $item) => $item->expiry_date?->lt($today))->count()],
                 ['Items Expiring Within 30 Days', $inventory->filter(fn (Inventory $item) => $item->expiry_date && $item->expiry_date->betweenIncluded($today, $expiringLimit))->count()],
+            ],
+            'charts' => [
+                'bar_charts' => [[
+                    'title' => 'INVENTORY INFLOW VS OUTFLOW',
+                    'primary_label' => 'INFLOW',
+                    'secondary_label' => 'OUTFLOW',
+                    'rows' => $movementChartRows,
+                    'note' => count($movementChartRows) === 5 ? 'Showing the five products with the most stock movement.' : null,
+                ]],
             ],
         ];
     }

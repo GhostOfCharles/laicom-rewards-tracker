@@ -7,6 +7,7 @@ use App\Models\Receipt;
 use App\Models\Promotion;
 use App\Models\PremiumProduct;
 use App\Models\EarnedReward;
+use App\Models\Inventory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -19,6 +20,11 @@ class ClaimController extends Controller
             ->when(in_array($status, ['pending', 'approved', 'rejected'], true), fn ($query) => $query->where('status', $status))
             ->orderBy('created_at', 'desc')
             ->get();
+        $productNames = $receipts->flatMap(fn (Receipt $receipt) => $receipt->items->pluck('product_name'))->unique()->values();
+        $receiptProductImages = Inventory::query()
+            ->whereIn('name', $productNames)
+            ->get(['name', 'image_path'])
+            ->keyBy('name');
         $promotions = Promotion::with('premiumProduct')->where('is_active', 1)->get(); 
 
         foreach ($receipts as $receipt) {
@@ -38,6 +44,7 @@ class ClaimController extends Controller
                                 'promotion_id' => $promo->id,
                                 'premium_product_id' => $pid,
                                 'name' => $promo->premiumProduct->name ?? 'Unknown Premium',
+                                'image_path' => $promo->premiumProduct->image_path ?? null,
                                 'quantity' => 0
                             ];
                         }
@@ -48,7 +55,7 @@ class ClaimController extends Controller
             $receipt->calculated_rewards = $rewards;
         }
 
-        return view('admin.receipts', compact('receipts'));
+        return view('admin.receipts', compact('receipts', 'receiptProductImages'));
     }
 
     public function approve($id)

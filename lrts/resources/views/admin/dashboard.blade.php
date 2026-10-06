@@ -11,28 +11,60 @@
 
 <!-- Premium Products Section -->
 <div class="mb-5">
-    <div class="d-flex justify-content-between align-items-center mb-2">
-        <div><h6 class="mb-0 fw-bold">PREMIUM PRODUCTS @if($premiumExpiryAlertCount > 0)<span class="badge bg-danger rounded-0 align-middle ms-1">{{ $premiumExpiryAlertCount }}</span>@endif</h6><span class="small text-muted">Promotional reward stock</span></div>
-        <button type="button" class="btn btn-sm laicom-btn-primary" data-bs-toggle="modal" data-bs-target="#addPremiumProductModal" title="Add New Premium Product" aria-label="Add premium product"><i class="bi bi-plus-lg"></i></button>
+    <div class="mb-2">
+        <h6 class="mb-0 fw-bold">PREMIUM PRODUCTS @if($premiumExpiryAlertCount > 0)<span class="badge bg-danger rounded-0 align-middle ms-1">{{ $premiumExpiryAlertCount }}</span>@endif</h6>
+        <span class="small text-muted">Promotional reward stock</span>
     </div>
 
-    <form method="GET" action="{{ route('admin.dashboard') }}" class="d-flex flex-wrap align-items-center gap-2 mb-2">
-        <label for="premium_category" class="small fw-bold mb-0">SORT BY CATEGORY</label>
-        <select id="premium_category" name="premium_category" class="form-select form-select-sm border-dark border-2 rounded-0 w-auto" onchange="this.form.submit()">
-            <option value="">All categories</option>
-            @foreach (\App\Models\PremiumProduct::CATEGORIES as $value => $label)
-                <option value="{{ $value }}" {{ $premiumCategory === $value ? 'selected' : '' }}>{{ $label }}</option>
-            @endforeach
-        </select>
-        <label for="premium_expiry" class="small fw-bold mb-0 ms-2">FILTER BY EXPIRY</label>
-        <select id="premium_expiry" name="premium_expiry" class="form-select form-select-sm border-dark border-2 rounded-0 w-auto" onchange="this.form.submit()">
-            <option value="" {{ $premiumExpiry === '' ? 'selected' : '' }}>All</option>
-            <option value="perishable" {{ $premiumExpiry === 'perishable' ? 'selected' : '' }}>Perishable only</option>
-            <option value="expiring_soon" {{ $premiumExpiry === 'expiring_soon' ? 'selected' : '' }}>Expiring soon</option>
-            <option value="expired" {{ $premiumExpiry === 'expired' ? 'selected' : '' }}>Expired</option>
-        </select>
+    <form method="GET" action="{{ route('admin.dashboard') }}" class="catalog-filters mb-2">
+        <input type="hidden" name="promotion_search" value="{{ $promotionSearch }}">
+        <input type="hidden" name="promotion_status" value="{{ $promotionStatus }}">
+        <div class="catalog-filter-search">
+            <label for="premium_search" class="small fw-bold">SEARCH PRODUCTS</label>
+            <input id="premium_search" name="premium_search" type="search" value="{{ $premiumSearch }}" class="form-control form-control-sm border-dark rounded-0" placeholder="Name or item code">
+        </div>
+        <div class="catalog-filter">
+            <label for="premium_category" class="small fw-bold">FILTER BY CATEGORY</label>
+            <select id="premium_category" name="premium_category" class="form-select form-select-sm border-dark rounded-0">
+                <option value="">All</option>
+                @foreach (\App\Models\PremiumProduct::CATEGORIES as $value => $label)
+                    <option value="{{ $value }}" {{ $premiumCategory === $value ? 'selected' : '' }}>{{ $label }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div class="catalog-filter">
+            <label for="premium_stock" class="small fw-bold">FILTER BY STOCK</label>
+            <select id="premium_stock" name="premium_stock" class="form-select form-select-sm border-dark rounded-0">
+                <option value="all" {{ $premiumStock === 'all' ? 'selected' : '' }}>All</option>
+                <option value="high" {{ $premiumStock === 'high' ? 'selected' : '' }}>High</option>
+                <option value="mid" {{ $premiumStock === 'mid' ? 'selected' : '' }}>Mid</option>
+                <option value="low" {{ $premiumStock === 'low' ? 'selected' : '' }}>Low</option>
+                <option value="out" {{ $premiumStock === 'out' ? 'selected' : '' }}>Out of Stock</option>
+            </select>
+        </div>
+        <div class="catalog-filter">
+            <label for="premium_availability" class="small fw-bold">FILTER BY AVAILABILITY</label>
+            <select id="premium_availability" name="premium_availability" class="form-select form-select-sm border-dark rounded-0">
+                <option value="all" {{ $premiumAvailability === 'all' ? 'selected' : '' }}>All</option>
+                <option value="available" {{ $premiumAvailability === 'available' ? 'selected' : '' }}>Available</option>
+                <option value="out" {{ $premiumAvailability === 'out' ? 'selected' : '' }}>Out of Stock</option>
+            </select>
+        </div>
+        <div class="catalog-filter">
+            <label for="premium_expiry" class="small fw-bold">FILTER BY EXPIRY</label>
+            <select id="premium_expiry" name="premium_expiry" class="form-select form-select-sm border-dark rounded-0">
+                <option value="" {{ $premiumExpiry === '' ? 'selected' : '' }}>All</option>
+                <option value="perishable" {{ $premiumExpiry === 'perishable' ? 'selected' : '' }}>Perishable</option>
+                <option value="expiring_soon" {{ $premiumExpiry === 'expiring_soon' ? 'selected' : '' }}>Expiring soon</option>
+                <option value="expired" {{ $premiumExpiry === 'expired' ? 'selected' : '' }}>Expired</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-sm laicom-btn-primary catalog-filter-submit">SEARCH</button>
     </form>
 
+    <div class="d-flex justify-content-end mb-2">
+        <button type="button" class="btn btn-sm laicom-btn-primary" data-bs-toggle="modal" data-bs-target="#addPremiumProductModal" title="Add New Premium Product" aria-label="Add premium product"><i class="bi bi-plus-lg"></i></button>
+    </div>
     <div class="table-responsive laicom-card p-1">
         <table class="table table-bordered laicom-table mb-0 text-center align-middle">
             <thead class="table-light">
@@ -46,42 +78,8 @@
                 </tr>
             </thead>
             <tbody>
-                @forelse($premiumProducts as $premium)
-                <tr>
-                    <td class="text-start fw-bold"><img src="{{ $premium->image_path ? asset('storage/' . $premium->image_path) : asset('images/laicom-logo.png') }}" onerror="this.src='{{ asset('images/laicom-logo.png') }}'" alt="{{ $premium->name }}" class="laicom-thumbnail {{ $premium->image_path ? '' : 'laicom-empty-image' }} me-2">{{ $premium->name }}</td>
-                    <td>{{ $premium->categoryLabel() }}</td>
-                    <td>{{ $premium->stock }}</td>
-                    <td>
-                        @if($premium->stock > 50)
-                            <span class="text-success fw-bold">HIGH</span>
-                        @elseif($premium->stock > 10)
-                            <span class="text-warning fw-bold">MID</span>
-                        @else
-                            <span class="text-danger fw-bold">LOW</span>
-                        @endif
-                    </td>
-                    <td>
-                        @if($premium->expiryStatus() === 'non_perishable')
-                            <span class="small text-muted">N/A</span>
-                        @elseif($premium->expiryStatus() === 'expired')
-                            <span class="badge bg-danger rounded-0">EXPIRED</span>
-                        @elseif($premium->expiryStatus() === 'expiring_soon')
-                            <span class="badge bg-warning text-dark rounded-0">{{ $premium->daysUntilExpiry() }} days left</span>
-                        @else
-                            <span class="badge bg-success rounded-0">{{ $premium->expiry_date?->format('M d, Y') ?? 'No expiry date' }}</span>
-                        @endif
-                    </td>
-                    <td>
-                        <div class="d-flex justify-content-center gap-1">
-                            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editPremiumProductModal{{ $premium->id }}"><i class="bi bi-pencil-square"></i></button>
-                            <form action="{{ route('products.destroy', $premium->id) }}" method="POST" onsubmit="return confirm('Delete this premium product? Products used by rewards cannot be deleted.');">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
-                            </form>
-                        </div>
-                    </td>
-                </tr>
+                @forelse($visiblePremiumProducts as $premium)
+                    @include('admin.partials.premium-product-row', ['premium' => $premium])
                 @empty
                 <tr>
                     <td colspan="6" class="text-center py-3 text-muted fw-bold">NO PREMIUM PRODUCTS FOUND</td>
@@ -90,15 +88,43 @@
             </tbody>
         </table>
     </div>
+    <div class="catalog-table-footer">
+        <span class="small text-muted">Showing {{ min(5, $premiumProductCount) }} of {{ $premiumProductCount }} products</span>
+        @if($premiumProductCount > 5)
+            <button type="button" class="btn btn-sm btn-outline-dark rounded-0 fw-bold" data-bs-toggle="modal" data-bs-target="#allPremiumProductsModal">SHOW MORE</button>
+        @endif
+    </div>
 </div>
 
 <!-- Active Promotions Section -->
 <div>
-    <div class="d-flex justify-content-between align-items-center mb-2">
+    <div class="mb-2">
         <h6 class="mb-0 fw-bold">ACTIVE PROMOTIONS</h6>
-        <button type="button" class="btn btn-sm laicom-btn-primary" data-bs-toggle="modal" data-bs-target="#addPromotionModal" title="Add Active Promotion" aria-label="Add promotion"><i class="bi bi-plus-lg"></i></button>
     </div>
 
+    <form method="GET" action="{{ route('admin.dashboard') }}" class="promotion-filters mb-2">
+        <input type="hidden" name="premium_search" value="{{ $premiumSearch }}">
+        <input type="hidden" name="premium_category" value="{{ $premiumCategory }}">
+        <input type="hidden" name="premium_stock" value="{{ $premiumStock }}">
+        <input type="hidden" name="premium_availability" value="{{ $premiumAvailability }}">
+        <input type="hidden" name="premium_expiry" value="{{ $premiumExpiry }}">
+        <div class="promotion-filter-search">
+            <label for="promotion_search" class="small fw-bold">SEARCH PROMOTIONS</label>
+            <input id="promotion_search" name="promotion_search" type="search" value="{{ $promotionSearch }}" class="form-control form-control-sm border-dark rounded-0" placeholder="Title or product name">
+        </div>
+        <div class="catalog-filter">
+            <label for="promotion_status" class="small fw-bold">FILTER BY STATUS</label>
+            <select id="promotion_status" name="promotion_status" class="form-select form-select-sm border-dark rounded-0">
+                <option value="all" {{ $promotionStatus === 'all' ? 'selected' : '' }}>All</option>
+                <option value="active" {{ $promotionStatus === 'active' ? 'selected' : '' }}>Active</option>
+                <option value="inactive" {{ $promotionStatus === 'inactive' ? 'selected' : '' }}>Inactive</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-sm laicom-btn-primary catalog-filter-submit">SEARCH</button>
+    </form>
+    <div class="d-flex justify-content-end mb-2">
+        <button type="button" class="btn btn-sm laicom-btn-primary" data-bs-toggle="modal" data-bs-target="#addPromotionModal" title="Add Active Promotion" aria-label="Add promotion"><i class="bi bi-plus-lg"></i></button>
+    </div>
     <div class="table-responsive border border-dark border-2 p-1">
         <table class="table table-bordered mb-0 text-center align-middle">
             <thead class="table-light">
@@ -110,22 +136,8 @@
                 </tr>
             </thead>
             <tbody>
-                @forelse($promotions as $promo)
-                <tr>
-                    <td class="text-start fw-bold">{{ $promo->title }}</td>
-                    <td>{{ $promo->required_quantity }}X {{ $promo->buy_product_name }}</td>
-                    <td>{{ $promo->reward_quantity }}X {{ $promo->premiumProduct->name ?? 'Unknown' }}</td>
-                    <td>
-                        <div class="d-flex justify-content-center gap-1">
-                            <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editPromotionModal{{ $promo->id }}"><i class="bi bi-pencil-square"></i></button>
-                            <form action="{{ route('promotions.destroy', $promo->id) }}" method="POST" onsubmit="return confirm('Delete this promotion?');">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
-                            </form>
-                        </div>
-                    </td>
-                </tr>
+                @forelse($visiblePromotions as $promo)
+                    @include('admin.partials.promotion-row', ['promo' => $promo])
                 @empty
                 <tr>
                     <td colspan="4" class="text-center py-3 text-muted fw-bold">NO ACTIVE PROMOTIONS FOUND</td>
@@ -134,11 +146,61 @@
             </tbody>
         </table>
     </div>
+    <div class="catalog-table-footer">
+        <span class="small text-muted">Showing {{ min(5, $promotionCount) }} of {{ $promotionCount }} promotions</span>
+        @if($promotionCount > 5)
+            <button type="button" class="btn btn-sm btn-outline-dark rounded-0 fw-bold" data-bs-toggle="modal" data-bs-target="#allPromotionsModal">SHOW MORE</button>
+        @endif
+    </div>
 </div>
 
 <!-- ============================================= -->
 <!-- MODALS                                        -->
 <!-- ============================================= -->
+
+@if($premiumProductCount > 5)
+<div class="modal fade" id="allPremiumProductsModal" tabindex="-1" aria-labelledby="allPremiumProductsTitle" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content laicom-modal">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="allPremiumProductsTitle">ALL PREMIUM PRODUCTS <span class="small fw-normal">({{ $premiumProductCount }})</span></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-2">
+                <div class="table-responsive">
+                    <table class="table table-bordered laicom-table mb-0 text-center align-middle">
+                        <thead><tr><th>PRODUCT NAME</th><th>CATEGORY</th><th>STOCK</th><th>STATUS</th><th>EXPIRY</th><th>ACTIONS</th></tr></thead>
+                        <tbody>@foreach($premiumProducts as $premium) @include('admin.partials.premium-product-row', ['premium' => $premium]) @endforeach</tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer py-2"><span class="small text-muted me-auto">Showing all {{ $premiumProductCount }} matching products</span><button type="button" class="btn btn-sm btn-outline-dark rounded-0" data-bs-dismiss="modal">CLOSE</button></div>
+        </div>
+    </div>
+</div>
+@endif
+
+@if($promotionCount > 5)
+<div class="modal fade" id="allPromotionsModal" tabindex="-1" aria-labelledby="allPromotionsTitle" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content laicom-modal">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="allPromotionsTitle">ALL PROMOTIONS <span class="small fw-normal">({{ $promotionCount }})</span></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-2">
+                <div class="table-responsive">
+                    <table class="table table-bordered laicom-table mb-0 text-center align-middle">
+                        <thead><tr><th>PROMOTION NAME</th><th>BUY REQUIREMENT</th><th>GET REWARD</th><th>ACTIONS</th></tr></thead>
+                        <tbody>@foreach($promotions as $promo) @include('admin.partials.promotion-row', ['promo' => $promo]) @endforeach</tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer py-2"><span class="small text-muted me-auto">Showing all {{ $promotionCount }} matching promotions</span><button type="button" class="btn btn-sm btn-outline-dark rounded-0" data-bs-dismiss="modal">CLOSE</button></div>
+        </div>
+    </div>
+</div>
+@endif
 
 <!-- Add New Premium Product Modal -->
 <div class="modal fade" id="addPremiumProductModal" tabindex="-1" aria-hidden="true">
@@ -215,7 +277,7 @@
 
                     <div class="mb-3">
                         <label class="form-label fw-bold small">PRODUCT NAME:</label>
-                        <input type="text" name="name" class="form-control border-dark rounded-0" value="{{ $premium->name }}" required>
+                        <input type="text" name="name" class="form-control border-dark rounded-0" value="{{ \Illuminate\Support\Str::title($premium->name) }}" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold small">CURRENT STOCK QUANTITY:</label>
@@ -306,7 +368,7 @@
                         <select name="premium_product_id" class="form-select border-dark rounded-0" required>
                             <option selected disabled value="">Choose a premium reward...</option>
                             @foreach($allPremiumProducts as $premium)
-                                <option value="{{ $premium->id }}">{{ $premium->name }}</option>
+                                <option value="{{ $premium->id }}">{{ \Illuminate\Support\Str::title($premium->name) }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -366,7 +428,7 @@
                         <select name="premium_product_id" class="form-select border-dark rounded-0" required>
                             @foreach($allPremiumProducts as $premium)
                                 <option value="{{ $premium->id }}" {{ $promo->premium_product_id == $premium->id ? 'selected' : '' }}>
-                                    {{ $premium->name }}
+                                    {{ \Illuminate\Support\Str::title($premium->name) }}
                                 </option>
                             @endforeach
                         </select>
@@ -396,6 +458,20 @@
             toggle.addEventListener('change', updateFields);
             updateFields();
         });
+
+        document.addEventListener('click', (event) => {
+            const trigger = event.target.closest('button[data-bs-toggle="modal"][data-bs-target]');
+            const currentModal = trigger?.closest('.modal.show');
+            if (!currentModal || !['allPremiumProductsModal', 'allPromotionsModal'].includes(currentModal.id)) return;
+
+            const target = document.querySelector(trigger.getAttribute('data-bs-target'));
+            if (!target) return;
+
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            currentModal.addEventListener('hidden.bs.modal', () => bootstrap.Modal.getOrCreateInstance(target).show(), { once: true });
+            bootstrap.Modal.getOrCreateInstance(currentModal).hide();
+        }, true);
     })();
 </script>
 @endsection
