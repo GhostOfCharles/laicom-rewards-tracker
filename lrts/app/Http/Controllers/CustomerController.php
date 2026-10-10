@@ -29,7 +29,7 @@ class CustomerController extends Controller
             ->where(fn ($query) => $query->whereNull('end_date')->orWhereDate('end_date', '>=', today()))
             ->get();
         $claimableReceipts = $receipts->filter(fn (Receipt $receipt) => $receipt->status === 'approved'
-            && $receipt->earnedRewards->contains(fn ($reward) => in_array($reward->claim_status, ['unclaimed', 'claim_requested'], true)));
+            && $receipt->earnedRewards->contains(fn ($reward) => in_array($reward->claim_status, ['unclaimed', 'claim_requested', 'released'], true)));
         $claimHistory = $user->earnedRewards()
             ->with(['premiumProduct', 'receipt'])
             ->whereIn('claim_status', ['claimed', 'voided', 'expired'])
@@ -91,6 +91,18 @@ class CustomerController extends Controller
 
         return redirect()->route('customer.dashboard', ['tab' => 'promos', 'section' => 'claims'])
             ->with('success', 'Your claim code is ' . $code . '. Show it to Laicom staff to receive your rewards.');
+    }
+
+    public function confirmRewardsReceived(Request $request, Receipt $receipt, ClaimService $claims)
+    {
+        try {
+            $rewards = $claims->confirmReceived($receipt, $request->user());
+        } catch (RuntimeException $exception) {
+            return back()->withErrors(['error' => $exception->getMessage()]);
+        }
+
+        return redirect()->route('customer.dashboard', ['tab' => 'promos', 'section' => 'claims'])
+            ->with('success', 'Receipt confirmed for ' . $rewards->sum('reward_quantity') . ' reward item(s). They are now in your claim history.');
     }
 
     public function orderSlip(Request $request, Receipt $receipt)

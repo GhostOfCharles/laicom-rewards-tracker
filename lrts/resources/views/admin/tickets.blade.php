@@ -2,13 +2,6 @@
 
 @section('content')
 
-@if (session('success'))
-    <div class="alert alert-success py-2 small fw-bold rounded-0 mb-3">{{ session('success') }}</div>
-@endif
-@if ($errors->any())
-    <div class="alert alert-danger py-2 small fw-bold rounded-0 mb-3">{{ $errors->first() }}</div>
-@endif
-
 @php
     $filters = [
         'all' => 'ALL',
@@ -135,8 +128,7 @@
                                         <img src="{{ route('admin.tickets.attachment', $reply) }}"
                                              class="adm-attachment-img lrts-zoomable-img"
                                              data-src="{{ route('admin.tickets.attachment', $reply) }}"
-                                             alt="attachment"
-                                             style="cursor: zoom-in;">
+                                             alt="attachment">
                                     @else
                                         <a href="{{ route('admin.tickets.attachment', $reply) }}" target="_blank" class="adm-attachment-file">
                                             <i class="bi bi-file-earmark-pdf"></i> View attachment
@@ -160,8 +152,7 @@
                                         <img src="{{ route('admin.tickets.attachment', $reply) }}"
                                              class="adm-attachment-img lrts-zoomable-img"
                                              data-src="{{ route('admin.tickets.attachment', $reply) }}"
-                                             alt="attachment"
-                                             style="cursor: zoom-in;">
+                                             alt="attachment">
                                     @else
                                         <a href="{{ route('admin.tickets.attachment', $reply) }}" target="_blank" class="adm-attachment-file">
                                             <i class="bi bi-file-earmark-pdf"></i> View attachment
@@ -240,8 +231,8 @@
         @else
 
             <div class="adm-ticket-empty-state">
-                <i class="bi bi-inbox" style="font-size: 3rem; opacity: .4;"></i>
-                <p class="mt-3 mb-0 fw-bold" style="color: var(--laicom-navy);">NO TICKET SELECTED</p>
+                <i class="bi bi-inbox"></i>
+                <p class="mt-3 mb-0 fw-bold">NO TICKET SELECTED</p>
                 <p class="small mb-0">Pick a ticket from the queue to view its conversation.</p>
             </div>
 

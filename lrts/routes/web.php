@@ -13,6 +13,7 @@ use App\Http\Controllers\TicketController;
 use App\Http\Controllers\Admin\TicketController as AdminTicketController;
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\ClaimsQueueController;
+use App\Http\Controllers\Admin\NavCountController;
 use App\Http\Controllers\ReceiptSlipController;
 use App\Http\Controllers\TicketAttachmentController;
 
@@ -23,6 +24,7 @@ Route::middleware(['auth', 'customer'])->group(function () {
     // Handle order form submission
     Route::post('/dashboard/submit-order', [CustomerController::class, 'submitOrder'])->name('customer.submit_order');
     Route::post('/receipts/{receipt}/claim', [CustomerController::class, 'claimReceipt'])->name('customer.receipts.claim');
+    Route::post('/receipts/{receipt}/confirm-received', [CustomerController::class, 'confirmRewardsReceived'])->name('customer.receipts.confirm-received');
     Route::post('/receipts/{receipt}/cancel', [CustomerController::class, 'cancelReceipt'])->name('customer.receipts.cancel');
     Route::get('/receipts/{receipt}/slip', [ReceiptSlipController::class, 'customer'])->name('customer.receipts.slip');
     Route::post('/notifications/read', [CustomerController::class, 'markNotificationsRead'])->name('customer.notifications.read');
@@ -63,6 +65,7 @@ Route::post('/admin/login', [WebAuthController::class, 'login'])->middleware('th
 Route::post('/logout', [WebAuthController::class, 'logout'])->name('logout');
 
 Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
+    Route::get('/nav-counts', NavCountController::class)->name('admin.nav-counts');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
 
     // Inventory — explicit routes so sidebar link (admin.inventory) keeps working

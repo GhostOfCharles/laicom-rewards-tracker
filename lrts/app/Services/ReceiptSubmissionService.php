@@ -24,7 +24,7 @@ class ReceiptSubmissionService
         $validated = $request->validate([
             'salesman_order_number' => ['required', 'string', 'max:100'],
             'order_date' => ['required', 'date_format:Y-m-d', 'before_or_equal:today', 'after_or_equal:' . $minimumDate],
-            'slip' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:' . $slipLimit],
+            'slip' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:' . $slipLimit],
             'customer_note' => ['nullable', 'string', 'max:500'],
             'items' => ['required', 'array', 'min:1', 'max:50'],
             'items.*.product_name' => ['required', 'string', 'exists:inventories,name'],
@@ -65,7 +65,7 @@ class ReceiptSubmissionService
                     ]);
                 }
 
-                $slipPath = $slip->store('receipt-slips', 'private');
+                $slipPath = $slip?->store('receipt-slips', 'private');
                 $receipt = Receipt::create([
                     'user_id' => $user->id,
                     'salesman_order_number' => $orderNumber,
@@ -73,7 +73,7 @@ class ReceiptSubmissionService
                     'submitted_at' => now(),
                     'order_date' => $validated['order_date'],
                     'slip_path' => $slipPath,
-                    'slip_hash' => hash_file('sha256', $slip->getRealPath()),
+                    'slip_hash' => $slip ? hash_file('sha256', $slip->getRealPath()) : null,
                     'customer_note' => $validated['customer_note'] ?? null,
                 ]);
 

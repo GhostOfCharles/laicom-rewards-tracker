@@ -15,15 +15,17 @@ class ClaimsQueueController extends Controller
     public function index(Request $request)
     {
         $validated = $request->validate([
-            'tab' => 'nullable|in:awaiting,available,released,voided_expired',
+            'tab' => 'nullable|in:awaiting,available,confirmation,completed,voided_expired,released',
             'code' => 'nullable|string|max:20',
         ]);
         $tab = $validated['tab'] ?? 'awaiting';
+        if ($tab === 'released') $tab = 'completed';
         $code = mb_strtoupper(trim($validated['code'] ?? ''));
         $statusMap = [
             'awaiting' => ['claim_requested'],
             'available' => ['unclaimed'],
-            'released' => ['claimed'],
+            'confirmation' => ['released'],
+            'completed' => ['claimed'],
             'voided_expired' => ['voided', 'expired'],
         ];
 
@@ -42,7 +44,8 @@ class ClaimsQueueController extends Controller
         $counts = [
             'awaiting' => EarnedReward::where('claim_status', 'claim_requested')->distinct('receipt_id')->count('receipt_id'),
             'available' => EarnedReward::where('claim_status', 'unclaimed')->distinct('receipt_id')->count('receipt_id'),
-            'released' => EarnedReward::where('claim_status', 'claimed')->distinct('receipt_id')->count('receipt_id'),
+            'confirmation' => EarnedReward::where('claim_status', 'released')->distinct('receipt_id')->count('receipt_id'),
+            'completed' => EarnedReward::where('claim_status', 'claimed')->distinct('receipt_id')->count('receipt_id'),
             'voided_expired' => EarnedReward::whereIn('claim_status', ['voided', 'expired'])->distinct('receipt_id')->count('receipt_id'),
         ];
 

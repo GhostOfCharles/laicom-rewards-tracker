@@ -115,7 +115,7 @@ class PremiumProductController extends Controller
     public function destroy(string $id, ActivityLogger $activityLogger)
     {
         $product = PremiumProduct::withCount('promotions')->findOrFail($id);
-        $hasActiveRewards = $product->earnedRewards()->whereIn('claim_status', ['unclaimed', 'claim_requested'])->exists();
+        $hasActiveRewards = $product->earnedRewards()->whereIn('claim_status', ['unclaimed', 'claim_requested', 'released'])->exists();
 
         if ($product->promotions_count > 0 || $hasActiveRewards) {
             return back()->withErrors(['error' => 'This premium product cannot be deleted while a promotion or available reward uses it. Deactivate its promotion or resolve the reward first.']);

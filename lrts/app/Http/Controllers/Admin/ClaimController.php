@@ -40,6 +40,7 @@ class ClaimController extends Controller
 
         $claimFilter = $validated['claim_filter'] ?? 'all';
         $query->when($claimFilter === 'awaiting_release', fn ($query) => $query->whereHas('earnedRewards', fn ($rewards) => $rewards->where('claim_status', 'claim_requested')))
+            ->when($claimFilter === 'awaiting_customer', fn ($query) => $query->whereHas('earnedRewards', fn ($rewards) => $rewards->where('claim_status', 'released')))
             ->when($claimFilter === 'claimed', fn ($query) => $query->whereHas('earnedRewards', fn ($rewards) => $rewards->where('claim_status', 'claimed')))
             ->when($claimFilter === 'none_claimed', fn ($query) => $query->whereDoesntHave('earnedRewards', fn ($rewards) => $rewards->where('claim_status', 'claimed')));
 

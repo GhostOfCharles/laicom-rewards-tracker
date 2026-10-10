@@ -2,18 +2,14 @@
 
 @section('content')
 
-@if(session('success'))
-    <div class="alert alert-success py-2 small fw-bold rounded-0 mb-4">{{ session('success') }}</div>
-@endif
-@if($errors->any())
-    <div class="alert alert-danger py-2 small fw-bold rounded-0 mb-4">{{ $errors->first() }}</div>
-@endif
-
 <!-- Premium Products Section -->
 <div class="mb-5">
     <div class="mb-2">
-        <h6 class="mb-0 fw-bold">PREMIUM PRODUCTS @if($premiumExpiryAlertCount > 0)<span class="badge bg-danger rounded-0 align-middle ms-1">{{ $premiumExpiryAlertCount }}</span>@endif</h6>
-        <span class="small text-muted">Promotional reward stock</span>
+        <div class="catalog-section-title">
+            <h6 class="mb-0 fw-bold">PREMIUM PRODUCTS @if($premiumExpiryAlertCount > 0)<span class="badge bg-warning text-dark rounded-0 align-middle ms-1" title="Products that are expired or will expire within 30 days" data-admin-count="premium-expiry">{{ $premiumExpiryAlertCount }} EXPIRY ALERTS</span>@else<span class="badge bg-warning text-dark rounded-0 align-middle ms-1" title="Products that are expired or will expire within 30 days" data-admin-count="premium-expiry" hidden>0 EXPIRY ALERTS</span>@endif</h6>
+            <button type="button" class="btn btn-sm laicom-btn-primary catalog-section-add" data-bs-toggle="modal" data-bs-target="#addPremiumProductModal" title="Add New Premium Product" aria-label="Add premium product"><i class="bi bi-plus-lg"></i></button>
+        </div>
+        <span class="small text-muted">Promotional reward stock · expiry alerts include expired products and products expiring within 30 days</span>
     </div>
 
     <form method="GET" action="{{ route('admin.dashboard') }}" class="catalog-filters mb-2">
@@ -62,9 +58,6 @@
         <button type="submit" class="btn btn-sm laicom-btn-primary catalog-filter-submit">SEARCH</button>
     </form>
 
-    <div class="d-flex justify-content-end mb-2">
-        <button type="button" class="btn btn-sm laicom-btn-primary" data-bs-toggle="modal" data-bs-target="#addPremiumProductModal" title="Add New Premium Product" aria-label="Add premium product"><i class="bi bi-plus-lg"></i></button>
-    </div>
     <div class="table-responsive laicom-card p-1">
         <table class="table table-bordered laicom-table mb-0 text-center align-middle">
             <thead class="table-light">
@@ -99,7 +92,10 @@
 <!-- Active Promotions Section -->
 <div>
     <div class="mb-2">
-        <h6 class="mb-0 fw-bold">ACTIVE PROMOTIONS</h6>
+        <div class="catalog-section-title">
+            <h6 class="mb-0 fw-bold">ACTIVE PROMOTIONS</h6>
+            <button type="button" class="btn btn-sm laicom-btn-primary catalog-section-add" data-bs-toggle="modal" data-bs-target="#addPromotionModal" title="Add Active Promotion" aria-label="Add promotion"><i class="bi bi-plus-lg"></i></button>
+        </div>
     </div>
 
     <form method="GET" action="{{ route('admin.dashboard') }}" class="promotion-filters mb-2">
@@ -122,9 +118,6 @@
         </div>
         <button type="submit" class="btn btn-sm laicom-btn-primary catalog-filter-submit">SEARCH</button>
     </form>
-    <div class="d-flex justify-content-end mb-2">
-        <button type="button" class="btn btn-sm laicom-btn-primary" data-bs-toggle="modal" data-bs-target="#addPromotionModal" title="Add Active Promotion" aria-label="Add promotion"><i class="bi bi-plus-lg"></i></button>
-    </div>
     <div class="table-responsive border border-dark border-2 p-1">
         <table class="table table-bordered mb-0 text-center align-middle">
             <thead class="table-light">

@@ -2,9 +2,6 @@
 
 @section('content')
 <div class="lrts-receipts-page mb-3">
-    @if(session('success'))<div class="alert alert-success py-2 fw-bold small rounded-0">{{ session('success') }}</div>@endif
-    @if($errors->any())<div class="alert alert-danger py-2 fw-bold small rounded-0">{{ $errors->first() }}</div>@endif
-
     <form method="GET" action="{{ route('admin.receipts') }}" class="d-flex flex-wrap gap-2 align-items-end mb-3 lrts-receipts-filter">
         <div><label class="form-label fw-bold small mb-1" for="receiptStatusFilter">RECEIPT STATUS</label>
             <select id="receiptStatusFilter" name="status" class="form-select form-select-sm border-dark rounded-0 fw-bold">
@@ -16,7 +13,7 @@
         </div>
         <div><label class="form-label fw-bold small mb-1" for="claimFilter">REWARD STATUS</label>
             <select id="claimFilter" name="claim_filter" class="form-select form-select-sm border-dark rounded-0 fw-bold">
-                @foreach(['all' => 'ALL REWARDS', 'awaiting_release' => 'AWAITING RELEASE', 'claimed' => 'RELEASED', 'none_claimed' => 'NOT RELEASED'] as $value => $label)
+                @foreach(['all' => 'ALL REWARDS', 'awaiting_release' => 'AWAITING RELEASE', 'awaiting_customer' => 'AWAITING CUSTOMER CONFIRMATION', 'claimed' => 'RECEIVED', 'none_claimed' => 'NOT RECEIVED'] as $value => $label)
                     <option value="{{ $value }}" @selected(($claimFilter ?? 'all') === $value)>{{ $label }}</option>
                 @endforeach
             </select>
@@ -33,7 +30,7 @@
             @php
                 $statusLabel = $receipt->status === 'pending' ? 'PROCESSING' : strtoupper($receipt->status);
                 $activeRewards = $receipt->earnedRewards->whereIn('claim_status', ['unclaimed', 'claim_requested']);
-                $claimState = $receipt->earnedRewards->contains(fn($reward) => $reward->claim_status === 'claim_requested') ? 'CLAIM REQUESTED' : ($receipt->earnedRewards->contains(fn($reward) => $reward->claim_status === 'claimed') ? 'RELEASED' : ($activeRewards->isNotEmpty() ? 'AVAILABLE' : 'NO REWARDS'));
+                $claimState = $receipt->earnedRewards->contains(fn($reward) => $reward->claim_status === 'released') ? 'AWAITING CUSTOMER CONFIRMATION' : ($receipt->earnedRewards->contains(fn($reward) => $reward->claim_status === 'claim_requested') ? 'CLAIM REQUESTED' : ($receipt->earnedRewards->contains(fn($reward) => $reward->claim_status === 'claimed') ? 'RECEIVED' : ($activeRewards->isNotEmpty() ? 'AVAILABLE' : 'NO REWARDS')));
                 $hasExpiredRewardProduct = $receipt->earnedRewards->contains(fn($reward) => $reward->premiumProduct?->isExpired()) || collect($receipt->calculated_reward_groups)->flatMap(fn($group) => $group['options'])->contains(fn($option) => $option['product_expired'] ?? false);
                 $canApproveReceipt = collect($receipt->calculated_reward_groups)->every(fn($group) => collect($group['options'])->contains(fn($option) => $option['in_stock']));
             @endphp
@@ -69,12 +66,12 @@
                     <div class="modal-body lrts-receipt-modal-body">
                         <div class="lrts-receipt-meta mb-3"><div class="lrts-receipt-meta-item"><span>CUSTOMER</span><strong>{{ $receipt->user->name ?? 'Unknown' }}</strong></div><div class="lrts-receipt-meta-item"><span>ORDER DATE</span><strong>{{ $receipt->order_date?->format('M d, Y') ?? '—' }}</strong></div><div class="lrts-receipt-meta-item"><span>SUBMITTED</span><strong>{{ $receipt->submitted_at?->format('M d, Y') ?? '—' }}</strong></div><div class="lrts-receipt-meta-item"><span>STATUS</span><strong>{{ $statusLabel }}</strong></div></div>
                         @if($receipt->customer_note)<p class="small mb-2"><strong>CUSTOMER NOTE:</strong> {{ $receipt->customer_note }}</p>@endif
-                        <div class="d-flex justify-content-between align-items-center mb-2"><div class="lrts-receipt-table-title mb-0"><i class="bi bi-basket2 me-1"></i>ITEMS ON THIS RECEIPT</div><a class="btn btn-sm btn-outline-dark rounded-0" href="{{ route('admin.receipts.slip', $receipt) }}" target="_blank" rel="noopener"><i class="bi bi-image"></i> VIEW SLIP</a></div>
+                        <div class="d-flex justify-content-between align-items-center mb-2"><div class="lrts-receipt-table-title mb-0"><i class="bi bi-basket2 me-1"></i>ITEMS ON THIS RECEIPT</div>@if($receipt->slip_path)<a class="btn btn-sm btn-outline-dark rounded-0" href="{{ route('admin.receipts.slip', $receipt) }}" target="_blank" rel="noopener"><i class="bi bi-image"></i> VIEW SLIP</a>@else<span class="small text-muted">No receipt photo provided</span>@endif</div>
                         @if($receipt->has_duplicate_slip)<div class="alert alert-warning py-2 small rounded-0">This slip image matches another submitted receipt. Review the order details before deciding.</div>@endif
-                        <table class="table table-sm align-middle mb-0 lrts-receipt-items-table"><thead><tr><th>PRODUCT NAME</th><th class="text-center">QUANTITY</th></tr></thead><tbody>
+                        <div class="table-responsive lrts-receipt-products-scroll"><table class="table table-sm align-middle mb-0 lrts-receipt-items-table"><thead><tr><th>PRODUCT NAME</th><th class="text-center">QUANTITY</th></tr></thead><tbody>
                             @forelse($receipt->items as $item)@php $itemImage = $receiptProductImages->get($item->product_name)?->image_path; @endphp<tr><td><div class="lrts-receipt-product-cell">@if($itemImage)<img src="{{ asset('storage/' . $itemImage) }}" alt="" onerror="this.remove()" class="lrts-receipt-product-image">@endif<span>{{ $item->product_name }}</span></div></td><td class="text-center"><span class="lrts-receipt-quantity">x{{ number_format($item->quantity) }}</span></td></tr>
                             @empty<tr><td colspan="2">No products were recorded.</td></tr>@endforelse
-                        </tbody></table>
+                        </tbody></table></div>
                     </div><div class="modal-footer lrts-receipt-modal-footer"><button type="button" class="btn lrts-receipt-close" data-bs-dismiss="modal">CLOSE</button></div>
                 </div></div>
             </div>
@@ -85,7 +82,7 @@
                     <div class="modal-body lrts-receipt-modal-body"><div class="lrts-receipt-meta mb-3"><div class="lrts-receipt-meta-item"><span>CUSTOMER</span><strong>{{ $receipt->user->name ?? 'Unknown' }}</strong></div><div class="lrts-receipt-meta-item"><span>ORDER NO.</span><strong>{{ $receipt->salesman_order_number }}</strong></div><div class="lrts-receipt-meta-item"><span>SUBMITTED</span><strong>{{ $receipt->submitted_at?->format('M d, Y') ?? '—' }}</strong></div><div class="lrts-receipt-meta-item"><span>RECEIPT STATUS</span><strong>{{ $statusLabel }}</strong></div></div>
                         @if($receipt->status === 'pending')<div class="alert alert-warning py-2 small rounded-0">Rewards are calculated after staff review and approval.</div>@elseif($receipt->status === 'rejected')<div class="alert alert-danger py-2 small rounded-0">Receipt rejected: {{ $receipt->rejection_reason ?: 'No reason recorded.' }}</div>@elseif($receipt->earnedRewards->isEmpty())<div class="alert alert-secondary py-2 small rounded-0">No rewards were issued for this receipt.</div>@endif
                         @if($receipt->earnedRewards->isNotEmpty())<div class="table-responsive"><table class="table table-sm align-middle lrts-receipt-items-table"><thead><tr><th>PREMIUM ITEM</th><th>QTY</th><th>STATUS</th><th>CLAIM CODE</th><th>DATES / STAFF</th><th>ACTIONS</th></tr></thead><tbody>
-                        @foreach($receipt->earnedRewards as $reward)<tr><td><div class="lrts-receipt-product-cell">@if($reward->premiumProduct?->image_path)<img src="{{ asset('storage/' . $reward->premiumProduct->image_path) }}" alt="" class="lrts-receipt-product-image">@endif<span>{{ $reward->premiumProduct?->name ?? $reward->reward_product_name ?? $reward->promotion_title ?? 'Premium reward' }}</span></div></td><td>{{ number_format($reward->reward_quantity) }}</td><td><span class="lrts-reward-status is-{{ strtolower($reward->claim_status) }}">{{ strtoupper(str_replace('_', ' ', $reward->claim_status)) }}</span></td><td class="small">{{ $reward->claim_code ?? '—' }}</td><td class="small">{{ $reward->claimed_at?->format('M d, Y H:i') ?? '—' }}<br>{{ $reward->releaser?->name ?? '' }}</td><td>
+                        @foreach($receipt->earnedRewards as $reward)<tr><td><div class="lrts-receipt-product-cell">@if($reward->premiumProduct?->image_path)<img src="{{ asset('storage/' . $reward->premiumProduct->image_path) }}" alt="" class="lrts-receipt-product-image">@endif<span>{{ $reward->premiumProduct?->name ?? $reward->reward_product_name ?? $reward->promotion_title ?? 'Premium reward' }}</span></div></td><td>{{ number_format($reward->reward_quantity) }}</td><td><span class="lrts-reward-status is-{{ strtolower($reward->claim_status) }}">{{ strtoupper(str_replace('_', ' ', $reward->claim_status)) }}</span></td><td class="small">{{ $reward->claim_code ?? '—' }}</td><td class="small">@if($reward->released_at)Handed over {{ $reward->released_at->format('M d, Y H:i') }}@endif @if($reward->claimed_at)<br>Customer confirmed {{ $reward->claimed_at->format('M d, Y H:i') }}@endif @if(!$reward->released_at && !$reward->claimed_at)—@endif<br>{{ $reward->releaser?->name ?? '' }}</td><td>
                             @if(in_array($reward->claim_status, ['unclaimed', 'claim_requested'], true))<div class="d-flex flex-wrap gap-1">
                                 <form method="POST" action="{{ route('admin.rewards.release', $reward) }}">@csrf<button class="btn btn-sm btn-success rounded-0" type="submit">CONFIRM RELEASE</button></form>
                                 <button class="btn btn-sm btn-danger rounded-0" type="button" data-bs-toggle="collapse" data-bs-target="#voidReward{{ $reward->id }}">VOID</button>
@@ -100,7 +97,7 @@
             @if($receipt->status === 'pending')
                 <div class="modal fade" id="reviewReceipt{{ $receipt->id }}" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg"><form method="POST" action="{{ route('admin.receipts.approve', $receipt->id) }}" class="modal-content lrts-receipt-modal" data-approval-form>@csrf
                     <div class="modal-header lrts-receipt-modal-header"><div><h5 class="modal-title fw-bold">REVIEW RECEIPT</h5><small>Order #{{ $receipt->salesman_order_number }} · {{ $receipt->user->name ?? 'Unknown' }}</small></div><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
-                    <div class="modal-body lrts-receipt-modal-body"><div class="d-flex gap-2 align-items-center mb-3"><a href="{{ route('admin.receipts.slip', $receipt) }}" target="_blank" rel="noopener"><img src="{{ route('admin.receipts.slip', $receipt) }}" alt="Submitted order slip" style="max-height:180px;max-width:100%;object-fit:contain" class="border"></a><span class="small text-muted">Select one applicable reward promotion per qualifying purchased product.</span></div>
+                    <div class="modal-body lrts-receipt-modal-body"><div class="d-flex gap-2 align-items-center mb-3">@if($receipt->slip_path)<a href="{{ route('admin.receipts.slip', $receipt) }}" target="_blank" rel="noopener"><img src="{{ route('admin.receipts.slip', $receipt) }}" alt="Submitted order slip" class="border lrts-admin-receipt-photo"></a>@else<div class="small text-muted border p-3">No receipt photo was provided.</div>@endif<span class="small text-muted">Select one applicable reward promotion per qualifying purchased product.</span></div>
                         @if($receipt->has_duplicate_slip)<div class="alert alert-warning py-2 small rounded-0">Duplicate slip hash detected. Compare the order number and date before approval.</div>@endif
                         @forelse($receipt->calculated_reward_groups as $group)
                             <fieldset class="border p-2 mb-3" data-reward-group><legend class="float-none w-auto px-1 small fw-bold">{{ $group['buy_product_name'] }} · {{ $group['purchased_quantity'] }} purchased</legend>

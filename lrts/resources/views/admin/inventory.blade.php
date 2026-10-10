@@ -2,13 +2,6 @@
 
 @section('content')
 
-@if(session('success'))
-    <div class="alert alert-success py-2 small fw-bold rounded-0 mb-4">{{ session('success') }}</div>
-@endif
-@if($errors->any())
-    <div class="alert alert-danger py-2 small fw-bold rounded-0 mb-4">{{ $errors->first() }}</div>
-@endif
-
 <!-- Inventory Section (Wireframe 15) -->
 <div class="mb-5">
     <div class="d-flex justify-content-between align-items-center mb-2">
@@ -16,7 +9,7 @@
         <button type="button" class="btn btn-sm laicom-btn-primary" data-bs-toggle="modal" data-bs-target="#addInventoryModal" title="Add Inventory Item" aria-label="Add inventory item"><i class="bi bi-plus-lg"></i></button>
     </div>
 
-    <form method="GET" action="{{ route('admin.inventory') }}" class="d-flex align-items-center gap-2 mb-2">
+    <form method="GET" action="{{ route('admin.inventory') }}" class="d-flex align-items-center gap-2 mb-2 lrts-inventory-filter">
         <label for="category" class="small fw-bold mb-0">SORT BY CATEGORY</label>
         <select id="category" name="category" class="form-select form-select-sm border-dark border-2 rounded-0 w-auto" onchange="this.form.submit()">
             <option value="">All categories</option>

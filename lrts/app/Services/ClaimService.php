@@ -122,8 +122,8 @@ class ClaimService
 
             foreach ($rewards as $reward) {
                 $reward->update([
-                    'claim_status' => 'claimed',
-                    'claimed_at' => now(),
+                    'claim_status' => 'released',
+                    'released_at' => now(),
                     'released_by' => $admin->id,
                     'release_note' => $note ? mb_substr($note, 0, 255) : null,
                 ]);
@@ -134,7 +134,43 @@ class ClaimService
                 'reward_ids' => $rewards->modelKeys(),
                 'release_note' => $note,
             ]);
-            $this->notify($receipt->user_id, 'reward.released', 'Rewards released', 'Your rewards for order ' . $receipt->salesman_order_number . ' have been released.', $receipt->id);
+            $this->notify($receipt->user_id, 'reward.released', 'Rewards handed over', 'Staff marked your rewards for order ' . $receipt->salesman_order_number . ' as handed over. Confirm receipt in your dashboard once you have received them.', $receipt->id);
+
+            return $rewards;
+        });
+    }
+
+    public function confirmReceived(Receipt $receipt, User $user)
+    {
+        return DB::transaction(function () use ($receipt, $user) {
+            $lockedReceipt = Receipt::query()->lockForUpdate()->findOrFail($receipt->id);
+            if ($lockedReceipt->user_id !== $user->id) {
+                abort(403);
+            }
+
+            $rewards = EarnedReward::query()
+                ->where('receipt_id', $lockedReceipt->id)
+                ->where('claim_status', 'released')
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get();
+
+            if ($rewards->isEmpty()) {
+                throw new RuntimeException('There are no handed-over rewards waiting for your confirmation.');
+            }
+
+            foreach ($rewards as $reward) {
+                $reward->update([
+                    'claim_status' => 'claimed',
+                    'claimed_at' => now(),
+                ]);
+            }
+
+            $this->activityLogger->record('reward.customer_confirmed', 'Customer confirmed receipt of ' . $rewards->count() . ' reward type(s) for order ' . $lockedReceipt->salesman_order_number . '.', $lockedReceipt, [
+                'claim_code' => $rewards->first()->claim_code,
+                'reward_ids' => $rewards->modelKeys(),
+                'confirmed_by' => $user->id,
+            ]);
 
             return $rewards;
         });

@@ -1,15 +1,6 @@
 @extends('layouts.admin')
 
 @section('content')
-    @if (session('success'))
-        <div class="alert alert-success border-dark rounded-0 fw-bold">{{ session('success') }}</div>
-    @endif
-    @if ($errors->any())
-        <div class="alert alert-danger border-dark rounded-0">
-            <ul class="mb-0">@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
-        </div>
-    @endif
-
     <div class="laicom-card p-4 mb-4">
         <h5 class="fw-bold mb-4 border-bottom border-dark pb-2">REPORT TYPE</h5>
         <form method="GET" action="{{ route('admin.reports') }}" id="reportForm">

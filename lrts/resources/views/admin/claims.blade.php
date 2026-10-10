@@ -1,9 +1,6 @@
 @extends('layouts.admin')
 
 @section('content')
-    @if (session('success'))<div class="alert alert-success border-dark rounded-0 fw-bold">{{ session('success') }}</div>@endif
-    @if ($errors->any())<div class="alert alert-danger border-dark rounded-0">{{ $errors->first() }}</div>@endif
-
     <div class="laicom-card p-3 mb-3">
         <h5 class="fw-bold border-bottom border-dark pb-2">CLAIM CODE LOOKUP</h5>
         <form method="GET" action="{{ route('admin.claims') }}" class="d-flex gap-2 flex-wrap">
@@ -14,7 +11,7 @@
     </div>
 
     <nav class="nav nav-pills flex-wrap gap-2 mb-3" aria-label="Claim states">
-        @foreach (['awaiting' => 'AWAITING RELEASE', 'available' => 'AVAILABLE', 'released' => 'RELEASED', 'voided_expired' => 'VOIDED AND EXPIRED'] as $key => $label)
+        @foreach (['awaiting' => 'AWAITING RELEASE', 'available' => 'AVAILABLE', 'confirmation' => 'AWAITING CUSTOMER CONFIRMATION', 'completed' => 'COMPLETED', 'voided_expired' => 'VOIDED AND EXPIRED'] as $key => $label)
             <a class="nav-link border border-dark rounded-0 fw-bold {{ $tab === $key ? 'active' : 'text-dark bg-white' }}" href="{{ route('admin.claims', ['tab' => $key]) }}">{{ $label }} <span class="badge text-bg-light border border-dark ms-1">{{ $counts[$key] }}</span></a>
         @endforeach
     </nav>
@@ -35,7 +32,7 @@
                         <h6 class="fw-bold mb-1">{{ $customer->name ?? 'Unknown customer' }} <span class="text-muted fw-normal">| {{ $customer->store_name ?? 'No store name' }}</span></h6>
                         <div class="small text-muted">{{ $customer->phone_number ?? 'No phone number' }} · Order {{ $receipt?->salesman_order_number }}</div>
                     </div>
-                    <span class="lrts-badge {{ $tab === 'awaiting' ? 'lrts-badge-pending' : ($tab === 'released' ? 'lrts-badge-resolved' : 'lrts-badge-open') }}">{{ strtoupper(str_replace('_', ' ', $tab)) }}</span>
+                    <span class="lrts-badge {{ in_array($tab, ['awaiting', 'confirmation'], true) ? 'lrts-badge-pending' : (in_array($tab, ['completed', 'voided_expired'], true) ? 'lrts-badge-resolved' : 'lrts-badge-open') }}">{{ strtoupper(str_replace('_', ' ', $tab)) }}</span>
                 </div>
                 <div class="row g-3">
                     <div class="col-12 col-lg-5">
@@ -76,7 +73,7 @@
                         <div class="modal-dialog modal-dialog-centered">
                             <form method="POST" action="{{ $code ? route('admin.claims.release', $code) : route('admin.claims.release-receipt', $receipt) }}" class="modal-content laicom-modal rounded-0">
                                 @csrf
-                                <div class="modal-header text-white rounded-0" style="background:#12284c"><h5 class="modal-title fw-bold">CONFIRM REWARD RELEASE</h5><button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div>
+                                <div class="modal-header text-white rounded-0"><h5 class="modal-title fw-bold">CONFIRM REWARD RELEASE</h5><button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div>
                                 <div class="modal-body"><p class="small">Confirm that the reward items were physically handed to {{ $customer->name ?? 'the customer' }}.</p><label class="form-label fw-bold small" for="note{{ md5($groupKey) }}">OPTIONAL NOTE</label><input id="note{{ md5($groupKey) }}" class="form-control border-dark rounded-0" name="release_note" maxlength="255"></div>
                                 <div class="modal-footer"><button type="button" class="btn btn-outline-dark rounded-0" data-bs-dismiss="modal">CANCEL</button><button class="btn laicom-btn-primary rounded-0" type="submit">CONFIRM RELEASE</button></div>
                             </form>

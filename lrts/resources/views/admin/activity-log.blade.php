@@ -32,6 +32,6 @@
                 </tbody>
             </table>
         </div>
-        <div class="p-2">{{ $logs->links() }}</div>
+        <div class="p-2">{{ $logs->links('pagination::simple-bootstrap-5') }}</div>
     </div>
 @endsection
