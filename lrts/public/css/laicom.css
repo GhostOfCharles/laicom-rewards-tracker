@@ -479,10 +479,13 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
 .laicom-admin-dashboard .catalog-section-add { width: 2.125rem; min-width: 2.125rem; min-height: 2.125rem; padding: .25rem; }
 .laicom-admin-dashboard .catalog-section-add i { font-size: .9rem; }
 .laicom-admin-dashboard .catalog-table-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .5rem; margin-top: .65rem; }
+.laicom-admin-dashboard .catalog-product-cell { display: flex; align-items: center; gap: .65rem; min-width: 0; }
+.laicom-admin-dashboard .catalog-product-details { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.laicom-admin-dashboard .catalog-product-name,
+.laicom-admin-dashboard .catalog-item-code { overflow-wrap: anywhere; }
 .laicom-admin-dashboard .catalog-item-code { padding-top: .1rem; color: #69778b; font-size: .68rem; font-weight: 600; }
 .laicom-admin-dashboard .stock-status-badge { min-width: 4rem; }
 .laicom-admin-dashboard .laicom-thumbnail { width: 2.75rem; height: 2.75rem; flex: 0 0 2.75rem; object-fit: contain; padding: .15rem; }
-.laicom-admin-dashboard .table .text-start .laicom-thumbnail { vertical-align: middle; margin-right: .65rem !important; }
 .laicom-admin-dashboard .premium-expiry-fields { padding: .75rem; border-left: 2px solid var(--laicom-navy); background: #f5f7fb; }
 .laicom-admin-dashboard .premium-expiry-fields.d-none { display: none !important; }
 .laicom-admin-dashboard .modal-xl { --bs-modal-width: min(1140px, calc(100vw - 2rem)); }
