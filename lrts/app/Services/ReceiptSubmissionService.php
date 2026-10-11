@@ -24,7 +24,7 @@ class ReceiptSubmissionService
         $validated = $request->validate([
             'salesman_order_number' => ['required', 'string', 'max:100'],
             'order_date' => ['required', 'date_format:Y-m-d', 'before_or_equal:today', 'after_or_equal:' . $minimumDate],
-            'slip' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:' . $slipLimit],
+            'slip' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:' . $slipLimit],
             'customer_note' => ['nullable', 'string', 'max:500'],
             'items' => ['required', 'array', 'min:1', 'max:50'],
             'items.*.product_name' => ['required', 'string', 'exists:inventories,name'],

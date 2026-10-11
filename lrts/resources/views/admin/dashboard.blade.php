@@ -342,13 +342,21 @@
 
                     <h6 class="fw-bold mt-4 mb-2 border-bottom border-dark pb-1">-BUY CONDITION-</h6>
                     <div class="mb-3">
-                        <label class="form-label fw-bold small">SELECT UNILEVER PRODUCT:</label>
-                        <select name="buy_product_name" class="form-select border-dark rounded-0" required>
-                            <option selected disabled value="">Choose a product...</option>
-                            @foreach($inventory as $item)
-                                <option value="{{ $item->name }}">{{ $item->name }}</option>
-                            @endforeach
-                        </select>
+                        <label for="addPromotionBuyProduct" class="form-label fw-bold small">SELECT UNILEVER PRODUCT:</label>
+                        <div class="lrts-admin-product-picker" data-admin-product-picker>
+                            <input type="text" id="addPromotionBuyProduct" class="form-select border-dark rounded-0 lrts-admin-product-picker-input" placeholder="Choose a product..." aria-label="Select Unilever product" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="addPromotionBuyProductOptions" autocomplete="off" required>
+                            <input type="hidden" name="buy_product_name" data-picker-value>
+                            <button type="button" class="lrts-admin-product-picker-toggle" aria-label="Toggle Unilever product list" aria-controls="addPromotionBuyProductOptions" aria-expanded="false"><i class="bi bi-chevron-down" aria-hidden="true"></i></button>
+                            <div id="addPromotionBuyProductOptions" class="lrts-admin-product-picker-options" role="listbox" aria-label="Unilever products" hidden>
+                                @foreach($inventory as $item)
+                                    <button type="button" id="add-promotion-buy-option-{{ $loop->index }}" class="lrts-admin-product-picker-option" role="option" aria-selected="false" data-product-label="{{ $item->name }}" data-product-value="{{ $item->name }}">
+                                        <img src="{{ $item->image_path ? asset('storage/' . $item->image_path) : asset('images/laicom-logo.png') }}" alt="" loading="lazy" class="{{ $item->image_path ? '' : 'is-placeholder' }}" onerror="this.onerror=null; this.src='{{ asset('images/laicom-logo.png') }}'; this.classList.add('is-placeholder');">
+                                        <span>{{ $item->name }}</span>
+                                    </button>
+                                @endforeach
+                                <div class="lrts-admin-product-picker-empty" hidden>No matching products found.</div>
+                            </div>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold small">REQUIRED QUANTITY TO BUY:</label>
@@ -357,13 +365,21 @@
 
                     <h6 class="fw-bold mt-4 mb-2 border-bottom border-dark pb-1">-GET REWARD-</h6>
                     <div class="mb-3">
-                        <label class="form-label fw-bold small">SELECTED FREE PRODUCT:</label>
-                        <select name="premium_product_id" class="form-select border-dark rounded-0" required>
-                            <option selected disabled value="">Choose a premium reward...</option>
-                            @foreach($allPremiumProducts as $premium)
-                                <option value="{{ $premium->id }}">{{ \Illuminate\Support\Str::title($premium->name) }}</option>
-                            @endforeach
-                        </select>
+                        <label for="addPromotionPremiumProduct" class="form-label fw-bold small">SELECTED FREE PRODUCT:</label>
+                        <div class="lrts-admin-product-picker" data-admin-product-picker>
+                            <input type="text" id="addPromotionPremiumProduct" class="form-select border-dark rounded-0 lrts-admin-product-picker-input" placeholder="Choose a premium reward..." aria-label="Select premium reward" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="addPromotionPremiumProductOptions" autocomplete="off" required>
+                            <input type="hidden" name="premium_product_id" data-picker-value>
+                            <button type="button" class="lrts-admin-product-picker-toggle" aria-label="Toggle premium reward list" aria-controls="addPromotionPremiumProductOptions" aria-expanded="false"><i class="bi bi-chevron-down" aria-hidden="true"></i></button>
+                            <div id="addPromotionPremiumProductOptions" class="lrts-admin-product-picker-options" role="listbox" aria-label="Premium rewards" hidden>
+                                @foreach($allPremiumProducts as $premium)
+                                    <button type="button" id="add-promotion-premium-option-{{ $loop->index }}" class="lrts-admin-product-picker-option" role="option" aria-selected="false" data-product-label="{{ \Illuminate\Support\Str::title($premium->name) }}" data-product-value="{{ $premium->id }}">
+                                        <img src="{{ $premium->image_path ? asset('storage/' . $premium->image_path) : asset('images/laicom-logo.png') }}" alt="" loading="lazy" class="{{ $premium->image_path ? '' : 'is-placeholder' }}" onerror="this.onerror=null; this.src='{{ asset('images/laicom-logo.png') }}'; this.classList.add('is-placeholder');">
+                                        <span>{{ \Illuminate\Support\Str::title($premium->name) }}</span>
+                                    </button>
+                                @endforeach
+                                <div class="lrts-admin-product-picker-empty" hidden>No matching premium rewards found.</div>
+                            </div>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold small">FREE REWARD QUANTITY:</label>
@@ -453,6 +469,192 @@
     </div>
 </div>
 @endforeach
+
+<script>
+    (() => {
+        document.querySelectorAll('#addPromotionModal [data-admin-product-picker]').forEach((picker) => {
+            const input = picker.querySelector('.lrts-admin-product-picker-input');
+            const valueField = picker.querySelector('[data-picker-value]');
+            const toggle = picker.querySelector('.lrts-admin-product-picker-toggle');
+            const dropdown = picker.querySelector('.lrts-admin-product-picker-options');
+            const optionItems = Array.from(dropdown.querySelectorAll('.lrts-admin-product-picker-option'));
+            const emptyState = dropdown.querySelector('.lrts-admin-product-picker-empty');
+            const modalBody = picker.closest('.modal-body');
+            let selectedOption = null;
+            let activeOption = null;
+
+            function findExactOption(value) {
+                const normalizedValue = value.trim().toLocaleLowerCase();
+                return normalizedValue
+                    ? optionItems.find((option) => option.dataset.productLabel.toLocaleLowerCase() === normalizedValue) ?? null
+                    : null;
+            }
+
+            function syncValue() {
+                selectedOption = findExactOption(input.value);
+                valueField.value = selectedOption?.dataset.productValue ?? '';
+                input.setCustomValidity(input.value && !selectedOption ? 'Choose a product from the list.' : '');
+                optionItems.forEach((option) => option.setAttribute('aria-selected', option === selectedOption ? 'true' : 'false'));
+            }
+
+            function clearActiveOption() {
+                if (activeOption) activeOption.classList.remove('is-active');
+                activeOption = null;
+                input.removeAttribute('aria-activedescendant');
+            }
+
+            function filterOptions(query = input.value.trim()) {
+                const normalizedQuery = query.toLocaleLowerCase();
+                let visibleCount = 0;
+
+                optionItems.forEach((option) => {
+                    const matches = option.dataset.productLabel.toLocaleLowerCase().includes(normalizedQuery);
+                    option.hidden = !matches;
+                    if (matches) visibleCount++;
+                });
+
+                emptyState.hidden = visibleCount > 0;
+                clearActiveOption();
+            }
+
+            function positionDropdown() {
+                if (dropdown.hidden) return;
+
+                const controlRect = input.getBoundingClientRect();
+                const modalRect = modalBody.getBoundingClientRect();
+                const viewportHeight = window.innerHeight;
+                const limitTop = Math.max(0, modalRect.top + 8);
+                const limitBottom = Math.min(viewportHeight, modalRect.bottom) - 8;
+                const spaceBelow = Math.max(0, limitBottom - controlRect.bottom - 4);
+                const spaceAbove = Math.max(0, controlRect.top - limitTop - 4);
+                const maxHeight = Math.min(272, viewportHeight * 0.4);
+                const opensAbove = spaceBelow < Math.min(maxHeight, 168) && spaceAbove > spaceBelow;
+                const availableSpace = opensAbove ? spaceAbove : spaceBelow;
+
+                dropdown.classList.toggle('is-open-above', opensAbove);
+                dropdown.style.maxHeight = `${Math.max(1, Math.min(maxHeight, availableSpace))}px`;
+            }
+
+            function openDropdown(showAll = false) {
+                dropdown.hidden = false;
+                picker.classList.add('is-open');
+                input.setAttribute('aria-expanded', 'true');
+                toggle.setAttribute('aria-expanded', 'true');
+                filterOptions(showAll ? '' : input.value.trim());
+                positionDropdown();
+            }
+
+            function closeDropdown() {
+                dropdown.hidden = true;
+                picker.classList.remove('is-open');
+                dropdown.classList.remove('is-open-above');
+                dropdown.style.maxHeight = '';
+                input.setAttribute('aria-expanded', 'false');
+                toggle.setAttribute('aria-expanded', 'false');
+                clearActiveOption();
+                optionItems.forEach((option) => option.setAttribute('aria-selected', option === selectedOption ? 'true' : 'false'));
+            }
+
+            function chooseOption(option) {
+                if (!option) return;
+                selectedOption = option;
+                input.value = option.dataset.productLabel;
+                valueField.value = option.dataset.productValue;
+                input.setCustomValidity('');
+                optionItems.forEach((item) => item.setAttribute('aria-selected', item === option ? 'true' : 'false'));
+                closeDropdown();
+                input.focus({ preventScroll: true });
+            }
+
+            function setActiveOption(option) {
+                clearActiveOption();
+                activeOption = option;
+                if (!option) return;
+                activeOption.classList.add('is-active');
+                optionItems.forEach((item) => item.setAttribute('aria-selected', item === option ? 'true' : 'false'));
+                input.setAttribute('aria-activedescendant', option.id);
+                option.scrollIntoView({ block: 'nearest' });
+            }
+
+            input.addEventListener('click', () => {
+                if (dropdown.hidden) {
+                    openDropdown(true);
+                    if (selectedOption) input.select();
+                }
+            });
+
+            input.addEventListener('input', () => {
+                syncValue();
+                openDropdown();
+            });
+
+            input.addEventListener('keydown', (event) => {
+                if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                    event.preventDefault();
+                    if (dropdown.hidden) openDropdown();
+                    const visibleOptions = optionItems.filter((option) => !option.hidden);
+                    if (!visibleOptions.length) return;
+                    const currentIndex = visibleOptions.indexOf(activeOption);
+                    const nextIndex = event.key === 'ArrowDown'
+                        ? (currentIndex + 1) % visibleOptions.length
+                        : (currentIndex <= 0 ? visibleOptions.length - 1 : currentIndex - 1);
+                    setActiveOption(visibleOptions[nextIndex]);
+                } else if (event.key === 'Enter') {
+                    event.preventDefault();
+                    const exactOption = findExactOption(input.value);
+                    chooseOption(dropdown.hidden ? exactOption : activeOption || exactOption);
+                } else if (event.key === 'Escape' && !dropdown.hidden) {
+                    event.preventDefault();
+                    closeDropdown();
+                }
+            });
+
+            toggle.addEventListener('click', () => {
+                if (dropdown.hidden) {
+                    openDropdown(true);
+                    if (selectedOption) input.select();
+                } else {
+                    closeDropdown();
+                }
+                input.focus({ preventScroll: true });
+            });
+
+            toggle.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape' && !dropdown.hidden) {
+                    event.preventDefault();
+                    closeDropdown();
+                    input.focus({ preventScroll: true });
+                }
+            });
+
+            optionItems.forEach((option) => {
+                option.addEventListener('mousedown', (event) => event.preventDefault());
+                option.addEventListener('click', () => chooseOption(option));
+            });
+
+            picker.addEventListener('focusout', () => {
+                window.setTimeout(() => {
+                    if (!picker.contains(document.activeElement)) closeDropdown();
+                }, 0);
+            });
+
+            document.addEventListener('pointerdown', (event) => {
+                if (!picker.contains(event.target)) closeDropdown();
+            });
+
+            window.addEventListener('resize', positionDropdown);
+            modalBody.addEventListener('scroll', positionDropdown, { passive: true });
+
+            const form = picker.closest('form');
+            form?.addEventListener('submit', () => {
+                syncValue();
+                if (selectedOption) input.value = selectedOption.dataset.productLabel;
+            });
+
+            syncValue();
+        });
+    })();
+</script>
 
 <script>
     (() => {

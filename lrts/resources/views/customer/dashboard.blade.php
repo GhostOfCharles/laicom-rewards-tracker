@@ -100,12 +100,18 @@
                         <div class="card-body p-4">
 
                             <div class="d-flex align-items-center mb-3">
-                                <select id="product_combobox" class="form-select border-dark border-2 rounded-0 me-2 fw-bold small">
-                                    <option selected disabled>Choose a product...</option>
-                                    @foreach ($products as $product)
-                                        <option value="{{ $product->name }}" data-image="{{ $product->image_path ? asset('storage/' . $product->image_path) : '' }}">{{ $product->name }}</option>
-                                    @endforeach
-                                </select>
+                                <div class="lrts-product-combobox me-2" id="product_combobox_wrapper">
+                                    <input type="text" id="product_combobox" class="form-select border-dark border-2 rounded-0 fw-bold small lrts-product-combobox-input" placeholder="Choose a product..." aria-label="Choose a bought product" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="product_options" autocomplete="off">
+                                    <div id="product_options" class="lrts-product-combobox-options" role="listbox" aria-label="Products" hidden>
+                                        @foreach ($products as $product)
+                                            <button type="button" id="product-option-{{ $loop->index }}" class="lrts-product-combobox-option" role="option" aria-selected="false" data-product-name="{{ $product->name }}" data-product-image="{{ $product->image_path ? asset('storage/' . $product->image_path) : '' }}">
+                                                <img src="{{ $product->image_path ? asset('storage/' . $product->image_path) : asset('images/laicom-logo.png') }}" alt="" loading="lazy" onerror="this.onerror=null; this.src='{{ asset('images/laicom-logo.png') }}'; this.classList.add('is-placeholder');">
+                                                <span>{{ $product->name }}</span>
+                                            </button>
+                                        @endforeach
+                                        <div class="lrts-product-combobox-empty" hidden>No matching products found.</div>
+                                    </div>
+                                </div>
                                 <input type="number" id="product_quantity" class="form-control border-dark border-2 rounded-0 me-2 fw-bold text-center lrts-order-quantity" min="1" max="9999" step="1" value="1" aria-label="Quantity to add" title="Quantity to add">
                                 <button type="button" id="add_item_btn" class="btn laicom-btn-primary px-3 py-1" aria-label="Add selected product"><i class="bi bi-plus-lg"></i></button>
                             </div>
@@ -279,7 +285,7 @@
                             <div class="accordion accordion-flush" id="faqAccordion">
                                 @php
                                     $faqs = [
-                                        ['q' => 'How do I submit a new order?', 'a' => 'Go to Submit New Order, select products and quantities, and enter the order number and date. A receipt photo is optional, but adding one can help staff review your order.'],
+                                        ['q' => 'How do I submit a new order?', 'a' => 'Go to Submit New Order, select products and quantities, enter the order number and date, and upload a receipt photo. Staff use it to review your order.'],
                                         ['q' => 'Why is my order still "Processing"?', 'a' => 'Orders are reviewed by admin before rewards are issued. This usually takes less than 24 hours.'],
                                         ['q' => 'How do I claim a reward?', 'a' => 'After your order is approved, open Promos & Claim and request a claim code. Show it to Laicom staff. When staff mark the reward as handed over, confirm receipt in your dashboard; then it moves to Claim History.'],
                                         ['q' => 'What if my reward is missing?', 'a' => 'Submit an inquiry here in the Help tab. Include your order number and the reward you expected so we can trace it.'],
@@ -718,7 +724,7 @@
                         <p class="small fw-bold mb-3 text-uppercase">PLEASE ENTER THE ORDER NUMBER PROVIDED BY YOUR SALESMAN TO LOG YOUR PURCHASE AND CHECK ELIGIBLE REWARDS.</p>
 
                         <div class="row g-2 mb-3"><div class="col-md-6"><label class="form-label fw-bold small mb-1">SALESMAN ORDER NUMBER:</label><input type="text" name="salesman_order_number" value="{{ old('salesman_order_number') }}" maxlength="100" class="form-control border-dark border-2 rounded-0 fw-bold" placeholder="E.G. ORD-2026-00481" required></div><div class="col-md-6"><label class="form-label fw-bold small mb-1">ORDER DATE:</label><input type="date" name="order_date" value="{{ old('order_date', today()->toDateString()) }}" max="{{ today()->toDateString() }}" min="{{ today()->subDays((int) config('lrts.order_max_age_days', 60))->toDateString() }}" class="form-control border-dark border-2 rounded-0 fw-bold" required></div></div>
-                        <div class="mb-3"><label class="form-label fw-bold small mb-1">RECEIPT PHOTO (OPTIONAL):</label><input type="file" name="slip" id="receiptSlipInput" class="form-control border-dark border-2 rounded-0" accept="image/jpeg,image/png,image/webp"><small class="text-muted">Optional · JPG, PNG, or WebP · up to {{ (int) (config('lrts.slip_max_kb', 5120) / 1024) }} MB</small><div id="receiptSlipPreview" class="small mt-1 text-muted">No image selected.</div></div>
+                        <div class="mb-3"><label class="form-label fw-bold small mb-1">RECEIPT PHOTO (REQUIRED):</label><input type="file" name="slip" id="receiptSlipInput" class="form-control border-dark border-2 rounded-0" accept="image/jpeg,image/png,image/webp" required><small class="text-muted">Required · JPG, PNG, or WebP · up to {{ (int) (config('lrts.slip_max_kb', 5120) / 1024) }} MB</small><div id="receiptSlipPreview" class="small mt-1 text-muted">No image selected.</div></div>
                         <div class="mb-3"><label class="form-label fw-bold small mb-1">NOTE (OPTIONAL):</label><textarea name="customer_note" maxlength="500" rows="2" class="form-control border-dark border-2 rounded-0" placeholder="Anything staff should know?">{{ old('customer_note') }}</textarea></div>
 
                         <label class="form-label fw-bold small mb-1">SUMMARY OF LOGGED ITEMS:</label>
@@ -1094,11 +1100,13 @@
         })();
     </script>
 
-    <!-- Synchronized Dual-Listbox Logic (UNCHANGED) -->
+    <!-- Product combobox and order list logic -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const addBtn = document.getElementById('add_item_btn');
             const combobox = document.getElementById('product_combobox');
+            const productOptions = document.getElementById('product_options');
+            const productComboboxWrapper = document.getElementById('product_combobox_wrapper');
             const quantity = document.getElementById('product_quantity');
 
             const mainListbox = document.getElementById('item_listbox');
@@ -1107,15 +1115,124 @@
             const processReceiptButton = document.getElementById('process_receipt_btn');
 
             let itemIndex = 0;
+            const productOptionItems = productOptions ? Array.from(productOptions.querySelectorAll('.lrts-product-combobox-option')) : [];
+            const noProductResults = productOptions?.querySelector('.lrts-product-combobox-empty');
+            let activeProductOption = null;
+            let selectedProductOption = null;
+
+            function clearActiveProductOption() {
+                if (activeProductOption) activeProductOption.classList.remove('is-active');
+                activeProductOption = null;
+                combobox?.removeAttribute('aria-activedescendant');
+            }
+
+            function filterProductOptions(query = combobox.value.trim()) {
+                const normalizedQuery = query.toLocaleLowerCase();
+                let visibleCount = 0;
+
+                productOptionItems.forEach((option) => {
+                    const matches = option.dataset.productName.toLocaleLowerCase().includes(normalizedQuery);
+                    option.hidden = !matches;
+                    if (matches) visibleCount++;
+                });
+
+                if (noProductResults) noProductResults.hidden = visibleCount > 0;
+                clearActiveProductOption();
+            }
+
+            function openProductDropdown(showAll = false) {
+                if (!productOptions || !combobox) return;
+                productOptions.hidden = false;
+                combobox.setAttribute('aria-expanded', 'true');
+                filterProductOptions(showAll ? '' : combobox.value.trim());
+            }
+
+            function closeProductDropdown() {
+                if (!productOptions || !combobox) return;
+                productOptions.hidden = true;
+                combobox.setAttribute('aria-expanded', 'false');
+                clearActiveProductOption();
+                productOptionItems.forEach((option) => option.setAttribute('aria-selected', option === selectedProductOption ? 'true' : 'false'));
+            }
+
+            function chooseProductOption(option) {
+                if (!option || !combobox) return;
+                combobox.value = option.dataset.productName;
+                selectedProductOption = option;
+                productOptionItems.forEach((item) => item.setAttribute('aria-selected', item === option ? 'true' : 'false'));
+                closeProductDropdown();
+                combobox.focus();
+            }
+
+            function setActiveProductOption(option) {
+                clearActiveProductOption();
+                activeProductOption = option;
+                if (!option) return;
+                option.classList.add('is-active');
+                productOptionItems.forEach((item) => item.setAttribute('aria-selected', item === option ? 'true' : 'false'));
+                combobox.setAttribute('aria-activedescendant', option.id);
+                option.scrollIntoView({ block: 'nearest' });
+            }
+
+            if (combobox && productOptions) {
+                combobox.addEventListener('focus', () => {
+                    openProductDropdown(true);
+                    if (selectedProductOption) combobox.select();
+                });
+                combobox.addEventListener('click', () => {
+                    if (productOptions.hidden) {
+                        openProductDropdown(true);
+                        if (selectedProductOption) combobox.select();
+                    }
+                });
+                combobox.addEventListener('input', () => {
+                    selectedProductOption = null;
+                    productOptionItems.forEach((option) => option.setAttribute('aria-selected', 'false'));
+                    openProductDropdown();
+                });
+                combobox.addEventListener('keydown', (event) => {
+                    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                        event.preventDefault();
+                        if (productOptions.hidden) openProductDropdown(true);
+                        const availableOptions = productOptionItems.filter((option) => !option.hidden);
+                        if (!availableOptions.length) return;
+                        const currentIndex = availableOptions.indexOf(activeProductOption);
+                        const nextIndex = event.key === 'ArrowDown'
+                            ? (currentIndex + 1) % availableOptions.length
+                            : (currentIndex <= 0 ? availableOptions.length - 1 : currentIndex - 1);
+                        setActiveProductOption(availableOptions[nextIndex]);
+                    } else if (event.key === 'Enter') {
+                        event.preventDefault();
+                        const exactMatch = productOptionItems.find((option) => option.dataset.productName.toLocaleLowerCase() === combobox.value.trim().toLocaleLowerCase());
+                        if (!productOptions.hidden) chooseProductOption(activeProductOption || exactMatch);
+                        else chooseProductOption(exactMatch);
+                    } else if (event.key === 'Escape' && !productOptions.hidden) {
+                        event.preventDefault();
+                        closeProductDropdown();
+                    }
+                });
+
+                productOptionItems.forEach((option) => {
+                    option.addEventListener('mousedown', (event) => event.preventDefault());
+                    option.addEventListener('click', () => chooseProductOption(option));
+                });
+
+                document.addEventListener('pointerdown', (event) => {
+                    if (!productComboboxWrapper.contains(event.target)) closeProductDropdown();
+                });
+            }
 
             if (addBtn) {
                 addBtn.addEventListener('click', function() {
-                    const selectedOption = combobox.options[combobox.selectedIndex];
-                    const productName = selectedOption.value;
-                    const productImage = selectedOption.getAttribute('data-image');
+                    const typedProductName = combobox.value.trim();
+                    const selectedOption = productOptionItems.find((option) =>
+                        option.dataset.productName.toLowerCase() === typedProductName.toLowerCase()
+                    );
+                    const productName = selectedOption?.dataset.productName ?? '';
+                    const productImage = selectedOption?.dataset.productImage ?? '';
                     const qty = quantity.value;
 
-                    if (productName === 'Choose a product...' || !productName || qty < 1 || qty > 9999 || !Number.isInteger(Number(qty))) {
+                    if (!selectedOption || qty < 1 || qty > 9999 || !Number.isInteger(Number(qty))) {
                         alert('Please select a valid product and a whole-number quantity from 1 to 9,999.');
                         return;
                     }
@@ -1207,7 +1324,10 @@
                     });
 
                     itemIndex++;
-                    combobox.selectedIndex = 0;
+                    combobox.value = '';
+                    selectedProductOption = null;
+                    productOptionItems.forEach((option) => option.setAttribute('aria-selected', 'false'));
+                    closeProductDropdown();
                     quantity.value = 1;
                 });
             }
