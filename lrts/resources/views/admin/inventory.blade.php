@@ -9,14 +9,27 @@
         <button type="button" class="btn btn-sm laicom-btn-primary" data-bs-toggle="modal" data-bs-target="#addInventoryModal" title="Add Inventory Item" aria-label="Add inventory item"><i class="bi bi-plus-lg"></i></button>
     </div>
 
-    <form method="GET" action="{{ route('admin.inventory') }}" class="d-flex align-items-center gap-2 mb-2 lrts-inventory-filter">
-        <label for="category" class="small fw-bold mb-0">SORT BY CATEGORY</label>
-        <select id="category" name="category" class="form-select form-select-sm border-dark border-2 rounded-0 w-auto" onchange="this.form.submit()">
-            <option value="">All categories</option>
-            @foreach (\App\Models\Inventory::CATEGORIES as $value => $label)
-                <option value="{{ $value }}" {{ $category === $value ? 'selected' : '' }}>{{ $label }}</option>
-            @endforeach
-        </select>
+    <form method="GET" action="{{ route('admin.inventory') }}" class="d-flex flex-wrap align-items-end gap-3 mb-3 lrts-inventory-filter">
+        <div class="lrts-inventory-category">
+            <label for="category" class="form-label small fw-bold mb-1">SORT BY CATEGORY</label>
+            <select id="category" name="category" class="form-select form-select-sm border-dark border-2 rounded-0" style="min-width: 13rem" onchange="this.form.submit()">
+                <option value="">All categories</option>
+                @foreach (\App\Models\Inventory::CATEGORIES as $value => $label)
+                    <option value="{{ $value }}" {{ $category === $value ? 'selected' : '' }}>{{ $label }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div class="lrts-inventory-search flex-grow-1">
+            <label for="inventorySearch" class="form-label small fw-bold mb-1">SEARCH INVENTORY</label>
+            <div class="input-group input-group-sm">
+                <span class="input-group-text border-dark border-2 rounded-0 bg-white"><i class="bi bi-search" aria-hidden="true"></i></span>
+                <input id="inventorySearch" type="search" name="search" value="{{ $search }}" maxlength="255" class="form-control border-dark border-2 rounded-0" placeholder="Search by product name..." aria-label="Search inventory by product name">
+                <button type="submit" class="btn laicom-btn-primary">SEARCH</button>
+            </div>
+        </div>
+        @if ($category || $search !== '')
+            <a href="{{ route('admin.inventory') }}" class="small fw-bold text-decoration-none text-nowrap"><i class="bi bi-x-circle me-1" aria-hidden="true"></i>CLEAR FILTERS</a>
+        @endif
     </form>
 
     <div class="table-responsive laicom-card p-1">

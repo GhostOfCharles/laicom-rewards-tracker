@@ -40,6 +40,18 @@ class AdminCatalogWorkflowTest extends TestCase
         $this->get(route('admin.inventory', ['category' => 'personal_care']))
             ->assertOk()->assertSee('Daily Shampoo')->assertSee('EXPIRING SOON');
 
+        Inventory::create([
+            'name' => 'Dove Body Wash',
+            'category' => 'personal_care',
+            'stock_balance' => 20,
+        ]);
+        $this->get(route('admin.inventory', ['search' => 'shampoo']))
+            ->assertOk()
+            ->assertSee('SEARCH INVENTORY')
+            ->assertSee('Daily Shampoo')
+            ->assertDontSee('Dove Body Wash')
+            ->assertSee('value="shampoo"', false);
+
         $this->put(route('admin.inventory.update', $inventory->id), [
             'name' => 'Daily Shampoo',
             'category' => 'food',

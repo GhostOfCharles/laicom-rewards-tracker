@@ -13,10 +13,12 @@ class InventoryController extends Controller
     public function index(Request $request)
     {
         $category = $request->query('category');
+        $search = trim((string) $request->query('search', ''));
         $inventory = Inventory::query()
             ->when(array_key_exists($category, Inventory::CATEGORIES), fn ($query) => $query->where('category', $category))
+            ->when($search !== '', fn ($query) => $query->where('name', 'like', '%' . $search . '%'))
             ->orderBy('name')->get();
-        return view('admin.inventory', compact('inventory', 'category'));
+        return view('admin.inventory', compact('inventory', 'category', 'search'));
     }
 
     public function store(Request $request, ActivityLogger $activityLogger)
