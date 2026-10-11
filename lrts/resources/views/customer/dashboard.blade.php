@@ -102,6 +102,7 @@
                             <div class="d-flex align-items-center mb-3">
                                 <div class="lrts-product-combobox me-2" id="product_combobox_wrapper">
                                     <input type="text" id="product_combobox" class="form-select border-dark border-2 rounded-0 fw-bold small lrts-product-combobox-input" placeholder="Choose a product..." aria-label="Choose a bought product" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="product_options" autocomplete="off">
+                                    <button type="button" class="lrts-product-combobox-toggle" aria-label="Toggle product list" aria-controls="product_options" aria-expanded="false"><i class="bi bi-chevron-down" aria-hidden="true"></i></button>
                                     <div id="product_options" class="lrts-product-combobox-options" role="listbox" aria-label="Products" hidden>
                                         @foreach ($products as $product)
                                             <button type="button" id="product-option-{{ $loop->index }}" class="lrts-product-combobox-option" role="option" aria-selected="false" data-product-name="{{ $product->name }}" data-product-image="{{ $product->image_path ? asset('storage/' . $product->image_path) : '' }}">
@@ -1105,6 +1106,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             const addBtn = document.getElementById('add_item_btn');
             const combobox = document.getElementById('product_combobox');
+            const productComboboxToggle = document.querySelector('#product_combobox_wrapper .lrts-product-combobox-toggle');
             const productOptions = document.getElementById('product_options');
             const productComboboxWrapper = document.getElementById('product_combobox_wrapper');
             const quantity = document.getElementById('product_quantity');
@@ -1143,16 +1145,26 @@
             function openProductDropdown(showAll = false) {
                 if (!productOptions || !combobox) return;
                 productOptions.hidden = false;
+                productComboboxWrapper.classList.add('is-open');
                 combobox.setAttribute('aria-expanded', 'true');
+                productComboboxToggle?.setAttribute('aria-expanded', 'true');
                 filterProductOptions(showAll ? '' : combobox.value.trim());
+                requestAnimationFrame(() => {
+                    if (combobox.getAttribute('aria-expanded') === 'true') productOptions.classList.add('is-open');
+                });
             }
 
             function closeProductDropdown() {
                 if (!productOptions || !combobox) return;
-                productOptions.hidden = true;
+                productOptions.classList.remove('is-open');
+                productComboboxWrapper.classList.remove('is-open');
                 combobox.setAttribute('aria-expanded', 'false');
+                productComboboxToggle?.setAttribute('aria-expanded', 'false');
                 clearActiveProductOption();
                 productOptionItems.forEach((option) => option.setAttribute('aria-selected', option === selectedProductOption ? 'true' : 'false'));
+                window.setTimeout(() => {
+                    if (combobox.getAttribute('aria-expanded') !== 'true') productOptions.hidden = true;
+                }, 160);
             }
 
             function chooseProductOption(option) {
@@ -1180,7 +1192,7 @@
                     if (selectedProductOption) combobox.select();
                 });
                 combobox.addEventListener('click', () => {
-                    if (productOptions.hidden) {
+                    if (combobox.getAttribute('aria-expanded') !== 'true') {
                         openProductDropdown(true);
                         if (selectedProductOption) combobox.select();
                     }
@@ -1193,7 +1205,7 @@
                 combobox.addEventListener('keydown', (event) => {
                     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
                         event.preventDefault();
-                        if (productOptions.hidden) openProductDropdown(true);
+                        if (combobox.getAttribute('aria-expanded') !== 'true') openProductDropdown(true);
                         const availableOptions = productOptionItems.filter((option) => !option.hidden);
                         if (!availableOptions.length) return;
                         const currentIndex = availableOptions.indexOf(activeProductOption);
@@ -1204,12 +1216,29 @@
                     } else if (event.key === 'Enter') {
                         event.preventDefault();
                         const exactMatch = productOptionItems.find((option) => option.dataset.productName.toLocaleLowerCase() === combobox.value.trim().toLocaleLowerCase());
-                        if (!productOptions.hidden) chooseProductOption(activeProductOption || exactMatch);
+                        if (combobox.getAttribute('aria-expanded') === 'true') chooseProductOption(activeProductOption || exactMatch);
                         else chooseProductOption(exactMatch);
-                    } else if (event.key === 'Escape' && !productOptions.hidden) {
+                    } else if (event.key === 'Escape' && combobox.getAttribute('aria-expanded') === 'true') {
                         event.preventDefault();
                         closeProductDropdown();
                     }
+                });
+
+                productComboboxToggle?.addEventListener('click', () => {
+                    const wasOpen = combobox.getAttribute('aria-expanded') === 'true';
+                    combobox.focus({ preventScroll: true });
+                    if (wasOpen) {
+                        closeProductDropdown();
+                    } else {
+                        openProductDropdown(true);
+                        if (selectedProductOption) combobox.select();
+                    }
+                });
+
+                productComboboxWrapper.addEventListener('focusout', () => {
+                    window.setTimeout(() => {
+                        if (!productComboboxWrapper.contains(document.activeElement)) closeProductDropdown();
+                    }, 0);
                 });
 
                 productOptionItems.forEach((option) => {

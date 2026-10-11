@@ -834,8 +834,13 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
 .laicom-page .table .text-nowrap { white-space: nowrap; }
 .laicom-customer-dashboard .lrts-order-hint { opacity: .72; }
 .laicom-customer-dashboard .lrts-product-combobox { position: relative; min-width: 0; flex: 1 1 0%; }
-.laicom-customer-dashboard #product_combobox.lrts-product-combobox-input { width: 100%; min-width: 0; padding-right: 2.5rem; border-color: #212529 !important; border-radius: 0 !important; }
+.laicom-customer-dashboard #product_combobox.lrts-product-combobox-input { width: 100%; min-width: 0; padding-right: 2.5rem; border-color: #212529 !important; border-radius: 0 !important; background-image: none !important; cursor: text; }
 .laicom-customer-dashboard #product_combobox.lrts-product-combobox-input:focus { border-color: var(--laicom-red) !important; box-shadow: 0 0 0 3px rgba(231, 29, 45, .14) !important; }
+.laicom-customer-dashboard .lrts-product-combobox-toggle { position: absolute; z-index: 2; top: 0; right: 0; display: grid; width: 2.5rem; height: 100%; place-items: center; border: 0; background: transparent; color: var(--laicom-navy); cursor: pointer; }
+.laicom-customer-dashboard .lrts-product-combobox-toggle:hover,
+.laicom-customer-dashboard .lrts-product-combobox-toggle:focus-visible { background: #eaf0f8; color: var(--laicom-red); outline: 0; }
+.laicom-customer-dashboard .lrts-product-combobox-toggle i { transition: transform .15s ease; }
+.laicom-customer-dashboard .lrts-product-combobox.is-open .lrts-product-combobox-toggle i { transform: rotate(180deg); }
 .laicom-customer-dashboard .lrts-product-combobox-options {
     position: absolute;
     z-index: 1060;
@@ -850,8 +855,15 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
     border-top: 3px solid var(--laicom-red);
     background: #fff;
     box-shadow: 0 8px 22px rgba(18, 40, 76, .2);
+    opacity: 0;
+    transform: translateY(-.35rem);
+    transform-origin: top;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity .14s ease, transform .14s ease, visibility 0s linear .14s;
     -webkit-overflow-scrolling: touch;
 }
+.laicom-customer-dashboard .lrts-product-combobox-options.is-open { opacity: 1; transform: translateY(0); visibility: visible; pointer-events: auto; transition: opacity .14s ease, transform .14s ease, visibility 0s; }
 .laicom-customer-dashboard .lrts-product-combobox-options[hidden],
 .laicom-customer-dashboard .lrts-product-combobox-option[hidden],
 .laicom-customer-dashboard .lrts-product-combobox-empty[hidden] { display: none !important; }
