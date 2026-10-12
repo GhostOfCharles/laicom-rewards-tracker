@@ -122,8 +122,6 @@ Customer/Admin browser                 API client
 - **Migrations** define and evolve the relational schema.
 - **Private storage** holds receipt images and support attachments; authorized controllers serve them.
 
-The API currently exposes login, authenticated-user, and receipt-submission endpoints. This repository contains the Laravel API; document a separate mobile client only if it is included in the project deliverables.
-
 ## Data Model
 
 The principal tables and their responsibilities are:
