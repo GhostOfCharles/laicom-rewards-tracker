@@ -9,7 +9,7 @@
 <p align="center">A responsive platform for reviewing customer orders, managing promotional rewards, and tracking reward claims.</p>
 
 <p align="center">
-  🌐 <strong>Live Site:</strong> <a href="https://LaicomRewardsTracker.com">LaicomRewardsTracker.com</a>
+  🌐 <strong>Live Site:</strong> <a href="https://laicomrewardstracker.laravel.cloud">LaicomRewardsTracker.com</a>
 </p>
 
 ---
