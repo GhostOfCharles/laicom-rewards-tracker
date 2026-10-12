@@ -8,6 +8,10 @@
 <p align="center"><strong>LRTS capstone project for Laicom Sales &amp; Promotions, Inc.</strong></p>
 <p align="center">A responsive platform for reviewing customer orders, managing promotional rewards, and tracking reward claims.</p>
 
+<p align="center">
+  🌐 <strong>Live Site:</strong> <a href="https://LaicomRewardsTracker.com">LaicomRewardsTracker.com</a>
+</p>
+
 ---
 
 ## Contents
