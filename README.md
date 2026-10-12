@@ -1,7 +1,7 @@
 <!-- LRTS README -->
 
 <p align="center">
-  <img src="public/images/laicom-logo-header.png" alt="Laicom Rewards Tracker System" width="280">
+  <img width="1917" height="884" alt="image" src="https://github.com/user-attachments/assets/6cfd1191-a6c9-45e8-a916-ca847a501742" />
 </p>
 
 <h1 align="center">Laicom Rewards Tracker System</h1>
