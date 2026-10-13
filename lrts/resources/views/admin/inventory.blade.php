@@ -49,7 +49,7 @@
                 <tr>
                     <td class="text-start">
                         <div class="d-flex align-items-center">
-                            <img src="{{ $item->image_path ? asset('storage/' . $item->image_path) : asset('images/laicom-logo.png') }}" onerror="this.src='{{ asset('images/laicom-logo.png') }}'" alt="{{ $item->name }}" class="laicom-thumbnail {{ $item->image_path ? '' : 'laicom-empty-image' }} me-2">
+                            <x-product-image :product="$item" :size="44" class="laicom-thumbnail me-2" />
                             <span class="fw-bold">{{ $item->name }}</span>
                         </div>
                     </td>

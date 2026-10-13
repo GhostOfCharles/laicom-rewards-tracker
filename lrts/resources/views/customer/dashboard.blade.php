@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LRTS - Customer Dashboard</title>
+    <link rel="icon" href="{{ asset('favicon.ico') }}" type="image/x-icon">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="{{ asset('css/laicom.css') }}">
@@ -99,26 +100,38 @@
                         </div>
                         <div class="card-body p-4">
 
-                            <div class="d-flex align-items-center mb-3">
+                            <div class="lrts-order-controls">
                                 <div class="lrts-product-combobox me-2" id="product_combobox_wrapper">
                                     <input type="text" id="product_combobox" class="form-select border-dark border-2 rounded-0 fw-bold small lrts-product-combobox-input" placeholder="Choose a product..." aria-label="Choose a bought product" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="product_options" autocomplete="off">
                                     <button type="button" class="lrts-product-combobox-toggle" aria-label="Toggle product list" aria-controls="product_options" aria-expanded="false"><i class="bi bi-chevron-down" aria-hidden="true"></i></button>
                                     <div id="product_options" class="lrts-product-combobox-options" role="listbox" aria-label="Products" hidden>
                                         @foreach ($products as $product)
-                                            <button type="button" id="product-option-{{ $loop->index }}" class="lrts-product-combobox-option" role="option" aria-selected="false" data-product-name="{{ $product->name }}" data-product-image="{{ $product->image_path ? asset('storage/' . $product->image_path) : '' }}">
-                                                <img src="{{ $product->image_path ? asset('storage/' . $product->image_path) : asset('images/laicom-logo.png') }}" alt="" loading="lazy" onerror="this.onerror=null; this.src='{{ asset('images/laicom-logo.png') }}'; this.classList.add('is-placeholder');">
+                                            @php $po = app(\App\Services\ProductImageResolver::class)->resolve($product); @endphp
+                                            <button type="button" id="product-option-{{ $loop->index }}" class="lrts-product-combobox-option" role="option" aria-selected="false"
+                                                    data-product-name="{{ $product->name }}"
+                                                    data-product-image="{{ $po['src'] ?? '' }}"
+                                                    data-product-initials="{{ $po['initials'] }}">
+                                                @if ($po['src'])
+                                                    <img src="{{ $po['src'] }}" alt="" loading="lazy" onerror="this.hidden=true;this.nextElementSibling.hidden=false;">
+                                                    <x-product-placeholder :label="$po['label']" :initials="$po['initials']" :size="42" :hidden="true" />
+                                                @else
+                                                    <x-product-placeholder :label="$po['label']" :initials="$po['initials']" :size="42" />
+                                                @endif
                                                 <span>{{ $product->name }}</span>
                                             </button>
                                         @endforeach
                                         <div class="lrts-product-combobox-empty" hidden>No matching products found.</div>
                                     </div>
                                 </div>
-                                <input type="number" id="product_quantity" class="form-control border-dark border-2 rounded-0 me-2 fw-bold text-center lrts-order-quantity" min="1" max="9999" step="1" value="1" aria-label="Quantity to add" title="Quantity to add">
-                                <button type="button" id="add_item_btn" class="btn laicom-btn-primary px-3 py-1" aria-label="Add selected product"><i class="bi bi-plus-lg"></i></button>
+                                <label for="product_quantity" class="lrts-order-amount-label">AMOUNT</label>
+                                <input type="number" id="product_quantity" class="form-control border-dark border-2 rounded-0 fw-bold text-center lrts-order-quantity" min="1" max="9999" step="1" value="1" aria-label="Amount to add">
+                                <button type="button" id="add_item_btn" class="btn laicom-btn-primary lrts-order-action" aria-label="Add selected product">ADD</button>
+                                <button type="button" id="remove_item_btn" class="btn laicom-btn-primary lrts-order-action" aria-label="Remove selected product" disabled>REMOVE</button>
                             </div>
+                            <div id="order_validation_message" class="lrts-order-validation" role="alert" aria-live="polite" hidden></div>
 
                             <div class="border border-dark border-2 bg-white mb-4 position-relative lrts-order-item-list">
-                                <ul id="item_listbox" class="list-unstyled mb-0">
+                                <ul id="item_listbox" class="list-unstyled mb-0" role="listbox" aria-label="Selected products">
                                     <li class="p-4 text-muted text-center fw-bold" id="empty_msg">NO PRODUCTS SELECTED YET.</li>
                                 </ul>
                             </div>
@@ -179,8 +192,6 @@
                                         @foreach ($promotions as $promo)
                                             @php
                                                 $buyProduct = $products->firstWhere('name', $promo->buy_product_name);
-                                                $buyImage = $buyProduct?->image_path;
-                                                $rewardImage = $promo->premiumProduct?->image_path;
                                             @endphp
                                             <div class="col-md-6">
                                                 <div class="promo-card">
@@ -195,11 +206,7 @@
                                                     <div class="promo-products">
 
                                                         <div class="promo-product">
-                                                            @if ($buyImage)
-                                                                <img src="{{ asset('storage/' . $buyImage) }}" alt="{{ $promo->buy_product_name }}" class="promo-product-img">
-                                                            @else
-                                                                <img src="{{ asset('images/laicom-logo.png') }}" alt="{{ $promo->buy_product_name }}" class="promo-product-img is-empty">
-                                                            @endif
+                                                            <x-product-image :product="$buyProduct" :name="$promo->buy_product_name" :size="104" class="promo-product-img" />
                                                             <span class="promo-product-tag">BUY {{ $promo->required_quantity }}</span>
                                                             <p class="promo-product-name">{{ $promo->buy_product_name }}</p>
                                                         </div>
@@ -211,11 +218,7 @@
                                                         </div>
 
                                                         <div class="promo-product">
-                                                            @if ($rewardImage)
-                                                                <img src="{{ asset('storage/' . $rewardImage) }}" alt="{{ $promo->premiumProduct->name }}" class="promo-product-img">
-                                                            @else
-                                                                <img src="{{ asset('images/laicom-logo.png') }}" alt="{{ $promo->premiumProduct->name ?? 'Reward' }}" class="promo-product-img is-empty">
-                                                            @endif
+                                                            <x-product-image :product="$promo->premiumProduct" :size="104" class="promo-product-img" />
                                                             <span class="promo-product-tag">GET {{ $promo->reward_quantity }}</span>
                                                             <p class="promo-product-name">{{ $promo->premiumProduct->name ?? 'Premium Reward' }}</p>
                                                             <span class="promo-stock">
@@ -725,7 +728,7 @@
                         <p class="small fw-bold mb-3 text-uppercase">PLEASE ENTER THE ORDER NUMBER PROVIDED BY YOUR SALESMAN TO LOG YOUR PURCHASE AND CHECK ELIGIBLE REWARDS.</p>
 
                         <div class="row g-2 mb-3"><div class="col-md-6"><label class="form-label fw-bold small mb-1">SALESMAN ORDER NUMBER:</label><input type="text" name="salesman_order_number" value="{{ old('salesman_order_number') }}" maxlength="100" class="form-control border-dark border-2 rounded-0 fw-bold" placeholder="E.G. ORD-2026-00481" required></div><div class="col-md-6"><label class="form-label fw-bold small mb-1">ORDER DATE:</label><input type="date" name="order_date" value="{{ old('order_date', today()->toDateString()) }}" max="{{ today()->toDateString() }}" min="{{ today()->subDays((int) config('lrts.order_max_age_days', 60))->toDateString() }}" class="form-control border-dark border-2 rounded-0 fw-bold" required></div></div>
-                        <div class="mb-3"><label class="form-label fw-bold small mb-1">RECEIPT PHOTO (REQUIRED):</label><input type="file" name="slip" id="receiptSlipInput" class="form-control border-dark border-2 rounded-0" accept="image/jpeg,image/png,image/webp" required><small class="text-muted">Required · JPG, PNG, or WebP · up to {{ (int) (config('lrts.slip_max_kb', 5120) / 1024) }} MB</small><div id="receiptSlipPreview" class="small mt-1 text-muted">No image selected.</div></div>
+                        <div class="mb-3"><label class="form-label fw-bold small mb-1">RECEIPT PHOTO (REQUIRED):</label><input type="file" name="slip" id="receiptSlipInput" class="form-control border-dark border-2 rounded-0" accept="image/jpeg,image/png,image/webp" required><small class="text-muted">Required · JPG, PNG, or WebP · up to {{ (int) (config('lrts.slip_max_kb', 10240) / 1024) }} MB</small><div id="receiptSlipPreview" class="small mt-1 text-muted">No image selected.</div></div>
                         <div class="mb-3"><label class="form-label fw-bold small mb-1">NOTE (OPTIONAL):</label><textarea name="customer_note" maxlength="500" rows="2" class="form-control border-dark border-2 rounded-0" placeholder="Anything staff should know?">{{ old('customer_note') }}</textarea></div>
 
                         <label class="form-label fw-bold small mb-1">SUMMARY OF LOGGED ITEMS:</label>
@@ -1105,6 +1108,8 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const addBtn = document.getElementById('add_item_btn');
+            const removeSelectedBtn = document.getElementById('remove_item_btn');
+            const validationMessage = document.getElementById('order_validation_message');
             const combobox = document.getElementById('product_combobox');
             const productComboboxToggle = document.querySelector('#product_combobox_wrapper .lrts-product-combobox-toggle');
             const productOptions = document.getElementById('product_options');
@@ -1121,6 +1126,41 @@
             const noProductResults = productOptions?.querySelector('.lrts-product-combobox-empty');
             let activeProductOption = null;
             let selectedProductOption = null;
+            let selectedOrderItem = null;
+
+            function parseOrderQuantity(value) {
+                const normalized = String(value ?? '').trim();
+                if (!/^\d+$/.test(normalized)) return null;
+                const parsed = Number(normalized);
+                return Number.isSafeInteger(parsed) && parsed >= 1 && parsed <= 9999 ? parsed : null;
+            }
+
+            function showOrderValidation(message = '') {
+                if (!validationMessage) return;
+                if (!message && mainListbox.querySelector('.lrts-order-line-quantity.is-invalid')) {
+                    message = 'Each product quantity must be a whole number from 1 to 9,999.';
+                }
+                validationMessage.textContent = message;
+                validationMessage.hidden = !message;
+            }
+
+            function selectOrderItem(item) {
+                if (!item) return;
+                mainListbox.querySelectorAll('.lrts-order-item').forEach((row) => {
+                    const isSelected = row === item;
+                    row.classList.toggle('is-selected', isSelected);
+                    row.setAttribute('aria-selected', String(isSelected));
+                });
+                selectedOrderItem = item;
+                if (removeSelectedBtn) removeSelectedBtn.disabled = false;
+            }
+
+            function updateOrderControls() {
+                const rows = Array.from(mainListbox.querySelectorAll('.lrts-order-item'));
+                const hasInvalidQuantity = rows.some((row) => parseOrderQuantity(row.querySelector('.lrts-order-line-quantity')?.value) === null);
+                if (processReceiptButton) processReceiptButton.disabled = rows.length === 0 || hasInvalidQuantity;
+                if (removeSelectedBtn) removeSelectedBtn.disabled = !selectedOrderItem;
+            }
 
             function clearActiveProductOption() {
                 if (activeProductOption) activeProductOption.classList.remove('is-active');
@@ -1198,6 +1238,7 @@
                     }
                 });
                 combobox.addEventListener('input', () => {
+                    showOrderValidation();
                     selectedProductOption = null;
                     productOptionItems.forEach((option) => option.setAttribute('aria-selected', 'false'));
                     openProductDropdown();
@@ -1251,6 +1292,8 @@
                 });
             }
 
+            quantity?.addEventListener('input', () => showOrderValidation());
+
             if (addBtn) {
                 addBtn.addEventListener('click', function() {
                     const typedProductName = combobox.value.trim();
@@ -1259,16 +1302,24 @@
                     );
                     const productName = selectedOption?.dataset.productName ?? '';
                     const productImage = selectedOption?.dataset.productImage ?? '';
-                    const qty = quantity.value;
+                    const productInitials = selectedOption?.dataset.productInitials ?? '?';
+                    const qty = parseOrderQuantity(quantity.value);
 
-                    if (!selectedOption || qty < 1 || qty > 9999 || !Number.isInteger(Number(qty))) {
-                        alert('Please select a valid product and a whole-number quantity from 1 to 9,999.');
+                    if (!selectedOption) {
+                        showOrderValidation('Choose a product from the list before adding it.');
+                        combobox.focus();
+                        return;
+                    }
+                    if (qty === null) {
+                        showOrderValidation('Enter a whole-number amount from 1 to 9,999.');
+                        quantity.focus();
                         return;
                     }
                     if (mainListbox.querySelectorAll('li.product-list-item').length >= 50) {
-                        alert('An order can contain no more than 50 product lines.');
+                        showOrderValidation('An order can contain no more than 50 product lines.');
                         return;
                     }
+                    showOrderValidation();
 
                     const mainEmpty = document.getElementById('empty_msg');
                     if (mainEmpty) mainEmpty.remove();
@@ -1279,17 +1330,62 @@
                     const uniqueId = 'item-row-' + itemIndex;
 
                     const mainLi = document.createElement('li');
-                    mainLi.className = 'product-list-item d-flex align-items-center justify-content-between p-2';
+                    mainLi.className = 'product-list-item lrts-order-item d-flex align-items-center justify-content-between p-2';
                     mainLi.id = uniqueId + '-main';
+                    mainLi.dataset.itemId = uniqueId;
+                    mainLi.setAttribute('role', 'option');
+                    mainLi.setAttribute('aria-selected', 'false');
+                    mainLi.tabIndex = 0;
 
                     const productInfo = document.createElement('div');
                     productInfo.className = 'd-flex align-items-center flex-grow-1';
-                    const productThumbnail = document.createElement('img');
-                    productThumbnail.src = productImage || '{{ asset('images/laicom-logo.png') }}';
-                    productThumbnail.alt = productImage ? productName : '';
-                    productThumbnail.className = 'border border-dark me-3';
-                    productThumbnail.style.cssText = 'width: 50px; height: 50px; object-fit: contain;';
-                    productThumbnail.onerror = function() { this.src = '{{ asset('images/laicom-logo.png') }}'; };
+                    const createProductPlaceholder = () => {
+                        const svgNamespace = 'http://www.w3.org/2000/svg';
+                        const svg = document.createElementNS(svgNamespace, 'svg');
+                        svg.setAttribute('viewBox', '0 0 100 100');
+                        svg.setAttribute('role', 'img');
+                        svg.setAttribute('aria-label', productName);
+                        svg.classList.add('lrts-product-placeholder', 'border', 'border-dark', 'me-3');
+                        svg.style.cssText = 'width:50px;height:50px;flex:0 0 50px;';
+
+                        const background = document.createElementNS(svgNamespace, 'rect');
+                        background.setAttribute('x', '1');
+                        background.setAttribute('y', '1');
+                        background.setAttribute('width', '98');
+                        background.setAttribute('height', '98');
+                        background.setAttribute('fill', '#fff');
+                        background.setAttribute('stroke', '#12284c');
+                        background.setAttribute('stroke-width', '2');
+
+                        const accent = document.createElementNS(svgNamespace, 'path');
+                        accent.setAttribute('d', 'M8 8h20v6H14v14H8z');
+                        accent.setAttribute('fill', '#ed1b24');
+
+                        const text = document.createElementNS(svgNamespace, 'text');
+                        text.setAttribute('x', '50');
+                        text.setAttribute('y', '55');
+                        text.setAttribute('text-anchor', 'middle');
+                        text.setAttribute('dominant-baseline', 'middle');
+                        text.setAttribute('fill', '#12284c');
+                        text.setAttribute('font-family', 'Segoe UI, Arial, sans-serif');
+                        text.setAttribute('font-size', productInitials.length > 1 ? '34' : '46');
+                        text.setAttribute('font-weight', '800');
+                        text.textContent = productInitials;
+
+                        svg.append(background, accent, text);
+                        return svg;
+                    };
+                    let productThumbnail;
+                    if (productImage) {
+                        productThumbnail = document.createElement('img');
+                        productThumbnail.src = productImage;
+                        productThumbnail.alt = productName;
+                        productThumbnail.className = 'border border-dark me-3';
+                        productThumbnail.style.cssText = 'width: 50px; height: 50px; object-fit: contain;';
+                        productThumbnail.onerror = () => productThumbnail.replaceWith(createProductPlaceholder());
+                    } else {
+                        productThumbnail = createProductPlaceholder();
+                    }
                     productInfo.appendChild(productThumbnail);
                     const name = document.createElement('span');
                     name.className = 'fw-bold small text-uppercase';
@@ -1297,31 +1393,30 @@
                     productInfo.appendChild(name);
 
                     const productActions = document.createElement('div');
-                    productActions.className = 'd-flex align-items-center';
-                    const quantityBox = document.createElement('div');
-                    quantityBox.className = 'text-center me-3';
+                    productActions.className = 'lrts-order-line-actions d-flex align-items-center';
+                    const quantityBox = document.createElement('label');
+                    quantityBox.className = 'lrts-order-line-quantity-wrap text-center';
                     const quantityLabel = document.createElement('span');
                     quantityLabel.className = 'd-block';
-                    quantityLabel.style.cssText = 'font-size: 0.65rem; font-weight: 900;';
                     quantityLabel.textContent = 'QTY';
-                    const quantityValue = document.createElement('div');
-                    quantityValue.className = 'qty-box bg-white';
-                    quantityValue.textContent = qty;
+                    const quantityValue = document.createElement('input');
+                    quantityValue.className = 'lrts-order-line-quantity form-control';
+                    quantityValue.type = 'number';
+                    quantityValue.min = '1';
+                    quantityValue.max = '9999';
+                    quantityValue.step = '1';
+                    quantityValue.inputMode = 'numeric';
+                    quantityValue.value = String(qty);
+                    quantityValue.setAttribute('aria-label', `Quantity for ${productName}`);
                     quantityBox.append(quantityLabel, quantityValue);
-                    const removeButton = document.createElement('button');
-                    removeButton.type = 'button';
-                    removeButton.className = 'btn laicom-btn-primary fw-bold fs-5 px-3 py-0 remove-btn';
-                    removeButton.dataset.target = uniqueId;
-                    removeButton.setAttribute('aria-label', 'Remove ' + productName);
-                    removeButton.innerHTML = '<i class="bi bi-dash-lg" aria-hidden="true"></i>';
-                    productActions.append(quantityBox, removeButton);
+                    productActions.append(quantityBox);
                     mainLi.append(productInfo, productActions);
                     mainListbox.appendChild(mainLi);
-                    processReceiptButton.disabled = false;
+                    selectOrderItem(mainLi);
 
                     const modalLi = document.createElement('li');
                     modalLi.id = uniqueId + '-modal';
-                    modalLi.textContent = `• ${productName} — QTY ${qty}`;
+                    modalLi.textContent = `\u2022 ${productName} - QTY ${qty}`;
                     modalSummaryList.appendChild(modalLi);
 
                     const hiddenWrapper = document.createElement('div');
@@ -1338,19 +1433,34 @@
                     hiddenWrapper.append(productNameInput, productQuantityInput);
                     hiddenContainer.appendChild(hiddenWrapper);
 
-                    mainLi.querySelector('.remove-btn').addEventListener('click', function() {
-                        const targetId = this.getAttribute('data-target');
-
-                        document.getElementById(targetId + '-main').remove();
-                        document.getElementById(targetId + '-modal').remove();
-                        document.getElementById(targetId + '-hidden').remove();
-
-                        if (mainListbox.children.length === 0) {
-                            mainListbox.innerHTML = '<li class="p-4 text-muted text-center fw-bold" id="empty_msg">NO PRODUCTS SELECTED YET.</li>';
-                            modalSummaryList.innerHTML = '<li class="text-muted" id="modal_empty_msg">No items recorded.</li>';
-                            processReceiptButton.disabled = true;
+                    const syncLineQuantity = () => {
+                        const lineQty = parseOrderQuantity(quantityValue.value);
+                        const isValid = lineQty !== null;
+                        quantityValue.classList.toggle('is-invalid', !isValid);
+                        quantityValue.setAttribute('aria-invalid', String(!isValid));
+                        if (isValid) {
+                            productQuantityInput.value = String(lineQty);
+                            modalLi.textContent = `\u2022 ${productName} - QTY ${lineQty}`;
+                        }
+                        const hasInvalidLine = mainListbox.querySelector('.lrts-order-line-quantity.is-invalid');
+                        if (!isValid) showOrderValidation('Each product quantity must be a whole number from 1 to 9,999.');
+                        else if (!hasInvalidLine) showOrderValidation();
+                        updateOrderControls();
+                    };
+                    quantityValue.addEventListener('input', syncLineQuantity);
+                    quantityValue.addEventListener('change', syncLineQuantity);
+                    mainLi.addEventListener('click', (event) => {
+                        if (!event.target.closest('.lrts-order-line-quantity-wrap')) selectOrderItem(mainLi);
+                    });
+                    mainLi.addEventListener('focusin', () => selectOrderItem(mainLi));
+                    mainLi.addEventListener('keydown', (event) => {
+                        if (event.target !== mainLi) return;
+                        if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            selectOrderItem(mainLi);
                         }
                     });
+                    updateOrderControls();
 
                     itemIndex++;
                     combobox.value = '';
@@ -1361,9 +1471,25 @@
                 });
             }
 
-            if (processReceiptButton) {
-                processReceiptButton.disabled = true;
+            if (removeSelectedBtn) {
+                removeSelectedBtn.addEventListener('click', () => {
+                    if (!selectedOrderItem) return;
+                    const targetId = selectedOrderItem.dataset.itemId;
+                    document.getElementById(targetId + '-modal')?.remove();
+                    document.getElementById(targetId + '-hidden')?.remove();
+                    selectedOrderItem.remove();
+                    selectedOrderItem = null;
+
+                    if (mainListbox.querySelectorAll('.lrts-order-item').length === 0) {
+                        mainListbox.innerHTML = '<li class="p-4 text-muted text-center fw-bold" id="empty_msg">NO PRODUCTS SELECTED YET.</li>';
+                        modalSummaryList.innerHTML = '<li class="text-muted" id="modal_empty_msg">No items recorded.</li>';
+                    }
+                    showOrderValidation();
+                    updateOrderControls();
+                });
             }
+
+            updateOrderControls();
         });
     </script>
 

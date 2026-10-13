@@ -350,7 +350,7 @@
                             <div id="addPromotionBuyProductOptions" class="lrts-admin-product-picker-options" role="listbox" aria-label="Unilever products" hidden>
                                 @foreach($inventory as $item)
                                     <button type="button" id="add-promotion-buy-option-{{ $loop->index }}" class="lrts-admin-product-picker-option" role="option" aria-selected="false" data-product-label="{{ $item->name }}" data-product-value="{{ $item->name }}">
-                                        <img src="{{ $item->image_path ? asset('storage/' . $item->image_path) : asset('images/laicom-logo.png') }}" alt="" loading="lazy" class="{{ $item->image_path ? '' : 'is-placeholder' }}" onerror="this.onerror=null; this.src='{{ asset('images/laicom-logo.png') }}'; this.classList.add('is-placeholder');">
+                                        <x-product-image :product="$item" :size="40" />
                                         <span>{{ $item->name }}</span>
                                     </button>
                                 @endforeach
@@ -372,9 +372,14 @@
                             <button type="button" class="lrts-admin-product-picker-toggle" aria-label="Toggle premium reward list" aria-controls="addPromotionPremiumProductOptions" aria-expanded="false"><i class="bi bi-chevron-down" aria-hidden="true"></i></button>
                             <div id="addPromotionPremiumProductOptions" class="lrts-admin-product-picker-options" role="listbox" aria-label="Premium rewards" hidden>
                                 @foreach($allPremiumProducts as $premium)
-                                    <button type="button" id="add-promotion-premium-option-{{ $loop->index }}" class="lrts-admin-product-picker-option" role="option" aria-selected="false" data-product-label="{{ \Illuminate\Support\Str::title($premium->name) }}" data-product-value="{{ $premium->id }}">
-                                        <img src="{{ $premium->image_path ? asset('storage/' . $premium->image_path) : asset('images/laicom-logo.png') }}" alt="" loading="lazy" class="{{ $premium->image_path ? '' : 'is-placeholder' }}" onerror="this.onerror=null; this.src='{{ asset('images/laicom-logo.png') }}'; this.classList.add('is-placeholder');">
-                                        <span>{{ \Illuminate\Support\Str::title($premium->name) }}</span>
+                                    @php $availableStock = max(0, (int) $premium->stock); @endphp
+                                    <button type="button" id="add-promotion-premium-option-{{ $loop->index }}" class="lrts-admin-product-picker-option" role="option" aria-selected="false" aria-disabled="{{ $availableStock === 0 ? 'true' : 'false' }}" data-product-label="{{ \Illuminate\Support\Str::title($premium->name) }}" data-product-value="{{ $premium->id }}" data-stock="{{ $availableStock }}">
+                                        <x-product-image :product="$premium" :size="40" />
+                                        <span class="lrts-admin-product-picker-label">{{ \Illuminate\Support\Str::title($premium->name) }}</span>
+                                        <span class="lrts-admin-stock-pill {{ $availableStock === 0 ? 'is-out-of-stock' : ($availableStock <= 10 ? 'is-low' : 'is-sufficient') }}" aria-label="{{ number_format($availableStock) }} available">
+                                            <i class="bi bi-box-seam" aria-hidden="true"></i>
+                                            {{ number_format($availableStock) }} left
+                                        </span>
                                     </button>
                                 @endforeach
                                 <div class="lrts-admin-product-picker-empty" hidden>No matching premium rewards found.</div>
@@ -483,6 +488,55 @@
             let selectedOption = null;
             let activeOption = null;
 
+            function isOutOfStock(option) {
+                return option.dataset.stock !== undefined && Number(option.dataset.stock) <= 0;
+            }
+
+            function showOutOfStockToast(option) {
+                let container = document.querySelector('.lrts-feedback-toast-container');
+                if (!container) {
+                    container = document.createElement('div');
+                    container.className = 'toast-container position-fixed bottom-0 start-0 p-3 lrts-feedback-toast-container';
+                    container.dataset.generatedFeedbackToastContainer = 'true';
+                    document.body.appendChild(container);
+                }
+
+                const toast = document.createElement('div');
+                toast.className = 'toast border border-dark rounded-0 shadow';
+                toast.setAttribute('role', 'status');
+                toast.setAttribute('aria-live', 'polite');
+                toast.setAttribute('aria-atomic', 'true');
+
+                const header = document.createElement('div');
+                header.className = 'toast-header text-white rounded-0';
+                const icon = document.createElement('i');
+                icon.className = 'bi bi-exclamation-circle-fill me-2';
+                icon.setAttribute('aria-hidden', 'true');
+                const title = document.createElement('strong');
+                title.className = 'me-auto';
+                title.textContent = 'OUT OF STOCK';
+                const closeButton = document.createElement('button');
+                closeButton.type = 'button';
+                closeButton.className = 'btn-close btn-close-white';
+                closeButton.setAttribute('data-bs-dismiss', 'toast');
+                closeButton.setAttribute('aria-label', 'Close');
+                header.append(icon, title, closeButton);
+
+                const body = document.createElement('div');
+                body.className = 'toast-body fw-semibold';
+                body.textContent = `${option.dataset.productLabel} cannot be selected because it is out of stock.`;
+                toast.append(header, body);
+                container.appendChild(toast);
+
+                toast.addEventListener('hidden.bs.toast', () => {
+                    toast.remove();
+                    if (container.dataset.generatedFeedbackToastContainer === 'true' && container.childElementCount === 0) {
+                        container.remove();
+                    }
+                }, { once: true });
+                bootstrap.Toast.getOrCreateInstance(toast, { delay: 5000 }).show();
+            }
+
             function findExactOption(value) {
                 const normalizedValue = value.trim().toLocaleLowerCase();
                 return normalizedValue
@@ -491,9 +545,12 @@
             }
 
             function syncValue() {
-                selectedOption = findExactOption(input.value);
+                const exactOption = findExactOption(input.value);
+                selectedOption = exactOption && !isOutOfStock(exactOption) ? exactOption : null;
                 valueField.value = selectedOption?.dataset.productValue ?? '';
-                input.setCustomValidity(input.value && !selectedOption ? 'Choose a product from the list.' : '');
+                input.setCustomValidity(input.value && !selectedOption
+                    ? (exactOption && isOutOfStock(exactOption) ? 'This premium reward is out of stock.' : 'Choose a product from the list.')
+                    : '');
                 optionItems.forEach((option) => option.setAttribute('aria-selected', option === selectedOption ? 'true' : 'false'));
             }
 
@@ -557,6 +614,12 @@
 
             function chooseOption(option) {
                 if (!option) return;
+                if (isOutOfStock(option)) {
+                    clearActiveOption();
+                    optionItems.forEach((item) => item.setAttribute('aria-selected', item === selectedOption ? 'true' : 'false'));
+                    showOutOfStockToast(option);
+                    return;
+                }
                 selectedOption = option;
                 input.value = option.dataset.productLabel;
                 valueField.value = option.dataset.productValue;

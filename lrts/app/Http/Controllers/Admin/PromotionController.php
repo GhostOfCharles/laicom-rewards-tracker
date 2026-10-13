@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\EarnedReward;
+use App\Models\PremiumProduct;
 use App\Models\Promotion;
 use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class PromotionController extends Controller
 {
@@ -16,16 +19,28 @@ class PromotionController extends Controller
         $validated = $request->validate([
             'buy_product_name' => 'required|string|exists:inventories,name',
             'required_quantity' => 'required|integer|min:1',
-            'premium_product_id' => 'required|exists:premium_products,id',
+            'premium_product_id' => [
+                'required',
+                Rule::exists('premium_products', 'id')->where(fn ($query) => $query->where('stock', '>', 0)),
+            ],
             'reward_quantity' => 'required|integer|min:1',
             'title' => 'nullable|string|max:255',
             'start_date' => 'required|date_format:Y-m-d',
             'end_date' => 'required|date_format:Y-m-d|after_or_equal:start_date',
             'is_active' => 'required|boolean',
+        ], [
+            'premium_product_id.exists' => 'Choose a premium reward that has stock available.',
         ]);
 
         $title = $validated['title'] ?? "BUY {$validated['required_quantity']} {$validated['buy_product_name']} GET {$validated['reward_quantity']}";
         DB::transaction(function () use ($validated, $title, $activityLogger) {
+            $rewardProduct = PremiumProduct::query()->lockForUpdate()->findOrFail($validated['premium_product_id']);
+            if ($rewardProduct->stock < 1) {
+                throw ValidationException::withMessages([
+                    'premium_product_id' => 'Choose a premium reward that has stock available.',
+                ]);
+            }
+
             $promotion = Promotion::create([...$validated, 'title' => $title, 'is_active' => (bool) $validated['is_active']]);
             $activityLogger->record('promotion.created', 'Promotion ' . $promotion->title . ' created.', $promotion, $promotion->only(['title', 'buy_product_name', 'required_quantity', 'premium_product_id', 'reward_quantity', 'start_date', 'end_date', 'is_active']));
             if ($promotion->is_active) {

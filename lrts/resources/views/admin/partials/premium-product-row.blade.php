@@ -1,7 +1,7 @@
 <tr>
     <td class="text-start fw-bold">
         <div class="catalog-product-cell">
-            <img src="{{ $premium->image_path ? asset('storage/' . $premium->image_path) : asset('images/laicom-logo.png') }}" onerror="this.src='{{ asset('images/laicom-logo.png') }}'" alt="{{ $premium->name }}" class="laicom-thumbnail {{ $premium->image_path ? '' : 'laicom-empty-image' }}">
+            <x-product-image :product="$premium" :size="44" class="laicom-thumbnail" />
             <div class="catalog-product-details">
                 <span class="catalog-product-name">{{ \Illuminate\Support\Str::title($premium->name) }}</span>
                 <small class="catalog-item-code">{{ $premium->item_code }}</small>
