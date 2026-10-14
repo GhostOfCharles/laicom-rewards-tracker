@@ -1172,7 +1172,7 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
 .laicom-customer-dashboard .promo-arrow { flex: 0 0 auto; color: var(--laicom-red); }
 .laicom-customer-dashboard .promo-arrow svg { width: 1.75rem; }
 .laicom-customer-dashboard .promo-stock { min-height: 1.9rem; margin-top: auto; border-radius: 50rem; background: #e5f4ea; color: #17663e; font-size: .7rem; }
-.laicom-customer-dashboard .promo-stock.is-no-stock { background: #e2e4e7; color: #4d535a; }
+.laicom-customer-dashboard .promo-product .promo-stock.is-no-stock { background-color: #e2e4e7 !important; color: #4d535a !important; }
 
 /* Restore the friendly support affordance and rounded chat panels */
 .laicom-customer-dashboard .lrts-chat-bubble { right: 1.25rem; bottom: 1.25rem; width: 3.75rem; height: 3.75rem; overflow: visible; border: 2px solid #fff; border-radius: 50%; background: linear-gradient(145deg, #1b3a68, #102344); box-shadow: 0 5px 16px rgba(18, 40, 76, .32); }
