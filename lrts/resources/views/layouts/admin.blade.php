@@ -8,7 +8,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Include Bootstrap Icons for the pencil, minus, and plus symbols -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="{{ asset('css/laicom.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/laicom.css') }}?v={{ filemtime(public_path('css/laicom.css')) }}">
 </head>
 <body class="laicom-page laicom-admin-dashboard">
     <div class="container-fluid">

@@ -391,8 +391,8 @@
                         <input type="number" name="reward_quantity" class="form-control border-dark rounded-0" required min="1" placeholder="e.g., 3">
                     </div>
                     <div class="row g-2 mb-3">
-                        <div class="col-6"><label class="form-label fw-bold small">START DATE:</label><input type="date" name="start_date" class="form-control border-dark rounded-0" value="{{ today()->toDateString() }}" required></div>
-                        <div class="col-6"><label class="form-label fw-bold small">END DATE:</label><input type="date" name="end_date" class="form-control border-dark rounded-0" value="{{ today()->addYear()->toDateString() }}" required></div>
+                        <div class="col-12 col-sm-6"><label class="form-label fw-bold small">START DATE:</label><input type="date" name="start_date" class="form-control border-dark rounded-0" value="{{ today()->toDateString() }}" required></div>
+                        <div class="col-12 col-sm-6"><label class="form-label fw-bold small">END DATE:</label><input type="date" name="end_date" class="form-control border-dark rounded-0" value="{{ today()->addYear()->toDateString() }}" required></div>
                     </div>
                     <input type="hidden" name="is_active" value="0">
                     <div class="form-check mb-3"><input class="form-check-input" type="checkbox" name="is_active" value="1" id="newPromotionActive" checked><label class="form-check-label fw-bold small" for="newPromotionActive">ACTIVE</label></div>
@@ -458,8 +458,8 @@
                         <input type="number" name="reward_quantity" class="form-control border-dark rounded-0" value="{{ $promo->reward_quantity }}" required min="1">
                     </div>
                     <div class="row g-2 mb-3">
-                        <div class="col-6"><label class="form-label fw-bold small">START DATE:</label><input type="date" name="start_date" class="form-control border-dark rounded-0" value="{{ $promo->start_date?->format('Y-m-d') }}" required></div>
-                        <div class="col-6"><label class="form-label fw-bold small">END DATE:</label><input type="date" name="end_date" class="form-control border-dark rounded-0" value="{{ $promo->end_date?->format('Y-m-d') }}" required></div>
+                        <div class="col-12 col-sm-6"><label class="form-label fw-bold small">START DATE:</label><input type="date" name="start_date" class="form-control border-dark rounded-0" value="{{ $promo->start_date?->format('Y-m-d') }}" required></div>
+                        <div class="col-12 col-sm-6"><label class="form-label fw-bold small">END DATE:</label><input type="date" name="end_date" class="form-control border-dark rounded-0" value="{{ $promo->end_date?->format('Y-m-d') }}" required></div>
                     </div>
                     <input type="hidden" name="is_active" value="0">
                     <div class="form-check mb-3"><input class="form-check-input" type="checkbox" name="is_active" value="1" id="editPromotionActive{{ $promo->id }}" @checked($promo->is_active)><label class="form-check-label fw-bold small" for="editPromotionActive{{ $promo->id }}">ACTIVE</label></div>

@@ -491,6 +491,7 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
 .laicom-admin-dashboard .modal-xl { --bs-modal-width: min(1140px, calc(100vw - 2rem)); }
 .laicom-admin-dashboard .modal-lg { --bs-modal-width: min(900px, calc(100vw - 2rem)); }
 .laicom-admin-dashboard .modal-content { max-height: calc(100dvh - 2rem); }
+.laicom-admin-dashboard .modal-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .laicom-admin-dashboard .modal-header .btn-close { flex: 0 0 auto; margin-left: 1rem; }
 #addPromotionModal .lrts-admin-product-picker { position: relative; width: 100%; min-width: 0; }
 #addPromotionModal .lrts-admin-product-picker-input { width: 100%; min-width: 0; padding-right: 2.8rem !important; background-image: none !important; cursor: text; }
@@ -527,7 +528,6 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
     box-shadow: 0 8px 22px rgba(18, 40, 76, .2);
     -webkit-overflow-scrolling: touch;
 }
-#addPromotionModal .modal-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 #addPromotionModal .lrts-admin-product-picker-options[hidden],
 #addPromotionModal .lrts-admin-product-picker-option[hidden],
 #addPromotionModal .lrts-admin-product-picker-empty[hidden] { display: none !important; }
