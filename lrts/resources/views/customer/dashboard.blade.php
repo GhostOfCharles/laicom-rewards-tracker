@@ -221,10 +221,14 @@
                                                             <x-product-image :product="$promo->premiumProduct" :size="104" class="promo-product-img" />
                                                             <span class="promo-product-tag">GET {{ $promo->reward_quantity }}</span>
                                                             <p class="promo-product-name">{{ $promo->premiumProduct->name ?? 'Premium Reward' }}</p>
-                                                            <span class="promo-stock">
-                                                                <i class="bi bi-box-seam"></i>
-                                                                {{ $promo->premiumProduct?->stock ?? 0 }} left
-                                                            </span>
+                                                            @if ((int) ($promo->premiumProduct?->stock ?? 0) > 0)
+                                                                <span class="promo-stock">
+                                                                    <i class="bi bi-box-seam"></i>
+                                                                    {{ $promo->premiumProduct->stock }} left
+                                                                </span>
+                                                            @else
+                                                                <span class="promo-stock is-no-stock">No Stock</span>
+                                                            @endif
                                                         </div>
 
                                                     </div>

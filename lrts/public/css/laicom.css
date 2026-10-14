@@ -513,11 +513,10 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
 #addPromotionModal .lrts-admin-product-picker-toggle i { transition: transform .15s ease; }
 #addPromotionModal .lrts-admin-product-picker.is-open .lrts-admin-product-picker-toggle i { transform: rotate(180deg); }
 #addPromotionModal .lrts-admin-product-picker-options {
-    position: absolute;
+    position: relative;
     z-index: 1080;
-    top: calc(100% + .15rem);
-    right: 0;
-    left: 0;
+    width: 100%;
+    margin-top: .15rem;
     max-height: min(17rem, 40vh);
     max-height: min(17rem, 40dvh);
     overflow-y: auto;
@@ -528,7 +527,7 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
     box-shadow: 0 8px 22px rgba(18, 40, 76, .2);
     -webkit-overflow-scrolling: touch;
 }
-#addPromotionModal .lrts-admin-product-picker-options.is-open-above { top: auto; bottom: calc(100% + .15rem); }
+#addPromotionModal .modal-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 #addPromotionModal .lrts-admin-product-picker-options[hidden],
 #addPromotionModal .lrts-admin-product-picker-option[hidden],
 #addPromotionModal .lrts-admin-product-picker-empty[hidden] { display: none !important; }
@@ -537,6 +536,7 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
     width: 100%;
     min-height: 3.25rem;
     align-items: center;
+    flex-wrap: wrap;
     gap: .7rem;
     padding: .4rem .6rem;
     border: 0;
@@ -561,8 +561,8 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
     object-fit: contain;
 }
 #addPromotionModal .lrts-admin-product-picker-option img.is-placeholder { padding: .2rem; }
-#addPromotionModal .lrts-admin-product-picker-label { min-width: 0; flex: 1 1 auto; overflow: hidden; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
-#addPromotionModal .lrts-admin-stock-pill { display: inline-flex; flex: 0 0 auto; align-items: center; gap: .25rem; padding: .22rem .42rem; border-radius: 50rem; font-size: .65rem; font-weight: 800; line-height: 1.2; white-space: nowrap; }
+#addPromotionModal .lrts-admin-product-picker-label { min-width: 0; flex: 1 1 8rem; overflow-wrap: anywhere; font-weight: 700; line-height: 1.3; }
+#addPromotionModal .lrts-admin-stock-pill { display: inline-flex; flex: 0 0 auto; align-items: center; gap: .25rem; margin-left: auto; padding: .22rem .42rem; border-radius: 50rem; font-size: .65rem; font-weight: 800; line-height: 1.2; white-space: nowrap; }
 #addPromotionModal .lrts-admin-stock-pill.is-sufficient { background: #e5f4ea; color: #17663e; }
 #addPromotionModal .lrts-admin-stock-pill.is-low { background: #fff0cf; color: #875400; }
 #addPromotionModal .lrts-admin-stock-pill.is-out-of-stock { background: #fde2e2; color: #a61b24; }
@@ -1172,6 +1172,7 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
 .laicom-customer-dashboard .promo-arrow { flex: 0 0 auto; color: var(--laicom-red); }
 .laicom-customer-dashboard .promo-arrow svg { width: 1.75rem; }
 .laicom-customer-dashboard .promo-stock { min-height: 1.9rem; margin-top: auto; border-radius: 50rem; background: #e5f4ea; color: #17663e; font-size: .7rem; }
+.laicom-customer-dashboard .promo-stock.is-no-stock { background: #e2e4e7; color: #4d535a; }
 
 /* Restore the friendly support affordance and rounded chat panels */
 .laicom-customer-dashboard .lrts-chat-bubble { right: 1.25rem; bottom: 1.25rem; width: 3.75rem; height: 3.75rem; overflow: visible; border: 2px solid #fff; border-radius: 50%; background: linear-gradient(145deg, #1b3a68, #102344); box-shadow: 0 5px 16px rgba(18, 40, 76, .32); }

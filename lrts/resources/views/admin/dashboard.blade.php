@@ -351,7 +351,7 @@
                                 @foreach($inventory as $item)
                                     <button type="button" id="add-promotion-buy-option-{{ $loop->index }}" class="lrts-admin-product-picker-option" role="option" aria-selected="false" data-product-label="{{ $item->name }}" data-product-value="{{ $item->name }}">
                                         <x-product-image :product="$item" :size="40" />
-                                        <span>{{ $item->name }}</span>
+                                        <span class="lrts-admin-product-picker-label">{{ $item->name }}</span>
                                     </button>
                                 @endforeach
                                 <div class="lrts-admin-product-picker-empty" hidden>No matching products found.</div>
@@ -484,7 +484,6 @@
             const dropdown = picker.querySelector('.lrts-admin-product-picker-options');
             const optionItems = Array.from(dropdown.querySelectorAll('.lrts-admin-product-picker-option'));
             const emptyState = dropdown.querySelector('.lrts-admin-product-picker-empty');
-            const modalBody = picker.closest('.modal-body');
             let selectedOption = null;
             let activeOption = null;
 
@@ -574,38 +573,18 @@
                 clearActiveOption();
             }
 
-            function positionDropdown() {
-                if (dropdown.hidden) return;
-
-                const controlRect = input.getBoundingClientRect();
-                const modalRect = modalBody.getBoundingClientRect();
-                const viewportHeight = window.innerHeight;
-                const limitTop = Math.max(0, modalRect.top + 8);
-                const limitBottom = Math.min(viewportHeight, modalRect.bottom) - 8;
-                const spaceBelow = Math.max(0, limitBottom - controlRect.bottom - 4);
-                const spaceAbove = Math.max(0, controlRect.top - limitTop - 4);
-                const maxHeight = Math.min(272, viewportHeight * 0.4);
-                const opensAbove = spaceBelow < Math.min(maxHeight, 168) && spaceAbove > spaceBelow;
-                const availableSpace = opensAbove ? spaceAbove : spaceBelow;
-
-                dropdown.classList.toggle('is-open-above', opensAbove);
-                dropdown.style.maxHeight = `${Math.max(1, Math.min(maxHeight, availableSpace))}px`;
-            }
-
             function openDropdown(showAll = false) {
                 dropdown.hidden = false;
                 picker.classList.add('is-open');
                 input.setAttribute('aria-expanded', 'true');
                 toggle.setAttribute('aria-expanded', 'true');
                 filterOptions(showAll ? '' : input.value.trim());
-                positionDropdown();
+                window.requestAnimationFrame(() => dropdown.scrollIntoView({ block: 'nearest', inline: 'nearest' }));
             }
 
             function closeDropdown() {
                 dropdown.hidden = true;
                 picker.classList.remove('is-open');
-                dropdown.classList.remove('is-open-above');
-                dropdown.style.maxHeight = '';
                 input.setAttribute('aria-expanded', 'false');
                 toggle.setAttribute('aria-expanded', 'false');
                 clearActiveOption();
@@ -704,9 +683,6 @@
             document.addEventListener('pointerdown', (event) => {
                 if (!picker.contains(event.target)) closeDropdown();
             });
-
-            window.addEventListener('resize', positionDropdown);
-            modalBody.addEventListener('scroll', positionDropdown, { passive: true });
 
             const form = picker.closest('form');
             form?.addEventListener('submit', () => {
