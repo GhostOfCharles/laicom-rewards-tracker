@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LRTS Admin Portal</title>
-    <link rel="icon" href="{{ asset('favicon.ico') }}?v={{ filemtime(public_path('favicon.ico')) }}" type="image/x-icon">
+    <link rel="icon" href="{{ asset('favicon.ico') }}" type="image/x-icon">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Include Bootstrap Icons for the pencil, minus, and plus symbols -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
@@ -47,7 +47,7 @@
             <!-- Main Content Area -->
             <div class="col-md-9 col-lg-10 p-4 admin-main">
                 <div class="d-flex align-items-center justify-content-between border-bottom border-2 border-dark pb-3 mb-4">
-                    <div><div class="small text-muted fw-bold">REWARDS TRACKER SYSTEM</div><h4 class="mb-0 fw-bold">ADMIN WORKSPACE</h4></div>
+                    <div><div class="small text-muted fw-bold">LAICOM REWARDS TRACKER SYSTEM</div><h4 class="mb-0 fw-bold">ADMIN WORKSPACE</h4></div>
                     <form action="{{ route('logout') }}" method="POST">@csrf<button type="submit" class="btn laicom-btn-primary btn-sm">LOGOUT</button></form>
                 </div>
                 <div class="admin-scroll-content">
