@@ -1,37 +1,22 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LRTS - Login Portal</title>
-    <link rel="icon" href="{{ asset('favicon.ico') }}" type="image/x-icon">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="{{ asset('css/laicom.css') }}">
-</head>
-<body class="lrts-auth-page" style="--lrts-auth-bg-image: url('{{ asset('images/portal-bg.jpg') }}');">
+@extends('layouts.auth')
 
-    <div class="portal-card">
-        <!-- Combined logo + LRTS image -->
-        <img src="{{ asset('images/laicom-logo-header.png') }}" alt="LRTS" class="logo-header">
+@section('title', 'Welcome')
+@section('auth-heading', 'Welcome Back')
+@section('auth-description', 'Select your role to continue.')
+@section('auth-page-class', 'lrts-portal-page')
+@section('auth-card-class', 'portal-card')
 
-        <!-- Subtitle -->
-        <div class="subtitle">LAICOM REWARDS TRACKER SYSTEM</div>
-
-        <!-- Buttons -->
-        <a href="{{ route('login.customer') }}" class="btn-portal">
-            <i class="bi bi-people-fill"></i> CUSTOMER
+@section('content')
+    <nav class="portal-actions" aria-label="Choose your role">
+        <a href="{{ route('login.customer') }}" class="auth-primary portal-role-button">
+            <i class="bi bi-people-fill portal-role-icon" aria-hidden="true"></i>
+            <span>Customer</span>
+            <i class="bi bi-chevron-right portal-role-chevron" aria-hidden="true"></i>
         </a>
-        <a href="{{ route('login.admin') }}" class="btn-portal">
-            <i class="bi bi-gear-fill"></i> ADMIN
+        <a href="{{ route('login.admin') }}" class="auth-primary portal-role-button portal-role-button--admin">
+            <i class="bi bi-gear-fill portal-role-icon" aria-hidden="true"></i>
+            <span>Admin</span>
+            <i class="bi bi-chevron-right portal-role-chevron" aria-hidden="true"></i>
         </a>
-
-        <!-- Footer -->
-        <div class="card-footer-text">
-            LAICOM SALES &amp; PROMOTIONS, INC.<br>
-            <span class="small-line">REWARDS TODAY. STRONGER TOMORROW.</span>
-        </div>
-    </div>
-
-</body>
-</html>
+    </nav>
+@endsection
