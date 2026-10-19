@@ -2,11 +2,14 @@
 
 namespace App\Services;
 
+use App\Models\Inventory;
 use App\Models\Promotion;
 use App\Models\Receipt;
 
 class RewardCalculator
 {
+    private array $promotionCache = [];
+
     public function forReceipt(Receipt $receipt, bool $includeInactivePromotions = false): array
     {
         $receipt->loadMissing('items');
@@ -14,19 +17,19 @@ class RewardCalculator
             ?? $receipt->submitted_at?->toDateString()
             ?? today()->toDateString();
 
-        $promotions = Promotion::with('premiumProduct')
+        $cacheKey = $orderDate.':'.(int) $includeInactivePromotions;
+        $promotions = $this->promotionCache[$cacheKey] ??= Promotion::with('premiumProduct')
             ->when(! $includeInactivePromotions, fn ($query) => $query->where('is_active', true))
             ->where(fn ($query) => $query->whereNull('start_date')->orWhereDate('start_date', '<=', $orderDate))
             ->where(fn ($query) => $query->whereNull('end_date')->orWhereDate('end_date', '>=', $orderDate))
-            ->get()
-            ->groupBy(fn (Promotion $promotion) => mb_strtolower(trim($promotion->buy_product_name)));
+            ->get();
 
         $groups = [];
-        foreach ($receipt->items->groupBy(fn ($item) => mb_strtolower(trim($item->product_name))) as $key => $items) {
+        foreach ($receipt->items->groupBy(fn ($item) => $item->inventory_id ? 'id:'.$item->inventory_id : Inventory::nameKey($item->product_name)) as $key => $items) {
             $purchasedQuantity = (int) $items->sum('quantity');
             $options = [];
 
-            foreach ($promotions->get($key, collect()) as $promotion) {
+            foreach ($promotions->filter(fn ($promotion) => $promotion->inventory_id && $items->first()->inventory_id ? $promotion->inventory_id === $items->first()->inventory_id : Inventory::nameKey($promotion->buy_product_name) === Inventory::nameKey($items->first()->product_name)) as $promotion) {
                 $required = max(1, (int) $promotion->required_quantity);
                 $multiplier = intdiv($purchasedQuantity, $required);
                 if ($multiplier < 1) {

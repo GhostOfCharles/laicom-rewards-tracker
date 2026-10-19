@@ -1,7 +1,7 @@
 <tr>
     <td class="text-start fw-bold">
         <div class="catalog-product-cell">
-            <x-product-image :product="$premium" :size="44" class="laicom-thumbnail" />
+            <x-product-image :product="$premium" :size="44" class="rts-thumbnail" />
             <div class="catalog-product-details">
                 <span class="catalog-product-name">{{ \Illuminate\Support\Str::title($premium->name) }}</span>
                 <small class="catalog-item-code">{{ $premium->item_code }}</small>
@@ -9,7 +9,7 @@
         </div>
     </td>
     <td>{{ $premium->categoryLabel() }}</td>
-    <td>{{ $premium->stock }}</td>
+    <td>{{ $premium->stock }} on hand <small class="d-block text-muted">{{ (int)$premium->reserved_quantity }} reserved</small></td>
     <td>
         @if($premium->stock > 50)
             <span class="badge bg-success rounded-0 stock-status-badge">HIGH</span>

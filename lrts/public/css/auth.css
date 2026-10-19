@@ -193,3 +193,10 @@
     .auth-input { transition: none; transform: none; }
     .auth-submit-spinner { animation: none; }
 }
+
+/* Shared fields used by account and recovery forms. */
+.lrts-auth-page .form-control { min-height:var(--auth-control-height); border:1px solid #d8dee7; border-radius:var(--auth-control-radius); padding:.75rem; font-size:1rem; color:var(--rts-ink); background:#fafbfc; }
+.lrts-auth-page .form-control:focus { border-color:var(--rts-red); box-shadow:0 0 0 3px rgba(237,27,36,.14); }
+.lrts-auth-page .form-label { font-size:.875rem; font-weight:600; }
+
+.lrts-auth-page .form-control.is-invalid { border-color:var(--rts-red); }

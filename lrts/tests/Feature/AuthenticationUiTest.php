@@ -30,7 +30,7 @@ class AuthenticationUiTest extends TestCase
             $response = $this->get(route($routeName))->assertOk()
                 ->assertSeeText($heading)
                 ->assertSeeText('Manage rewards. Track progress.')
-                ->assertDontSee('LAICOM')
+                ->assertDontSee('LRTS')
                 ->assertDontSee('REWARDS TODAY');
 
             if (! $submitRoute) {
@@ -47,11 +47,11 @@ class AuthenticationUiTest extends TestCase
             $this->assertSame(1, $xpath->query('.//input[@name="_token"]', $form)->length);
 
             foreach ($fields as $name => $type) {
-                $input = $xpath->query('.//input[@name="' . $name . '"]', $form)->item(0);
-                $this->assertNotNull($input, $routeName . ' must include ' . $name);
+                $input = $xpath->query('.//input[@name="'.$name.'"]', $form)->item(0);
+                $this->assertNotNull($input, $routeName.' must include '.$name);
                 $this->assertSame($type, $input->getAttribute('type'));
                 $this->assertTrue($input->hasAttribute('required'));
-                $this->assertSame(1, $xpath->query('//label[@for="' . $input->getAttribute('id') . '"]')->length);
+                $this->assertSame(1, $xpath->query('//label[@for="'.$input->getAttribute('id').'"]')->length);
             }
         }
     }
@@ -100,7 +100,7 @@ class AuthenticationUiTest extends TestCase
         $this->get(route('login.customer'))->assertOk()
             ->assertSee('The provided credentials do not match our records.')
             ->assertSee('aria-invalid="true"', false)
-            ->assertSee('value="' . $customer->email . '"', false)
+            ->assertSee('value="'.$customer->email.'"', false)
             ->assertDontSee('incorrect-password');
 
         $this->assertGuest();

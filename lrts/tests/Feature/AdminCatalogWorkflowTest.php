@@ -26,7 +26,7 @@ class AdminCatalogWorkflowTest extends TestCase
             'stock_balance' => 12,
             'entry_date' => today()->subDays(2)->toDateString(),
             'expiry_date' => today()->addDays(10)->toDateString(),
-            'image' => UploadedFile::fake()->createWithContent('shampoo.png', file_get_contents(public_path('images/laicom-logo.png'))),
+            'image' => UploadedFile::fake()->createWithContent('shampoo.png', file_get_contents(public_path('images/rts-logo.png'))),
         ])->assertRedirect(route('admin.inventory'));
 
         $inventory = Inventory::where('name', 'Daily Shampoo')->firstOrFail();
@@ -55,7 +55,7 @@ class AdminCatalogWorkflowTest extends TestCase
         $this->put(route('admin.inventory.update', $inventory->id), [
             'name' => 'Daily Shampoo',
             'category' => 'food',
-            'stock_balance' => 8,
+            'stock_balance' => 8, 'expected_stock' => 12,
             'entry_date' => today()->subDays(2)->toDateString(),
             'expiry_date' => today()->addDays(40)->toDateString(),
         ])->assertRedirect(route('admin.inventory'));
@@ -64,7 +64,7 @@ class AdminCatalogWorkflowTest extends TestCase
             'id' => $inventory->id,
             'category' => 'food',
             'stock_balance' => 8,
-            'expiry_date' => today()->addDays(40)->toDateString() . ' 00:00:00',
+            'expiry_date' => today()->addDays(40)->toDateString().' 00:00:00',
         ]);
 
         $this->from(route('admin.inventory'))->post(route('admin.inventory.store'), [
@@ -85,7 +85,7 @@ class AdminCatalogWorkflowTest extends TestCase
             'category' => 'home_care',
             'initial_stock' => 20,
             'is_perishable' => 0,
-            'image' => UploadedFile::fake()->createWithContent('mug.png', file_get_contents(public_path('images/laicom-logo.png'))),
+            'image' => UploadedFile::fake()->createWithContent('mug.png', file_get_contents(public_path('images/rts-logo.png'))),
         ])->assertRedirect(route('admin.dashboard'));
 
         $product = PremiumProduct::where('item_code', 'PRM-MUG-1')->firstOrFail();
@@ -98,7 +98,7 @@ class AdminCatalogWorkflowTest extends TestCase
         $this->put(route('products.update', $product->id), [
             'name' => 'Reward Mug',
             'category' => 'food',
-            'stock' => 18,
+            'stock' => 18, 'expected_stock' => 20,
             'is_perishable' => 0,
         ])->assertRedirect(route('admin.dashboard'));
 

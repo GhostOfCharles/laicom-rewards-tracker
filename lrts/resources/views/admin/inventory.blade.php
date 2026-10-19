@@ -6,7 +6,7 @@
 <div class="mb-5">
     <div class="d-flex justify-content-between align-items-center mb-2">
         <div><h6 class="mb-0 fw-bold">INVENTORY</h6><span class="small text-muted">Customer-purchased products</span></div>
-        <button type="button" class="btn btn-sm laicom-btn-primary" data-bs-toggle="modal" data-bs-target="#addInventoryModal" title="Add Inventory Item" aria-label="Add inventory item"><i class="bi bi-plus-lg"></i></button>
+        <button type="button" class="btn btn-sm rts-btn-primary" data-bs-toggle="modal" data-bs-target="#addInventoryModal" title="Add Inventory Item" aria-label="Add inventory item"><i class="bi bi-plus-lg"></i></button>
     </div>
 
     <form method="GET" action="{{ route('admin.inventory') }}" class="d-flex flex-wrap align-items-end gap-3 mb-3 lrts-inventory-filter">
@@ -24,7 +24,7 @@
             <div class="input-group input-group-sm">
                 <span class="input-group-text rounded-0 bg-white"><i class="bi bi-search" aria-hidden="true"></i></span>
                 <input id="inventorySearch" type="search" name="search" value="{{ $search }}" maxlength="255" class="form-control form-control-sm border-dark border-2 rounded-0" placeholder="Search by product name..." aria-label="Search inventory by product name">
-                <button type="submit" class="btn btn-sm laicom-btn-primary">SEARCH</button>
+                <button type="submit" class="btn btn-sm rts-btn-primary">SEARCH</button>
             </div>
         </div>
         @if ($category || $search !== '')
@@ -32,8 +32,8 @@
         @endif
     </form>
 
-    <div class="table-responsive laicom-card p-1">
-        <table class="table table-bordered laicom-table mb-0 text-center align-middle">
+    <div class="table-responsive rts-card p-1">
+        <table class="table table-bordered rts-table mb-0 text-center align-middle">
             <thead class="table-light">
                 <tr>
                     <th scope="col">PRODUCT NAME</th>
@@ -49,7 +49,7 @@
                 <tr>
                     <td class="text-start">
                         <div class="d-flex align-items-center">
-                            <x-product-image :product="$item" :size="44" class="laicom-thumbnail me-2" />
+                            <x-product-image :product="$item" :size="44" class="rts-thumbnail me-2" />
                             <span class="fw-bold">{{ $item->name }}</span>
                         </div>
                     </td>
@@ -92,10 +92,11 @@
     </div>
 </div>
 
+{{ $inventory->links() }}
 <!-- Add Inventory Item Modal -->
 <div class="modal fade" id="addInventoryModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
-        <div class="modal-content laicom-modal">
+        <div class="modal-content rts-modal">
             <div class="modal-header border-bottom border-dark">
                 <h5 class="modal-title fw-bold">ADD INVENTORY ITEM</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -144,7 +145,7 @@
 @foreach($inventory as $item)
 <div class="modal fade" id="editInventoryModal{{ $item->id }}" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
-        <div class="modal-content laicom-modal">
+        <div class="modal-content rts-modal">
             <div class="modal-header border-bottom border-dark">
                 <h5 class="modal-title fw-bold">EDIT INVENTORY ITEM</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -159,6 +160,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold small">CURRENT STOCK AMOUNT:</label>
+                        <input type="hidden" name="expected_stock" value="{{ $item->stock_balance }}">
                         <input type="number" name="stock_balance" class="form-control border-dark rounded-0" value="{{ $item->stock_balance }}" required min="0">
                     </div>
                     <div class="mb-3">
@@ -182,7 +184,7 @@
                         <label class="form-label fw-bold small">PRODUCT PICTURE:</label>
                         <input type="file" name="image" class="form-control border-dark rounded-0" accept="image/png,image/jpeg,image/gif">
                         @if ($item->image_path)
-                            <div class="small text-muted mt-2 d-flex align-items-center gap-2"><img src="{{ asset('storage/' . $item->image_path) }}" alt="Current {{ $item->name }} image" class="laicom-thumbnail">Current image</div>
+                            <div class="small text-muted mt-2 d-flex align-items-center gap-2"><img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($item->image_path) }}" alt="Current {{ $item->name }} image" class="rts-thumbnail">Current image</div>
                         @endif
                     </div>
                     <div class="modal-footer border-top-0 justify-content-end px-0 pb-0">

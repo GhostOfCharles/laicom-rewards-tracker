@@ -1,9 +1,14 @@
 <?php
+
 namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class PremiumProduct extends Model
 {
+    use HasFactory;
+
     public const CATEGORIES = Inventory::CATEGORIES;
 
     protected $fillable = [
@@ -57,14 +62,16 @@ class PremiumProduct extends Model
 
     public function categoryLabel(): string
     {
-        return self::CATEGORIES[$this->category] ?? ($this->category ? 'Uncategorized (' . $this->category . ')' : 'Uncategorized');
+        return self::CATEGORIES[$this->category] ?? ($this->category ? 'Uncategorized ('.$this->category.')' : 'Uncategorized');
     }
 
-    public function promotions() {
+    public function promotions()
+    {
         return $this->hasMany(Promotion::class);
     }
 
-    public function earnedRewards() {
+    public function earnedRewards()
+    {
         return $this->hasMany(EarnedReward::class);
     }
 

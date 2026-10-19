@@ -7,8 +7,12 @@ use App\Models\Inventory;
 use App\Models\PremiumProduct;
 use App\Services\ActivityLogger;
 use App\Services\PremiumStockLedger;
+use App\Services\ProductImageStorage;
+use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class PremiumProductController extends Controller
@@ -16,6 +20,7 @@ class PremiumProductController extends Controller
     public function stockHistory(PremiumProduct $product): View
     {
         $movements = $product->stockMovements()->with('user')->latest('created_at')->paginate(50);
+
         return view('admin.premium-stock-history', compact('product', 'movements'));
     }
 
@@ -25,30 +30,38 @@ class PremiumProductController extends Controller
             'name' => ['required', 'string', 'max:255', $this->uniqueProductNameRule()],
             'item_code' => 'required|string|unique:premium_products,item_code',
             'initial_stock' => 'required|integer|min:0',
-            'category' => ['required', 'in:' . implode(',', array_keys(Inventory::CATEGORIES))],
+            'category' => ['required', 'in:'.implode(',', array_keys(Inventory::CATEGORIES))],
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'is_perishable' => 'required|boolean',
-            'entry_date' => ['nullable', 'date', 'required_if:is_perishable,1', 'before_or_equal:' . today()->addYear()->toDateString()],
-            'expiry_date' => ['nullable', 'date', 'required_if:is_perishable,1', 'after:entry_date', 'after_or_equal:today', 'before_or_equal:' . today()->addYears(5)->toDateString()],
+            'entry_date' => ['nullable', 'date', 'required_if:is_perishable,1', 'before_or_equal:'.today()->addYear()->toDateString()],
+            'expiry_date' => ['nullable', 'date', 'required_if:is_perishable,1', 'after:entry_date', 'after_or_equal:today', 'before_or_equal:'.today()->addYears(5)->toDateString()],
         ]);
 
-        $imagePath = $request->hasFile('image') ? $request->file('image')->store('products', 'public') : null;
-        DB::transaction(function () use ($request, $validated, $imagePath, $ledger, $activityLogger) {
-            $product = PremiumProduct::create([
-                'name' => $validated['name'],
-                'item_code' => $validated['item_code'],
-                'image_path' => $imagePath,
-                'stock' => 0,
-                'category' => $validated['category'],
-                'is_perishable' => $request->boolean('is_perishable'),
-                'entry_date' => $request->boolean('is_perishable') ? $request->input('entry_date') : null,
-                'expiry_date' => $request->boolean('is_perishable') ? $request->input('expiry_date') : null,
-            ]);
+        $imagePath = $request->hasFile('image') ? app(ProductImageStorage::class)->store($request->file('image'), 'products') : null;
+        $previousImagePath = null;
+        try {
+            DB::transaction(function () use ($request, $validated, $imagePath, $ledger, $activityLogger) {
+                $product = PremiumProduct::create([
+                    'name' => $validated['name'],
+                    'item_code' => $validated['item_code'],
+                    'image_path' => $imagePath,
+                    'stock' => 0,
+                    'category' => $validated['category'],
+                    'is_perishable' => $request->boolean('is_perishable'),
+                    'entry_date' => $request->boolean('is_perishable') ? $request->input('entry_date') : null,
+                    'expiry_date' => $request->boolean('is_perishable') ? $request->input('expiry_date') : null,
+                ]);
 
-            $initialStock = (int) $validated['initial_stock'];
-            $ledger->move($product, $initialStock, 'initial', $product, 'Initial stock entry.');
-            $activityLogger->record('premium.created', 'Premium product ' . $product->name . ' created.', $product, ['initial_stock' => $initialStock]);
-        });
+                $initialStock = (int) $validated['initial_stock'];
+                $ledger->move($product, $initialStock, 'initial', $product, 'Initial stock entry.');
+                $activityLogger->record('premium.created', 'Premium product '.$product->name.' created.', $product, ['initial_stock' => $initialStock]);
+            });
+        } catch (\Throwable $exception) {
+            if ($imagePath && $imagePath !== $previousImagePath) {
+                Storage::disk('public')->delete($imagePath);
+            }
+            throw $exception;
+        }
 
         return redirect()->route('admin.dashboard')->with('success', 'Premium product added successfully!');
     }
@@ -59,73 +72,82 @@ class PremiumProductController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255', $this->uniqueProductNameRule($product)],
             'stock' => 'required|integer|min:0',
-            'category' => ['required', 'in:' . implode(',', array_keys(Inventory::CATEGORIES))],
+            'expected_stock' => 'required|integer|min:0',
+            'category' => ['required', 'in:'.implode(',', array_keys(Inventory::CATEGORIES))],
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'is_perishable' => 'required|boolean',
-            'entry_date' => ['nullable', 'date', 'required_if:is_perishable,1', 'before_or_equal:' . today()->addYear()->toDateString()],
-            'expiry_date' => ['nullable', 'date', 'required_if:is_perishable,1', 'after:entry_date', 'before_or_equal:' . today()->addYears(5)->toDateString()],
+            'entry_date' => ['nullable', 'date', 'required_if:is_perishable,1', 'before_or_equal:'.today()->addYear()->toDateString()],
+            'expiry_date' => ['nullable', 'date', 'required_if:is_perishable,1', 'after:entry_date', 'before_or_equal:'.today()->addYears(5)->toDateString()],
         ]);
 
         $imagePath = $product->image_path;
         if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('products', 'public');
+            $imagePath = app(ProductImageStorage::class)->store($request->file('image'), 'products');
         }
 
-        DB::transaction(function () use ($request, $validated, $product, $imagePath, $ledger, $activityLogger) {
-            $locked = PremiumProduct::query()->lockForUpdate()->findOrFail($product->id);
-            $before = $locked->only(['name', 'category', 'is_perishable', 'entry_date', 'expiry_date', 'image_path', 'stock']);
-            $newStock = (int) $validated['stock'];
-            $locked->update([
-                'name' => $validated['name'],
-                'category' => $validated['category'],
-                'image_path' => $imagePath,
-                'is_perishable' => $request->boolean('is_perishable'),
-                'entry_date' => $request->boolean('is_perishable') ? $request->input('entry_date') : null,
-                'expiry_date' => $request->boolean('is_perishable') ? $request->input('expiry_date') : null,
-            ]);
-
-            $changes = [];
-            foreach (['name', 'category', 'is_perishable', 'entry_date', 'expiry_date', 'image_path'] as $field) {
-                $oldValue = $before[$field] instanceof \Carbon\CarbonInterface ? $before[$field]->toDateString() : $before[$field];
-                $newValue = $locked->getAttribute($field) instanceof \Carbon\CarbonInterface ? $locked->getAttribute($field)->toDateString() : $locked->getAttribute($field);
-                if ($oldValue != $newValue) {
-                    $changes[$field] = ['old' => $oldValue, 'new' => $newValue];
+        $previousImagePath = $product->image_path;
+        try {
+            DB::transaction(function () use ($request, $validated, $product, $imagePath, $ledger, $activityLogger) {
+                $locked = PremiumProduct::query()->lockForUpdate()->findOrFail($product->id);
+                if ((int) $request->expected_stock !== (int) $locked->stock) {
+                    throw ValidationException::withMessages(['stock' => 'Stock changed since this form was opened. Refresh and try again.']);
                 }
-            }
-            if ($changes) {
-                $activityLogger->record('premium.updated', 'Premium product ' . $locked->name . ' updated.', $locked, ['changes' => $changes]);
-            }
+                $before = $locked->only(['name', 'category', 'is_perishable', 'entry_date', 'expiry_date', 'image_path', 'stock']);
+                $newStock = (int) $validated['stock'];
+                $locked->update([
+                    'name' => $validated['name'],
+                    'category' => $validated['category'],
+                    'image_path' => $imagePath,
+                    'is_perishable' => $request->boolean('is_perishable'),
+                    'entry_date' => $request->boolean('is_perishable') ? $request->input('entry_date') : null,
+                    'expiry_date' => $request->boolean('is_perishable') ? $request->input('expiry_date') : null,
+                ]);
 
-            $oldStock = (int) $before['stock'];
-            if ($newStock !== $oldStock) {
-                $delta = $newStock - $oldStock;
-                $ledger->move($locked, $delta, $delta > 0 ? 'restock' : 'adjustment', $locked, 'Admin stock edit: ' . $oldStock . ' to ' . $newStock . '.');
-                $activityLogger->record('premium.stock_adjusted', 'Stock adjusted for ' . $locked->name . '.', $locked, ['old' => $oldStock, 'new' => $newStock, 'delta' => $delta]);
-            }
+                $changes = [];
+                foreach (['name', 'category', 'is_perishable', 'entry_date', 'expiry_date', 'image_path'] as $field) {
+                    $oldValue = $before[$field] instanceof CarbonInterface ? $before[$field]->toDateString() : $before[$field];
+                    $newValue = $locked->getAttribute($field) instanceof CarbonInterface ? $locked->getAttribute($field)->toDateString() : $locked->getAttribute($field);
+                    if ($oldValue != $newValue) {
+                        $changes[$field] = ['old' => $oldValue, 'new' => $newValue];
+                    }
+                }
+                if ($changes) {
+                    $activityLogger->record('premium.updated', 'Premium product '.$locked->name.' updated.', $locked, ['changes' => $changes]);
+                }
 
-            if ($locked->isExpired() && (int) $locked->stock > 0) {
-                $expiredBalance = (int) $locked->stock;
-                $ledger->move($locked, -$expiredBalance, 'expired_writeoff', $locked, 'Remaining on-hand stock written off after product expiry.');
+                $oldStock = (int) $before['stock'];
+                if ($newStock !== $oldStock) {
+                    $delta = $newStock - $oldStock;
+                    $ledger->move($locked, $delta, $delta > 0 ? 'restock' : 'adjustment', $locked, 'Admin stock edit: '.$oldStock.' to '.$newStock.'.');
+                    $activityLogger->record('premium.stock_adjusted', 'Stock adjusted for '.$locked->name.'.', $locked, ['old' => $oldStock, 'new' => $newStock, 'delta' => $delta]);
+                }
+
+                if ($locked->isExpired() && (int) $locked->stock > 0) {
+                    $expiredBalance = (int) $locked->stock;
+                    $ledger->move($locked, -$expiredBalance, 'expired_writeoff', $locked, 'Remaining on-hand stock written off after product expiry.');
+                }
+            });
+        } catch (\Throwable $exception) {
+            if ($imagePath && $imagePath !== $previousImagePath) {
+                Storage::disk('public')->delete($imagePath);
             }
-        });
+            throw $exception;
+        }
 
         return redirect()->route('admin.dashboard')->with('success', 'Premium product updated successfully.');
     }
 
     public function destroy(string $id, ActivityLogger $activityLogger)
     {
-        $product = PremiumProduct::withCount('promotions')->findOrFail($id);
-        $hasActiveRewards = $product->earnedRewards()->whereIn('claim_status', ['unclaimed', 'claim_requested', 'released'])->exists();
-
-        if ($product->promotions_count > 0 || $hasActiveRewards) {
-            return back()->withErrors(['error' => 'This premium product cannot be deleted while a promotion or available reward uses it. Deactivate its promotion or resolve the reward first.']);
-        }
-
-        DB::transaction(function () use ($product, $activityLogger) {
-            $snapshot = ['name' => $product->name, 'item_code' => $product->item_code, 'stock' => $product->stock];
+        DB::transaction(function () use ($id, $activityLogger) {
+            $product = PremiumProduct::query()->lockForUpdate()->findOrFail($id);
+            if ($product->promotions()->exists() || $product->earnedRewards()->whereIn('claim_status', ['unclaimed', 'claim_requested', 'released'])->exists()) {
+                throw ValidationException::withMessages(['error' => 'This premium product cannot be deleted while a promotion or available reward uses it. Deactivate its promotion or resolve the reward first.']);
+            }
+            $snapshot = $product->only(['name', 'item_code', 'stock']);
             $product->delete();
-            $activityLogger->record('premium.deleted', 'Premium product ' . $snapshot['name'] . ' deleted.', $product, $snapshot);
-        });
+            $activityLogger->record('premium.deleted', 'Premium product '.$snapshot['name'].' deleted.', $product, $snapshot);
+        }, 3);
 
         return back()->with('success', 'Premium product removed.');
     }

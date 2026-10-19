@@ -1,10 +1,16 @@
 <?php
+
 namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Receipt extends Model
 {
+    use HasFactory;
+
     protected $hidden = ['slip_path', 'slip_hash'];
+
     protected $fillable = [
         'user_id', 'salesman_order_number', 'status', 'submitted_at', 'order_date', 'slip_path',
         'slip_hash', 'customer_note', 'reviewed_by', 'reviewed_at', 'rejection_reason', 'cancelled_at',
@@ -15,15 +21,18 @@ class Receipt extends Model
         return ['submitted_at' => 'datetime', 'order_date' => 'date', 'reviewed_at' => 'datetime', 'cancelled_at' => 'datetime'];
     }
 
-    public function user() {
+    public function user()
+    {
         return $this->belongsTo(User::class);
     }
 
-    public function items() {
+    public function items()
+    {
         return $this->hasMany(ReceiptItem::class);
     }
 
-    public function earnedRewards() {
+    public function earnedRewards()
+    {
         return $this->hasMany(EarnedReward::class);
     }
 

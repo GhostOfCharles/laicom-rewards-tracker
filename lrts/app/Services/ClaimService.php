@@ -16,8 +16,7 @@ class ClaimService
     public function __construct(
         private readonly PremiumStockLedger $stockLedger,
         private readonly ActivityLogger $activityLogger,
-    ) {
-    }
+    ) {}
 
     public function requestClaim(Receipt $receipt, User $user): string
     {
@@ -71,15 +70,15 @@ class ClaimService
             }
 
             if ($newlyRequested) {
-                $this->activityLogger->record('reward.claim_requested', 'Customer requested rewards for order ' . $lockedReceipt->salesman_order_number . '.', $lockedReceipt, [
+                $this->activityLogger->record('reward.claim_requested', 'Customer requested rewards for order '.$lockedReceipt->salesman_order_number.'.', $lockedReceipt, [
                     'claim_code' => $claimCode,
                     'reward_ids' => $rewards->modelKeys(),
                 ]);
-                $this->notify($user->id, 'reward.claim_requested', 'Claim code ready', 'Your claim code for order ' . $lockedReceipt->salesman_order_number . ' is ' . $claimCode . '. Show it to staff when collecting your rewards.', $lockedReceipt->id);
+                $this->notify($user->id, 'reward.claim_requested', 'Claim code ready', 'Your claim code for order '.$lockedReceipt->salesman_order_number.' is '.$claimCode.'. Show it to staff when collecting your rewards.', $lockedReceipt->id);
             }
 
             return $claimCode;
-        });
+        }, 3);
     }
 
     public function release(string|Receipt|EarnedReward $target, User $admin, ?string $note = null)
@@ -97,12 +96,16 @@ class ClaimService
                 $query = EarnedReward::query()->whereKey($target->id);
             }
 
-            $rewards = $query->orderBy('id')->lockForUpdate()->get();
+            $receiptId = (clone $query)->value('receipt_id');
+            if (! $receiptId) {
+                throw new RuntimeException('No releasable rewards were found for that claim.');
+            }
+            $receipt = Receipt::query()->lockForUpdate()->findOrFail($receiptId);
+            $rewards = $query->where('receipt_id', $receiptId)->orderBy('id')->lockForUpdate()->get();
             if ($rewards->isEmpty()) {
                 throw new RuntimeException('No releasable rewards were found for that claim.');
             }
 
-            $receipt = Receipt::query()->lockForUpdate()->findOrFail($rewards->first()->receipt_id);
             if ($receipt->status !== 'approved') {
                 throw new RuntimeException('Rewards can only be released for an approved receipt.');
             }
@@ -129,15 +132,15 @@ class ClaimService
                 ]);
             }
 
-            $this->activityLogger->record('reward.released', 'Staff released ' . $rewards->count() . ' reward type(s) for order ' . $receipt->salesman_order_number . '.', $receipt, [
+            $this->activityLogger->record('reward.released', 'Staff released '.$rewards->count().' reward type(s) for order '.$receipt->salesman_order_number.'.', $receipt, [
                 'claim_code' => $rewards->first()->claim_code,
                 'reward_ids' => $rewards->modelKeys(),
                 'release_note' => $note,
             ]);
-            $this->notify($receipt->user_id, 'reward.released', 'Rewards handed over', 'Staff marked your rewards for order ' . $receipt->salesman_order_number . ' as handed over. Confirm receipt in your dashboard once you have received them.', $receipt->id);
+            $this->notify($receipt->user_id, 'reward.released', 'Rewards handed over', 'Staff marked your rewards for order '.$receipt->salesman_order_number.' as handed over. Confirm receipt in your dashboard once you have received them.', $receipt->id);
 
             return $rewards;
-        });
+        }, 3);
     }
 
     public function confirmReceived(Receipt $receipt, User $user)
@@ -166,19 +169,20 @@ class ClaimService
                 ]);
             }
 
-            $this->activityLogger->record('reward.customer_confirmed', 'Customer confirmed receipt of ' . $rewards->count() . ' reward type(s) for order ' . $lockedReceipt->salesman_order_number . '.', $lockedReceipt, [
+            $this->activityLogger->record('reward.customer_confirmed', 'Customer confirmed receipt of '.$rewards->count().' reward type(s) for order '.$lockedReceipt->salesman_order_number.'.', $lockedReceipt, [
                 'claim_code' => $rewards->first()->claim_code,
                 'reward_ids' => $rewards->modelKeys(),
                 'confirmed_by' => $user->id,
             ]);
 
             return $rewards;
-        });
+        }, 3);
     }
 
     public function void(EarnedReward $reward, User $admin, string $reason, bool $returnStock = true): EarnedReward
     {
         return DB::transaction(function () use ($reward, $admin, $reason, $returnStock) {
+            Receipt::query()->lockForUpdate()->findOrFail($reward->receipt_id);
             $locked = EarnedReward::query()->lockForUpdate()->findOrFail($reward->id);
             if (! in_array($locked->claim_status, ['unclaimed', 'claim_requested'], true)) {
                 throw new RuntimeException('Only available or requested rewards can be voided.');
@@ -188,7 +192,7 @@ class ClaimService
             if ($product?->isExpired()) {
                 $this->stockLedger->move($product, 0, 'expired_writeoff', $locked, 'Reward voided after the linked premium product expired.');
             } elseif ($returnStock && $product) {
-                $this->stockLedger->move($product, (int) $locked->reward_quantity, 'reward_returned', $locked, 'Reward voided: ' . $reason);
+                $this->stockLedger->move($product, (int) $locked->reward_quantity, 'reward_returned', $locked, 'Reward voided: '.$reason);
             }
 
             $locked->update([
@@ -198,22 +202,23 @@ class ClaimService
                 'void_reason' => mb_substr($reason, 0, 255),
             ]);
             $receipt = Receipt::find($locked->receipt_id);
-            $this->activityLogger->record('reward.voided', 'Reward voided for order ' . ($receipt?->salesman_order_number ?? 'unknown') . '.', $locked, [
+            $this->activityLogger->record('reward.voided', 'Reward voided for order '.($receipt?->salesman_order_number ?? 'unknown').'.', $locked, [
                 'reason' => $reason,
                 'stock_returned' => (bool) ($returnStock && ! $product?->isExpired() && $product),
                 'reward_quantity' => $locked->reward_quantity,
             ]);
             if ($receipt) {
-                $this->notify($locked->user_id, 'reward.voided', 'Reward voided', 'A reward for order ' . $receipt->salesman_order_number . ' was voided: ' . $reason, $receipt->id);
+                $this->notify($locked->user_id, 'reward.voided', 'Reward voided', 'A reward for order '.$receipt->salesman_order_number.' was voided: '.$reason, $receipt->id);
             }
 
             return $locked;
-        });
+        }, 3);
     }
 
     public function expire(EarnedReward $reward): bool
     {
         return DB::transaction(function () use ($reward) {
+            Receipt::query()->lockForUpdate()->findOrFail($reward->receipt_id);
             $locked = EarnedReward::query()->lockForUpdate()->findOrFail($reward->id);
             if (! in_array($locked->claim_status, ['unclaimed', 'claim_requested'], true)
                 || ! $locked->expires_at
@@ -236,16 +241,17 @@ class ClaimService
                 'stock_returned' => (bool) ($product && ! $product->isExpired()),
             ]);
             if ($receipt) {
-                $this->notify($locked->user_id, 'reward.expired', 'Reward expired', 'A reward for order ' . $receipt->salesman_order_number . ' has expired.', $receipt->id);
+                $this->notify($locked->user_id, 'reward.expired', 'Reward expired', 'A reward for order '.$receipt->salesman_order_number.' has expired.', $receipt->id);
             }
 
             return true;
-        });
+        }, 3);
     }
 
     public function expireForProduct(EarnedReward $reward): bool
     {
         return DB::transaction(function () use ($reward) {
+            Receipt::query()->lockForUpdate()->findOrFail($reward->receipt_id);
             $locked = EarnedReward::query()->lockForUpdate()->findOrFail($reward->id);
             if (! in_array($locked->claim_status, ['unclaimed', 'claim_requested'], true)) {
                 return false;
@@ -266,11 +272,11 @@ class ClaimService
                 'stock_returned' => false,
             ]);
             if ($receipt) {
-                $this->notify($locked->user_id, 'reward.expired', 'Reward no longer available', 'A reward for order ' . $receipt->salesman_order_number . ' expired because the linked premium product expired.', $receipt->id);
+                $this->notify($locked->user_id, 'reward.expired', 'Reward no longer available', 'A reward for order '.$receipt->salesman_order_number.' expired because the linked premium product expired.', $receipt->id);
             }
 
             return true;
-        });
+        }, 3);
     }
 
     private function newClaimCode(): string

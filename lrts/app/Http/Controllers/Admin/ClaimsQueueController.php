@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\EarnedReward;
 use App\Models\Receipt;
 use App\Services\ClaimService;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use RuntimeException;
@@ -19,7 +20,9 @@ class ClaimsQueueController extends Controller
             'code' => 'nullable|string|max:20',
         ]);
         $tab = $validated['tab'] ?? 'awaiting';
-        if ($tab === 'released') $tab = 'completed';
+        if ($tab === 'released') {
+            $tab = 'completed';
+        }
         $code = mb_strtoupper(trim($validated['code'] ?? ''));
         $statusMap = [
             'awaiting' => ['claim_requested'],
@@ -40,7 +43,8 @@ class ClaimsQueueController extends Controller
             $query->latest();
         }
 
-        $groups = $query->get()->groupBy(fn (EarnedReward $reward) => $reward->receipt_id . ':' . ($reward->claim_code ?? 'walk-in'));
+        $claimPages = (clone $query)->reorder()->select('receipt_id')->distinct()->orderByDesc('receipt_id')->paginate(20)->withQueryString();
+        $groups = $query->whereIn('receipt_id', $claimPages->pluck('receipt_id'))->get()->groupBy(fn (EarnedReward $reward) => $reward->receipt_id.':'.($reward->claim_code ?? 'walk-in'));
         $counts = [
             'awaiting' => EarnedReward::where('claim_status', 'claim_requested')->distinct('receipt_id')->count('receipt_id'),
             'available' => EarnedReward::where('claim_status', 'unclaimed')->distinct('receipt_id')->count('receipt_id'),
@@ -49,7 +53,7 @@ class ClaimsQueueController extends Controller
             'voided_expired' => EarnedReward::whereIn('claim_status', ['voided', 'expired'])->distinct('receipt_id')->count('receipt_id'),
         ];
 
-        return view('admin.claims', compact('groups', 'tab', 'code', 'counts'));
+        return view('admin.claims', compact('groups', 'tab', 'code', 'counts', 'claimPages'));
     }
 
     public function release(Request $request, string $code, ClaimService $claims)
@@ -59,8 +63,9 @@ class ClaimsQueueController extends Controller
         try {
             $claims->release($code, $request->user(), $validated['release_note'] ?? null);
         } catch (RuntimeException $exception) {
-            return back()->withErrors(['error' => $exception->getMessage()]);
+            return back()->withErrors(['error' => $exception instanceof QueryException ? 'The record changed or is busy. Refresh and try again.' : $exception->getMessage()]);
         }
+
         return back()->with('success', 'Claim release confirmed.');
     }
 
@@ -71,8 +76,9 @@ class ClaimsQueueController extends Controller
         try {
             $claims->release($receipt, $request->user(), $validated['release_note'] ?? null);
         } catch (RuntimeException $exception) {
-            return back()->withErrors(['error' => $exception->getMessage()]);
+            return back()->withErrors(['error' => $exception instanceof QueryException ? 'The record changed or is busy. Refresh and try again.' : $exception->getMessage()]);
         }
+
         return back()->with('success', 'Walk-in release confirmed.');
     }
 }

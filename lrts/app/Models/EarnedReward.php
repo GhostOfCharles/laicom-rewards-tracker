@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class EarnedReward extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'user_id', 'receipt_id', 'promotion_id', 'premium_product_id',
         'reward_quantity', 'claim_status', 'claimed_at', 'released_at', 'claim_code', 'claim_requested_at', 'released_by',

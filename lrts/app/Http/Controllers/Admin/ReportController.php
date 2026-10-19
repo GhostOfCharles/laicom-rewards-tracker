@@ -7,13 +7,14 @@ use App\Http\Controllers\Controller;
 use App\Models\EarnedReward;
 use App\Models\Inventory;
 use App\Models\PremiumProduct;
-use App\Models\Promotion;
 use App\Models\PremiumStockMovement;
+use App\Models\Promotion;
 use App\Models\Receipt;
 use App\Models\StockMovement;
 use App\Services\RewardCalculator;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Excel as ExcelWriter;
 use Maatwebsite\Excel\Facades\Excel;
@@ -34,8 +35,8 @@ class ReportController extends Controller
     public function index(Request $request, RewardCalculator $calculator)
     {
         $validated = $request->validate([
-            'report_type' => ['nullable', 'in:' . implode(',', array_keys(self::REPORTS))],
-            'range' => ['nullable', 'in:' . implode(',', self::RANGES)],
+            'report_type' => ['nullable', 'in:'.implode(',', array_keys(self::REPORTS))],
+            'range' => ['nullable', 'in:'.implode(',', self::RANGES)],
             'start_date' => ['required_if:range,custom', 'nullable', 'date_format:Y-m-d', 'before_or_equal:end_date'],
             'end_date' => ['required_if:range,custom', 'nullable', 'date_format:Y-m-d', 'after_or_equal:start_date'],
             'export_format' => 'nullable|in:xlsx,csv',
@@ -44,11 +45,11 @@ class ReportController extends Controller
         $reportType = $validated['report_type'] ?? 'promo_performance';
         $rangeKey = $validated['range'] ?? 'last_30_days';
         [$from, $to, $rangeLabel] = $this->resolveDateRange($rangeKey, $validated);
-        $report = match ($reportType) {
+        $report = Cache::remember('rts-report:'.hash('sha256', json_encode([$reportType, $from->toIso8601String(), $to->toIso8601String()])), 60, fn () => match ($reportType) {
             'premium_stock' => $this->premiumStockReport($from, $to),
             'inventory_movement' => $this->inventoryMovementReport($from, $to),
             default => $this->promotionPerformanceReport($from, $to, $calculator),
-        };
+        });
 
         if (isset($validated['export_format'])) {
             return $this->downloadReport($report, $rangeLabel, $validated['export_format']);
@@ -98,7 +99,7 @@ class ReportController extends Controller
             $to = $now->endOfDay();
         }
 
-        return [$from, $to, $from->format('M d, Y') . ' to ' . $to->format('M d, Y')];
+        return [$from, $to, $from->format('M d, Y').' to '.$to->format('M d, Y')];
     }
 
     private function promotionPerformanceReport(CarbonImmutable $from, CarbonImmutable $to, RewardCalculator $calculator): array
@@ -164,7 +165,7 @@ class ReportController extends Controller
                 $rejected,
                 $issued,
                 $claimed,
-                $issued > 0 ? number_format(($claimed / $issued) * 100, 1) . '%' : '0.0%',
+                $issued > 0 ? number_format(($claimed / $issued) * 100, 1).'%' : '0.0%',
                 (int) ($promotion->premiumProduct?->stock ?? 0),
             ];
         })->all();
@@ -186,6 +187,10 @@ class ReportController extends Controller
             ->values()
             ->all();
 
+        $reviewExpression = DB::connection()->getDriverName() === 'mysql' ? 'TIMESTAMPDIFF(MINUTE,submitted_at,reviewed_at)' : '(julianday(reviewed_at)-julianday(submitted_at))*1440';
+        $averageReview = Receipt::whereBetween('submitted_at', [$from, $to])->whereNotNull('reviewed_at')->selectRaw('AVG('.$reviewExpression.') as minutes')->value('minutes');
+        $released = EarnedReward::whereBetween('created_at', [$from, $to])->where('claim_status', 'released')->sum('reward_quantity');
+
         return [
             'title' => self::REPORTS['promo_performance'],
             'columns' => ['Promotion Title', 'Product to Buy', 'Required Quantity', 'Reward Product', 'Reward Quantity', 'Receipts Qualified', 'Approved', 'Rejected', 'Rewards Issued', 'Rewards Claimed', 'Claim Rate', 'Stock Remaining'],
@@ -193,6 +198,8 @@ class ReportController extends Controller
             'summaries' => [
                 ['Total Receipts Submitted', $submitted],
                 ['Total Approved', $approved],
+                ['Average review time (minutes)', round((float) $averageReview, 1)],
+                ['Released awaiting confirmation', $released],
                 ['Total Rejected', $rejected],
                 ['Total Cancelled', $cancelled],
                 ['Total Rewards Issued', $rewardsIssued],
@@ -250,17 +257,18 @@ class ReportController extends Controller
             $daysUntilExpiry = $product->daysUntilExpiry();
             $expiry = match ($product->expiryStatus()) {
                 'non_perishable' => 'N/A',
-                'expired' => 'Expired ' . abs($daysUntilExpiry ?? 0) . ' days ago',
-                'expiring_soon' => 'Expires in ' . ($daysUntilExpiry ?? 0) . ' days',
-                default => 'Expires ' . ($product->expiry_date?->format('M d, Y') ?? 'date unavailable'),
+                'expired' => 'Expired '.abs($daysUntilExpiry ?? 0).' days ago',
+                'expiring_soon' => 'Expires in '.($daysUntilExpiry ?? 0).' days',
+                default => 'Expires '.($product->expiry_date?->format('M d, Y') ?? 'date unavailable'),
             };
 
             $netStockChange = (int) ($stockChangeByProduct[$product->id] ?? 0);
+
             return [$product->name, $product->item_code, $stock, $issued, $claimed, $netStockChange, $status, $expiry];
         })->all();
 
-        $stockChartRows = collect($rows)->sortByDesc(fn (array $row) => $row[2])->take(5)->map(fn (array $row) => ['title' => $row[0] . ' (' . $row[1] . ')', 'primary' => $row[2], 'secondary' => null])->values()->all();
-        $rewardChartRows = collect($rows)->sortByDesc(fn (array $row) => $row[3])->take(5)->map(fn (array $row) => ['title' => $row[0] . ' (' . $row[1] . ')', 'primary' => $row[3], 'secondary' => $row[4]])->values()->all();
+        $stockChartRows = collect($rows)->sortByDesc(fn (array $row) => $row[2])->take(5)->map(fn (array $row) => ['title' => $row[0].' ('.$row[1].')', 'primary' => $row[2], 'secondary' => null])->values()->all();
+        $rewardChartRows = collect($rows)->sortByDesc(fn (array $row) => $row[3])->take(5)->map(fn (array $row) => ['title' => $row[0].' ('.$row[1].')', 'primary' => $row[3], 'secondary' => $row[4]])->values()->all();
 
         return [
             'title' => self::REPORTS['premium_stock'],
@@ -345,8 +353,8 @@ class ReportController extends Controller
     {
         $exportRows = [
             [$report['title']],
-            ['Range: ' . $rangeLabel],
-            ['Generated: ' . now()->format('M d, Y g:i A')],
+            ['Range: '.$rangeLabel],
+            ['Generated: '.now()->format('M d, Y g:i A')],
             [],
             $report['columns'],
             ...$report['rows'],
@@ -357,7 +365,7 @@ class ReportController extends Controller
 
         $extension = $format === 'csv' ? 'csv' : 'xlsx';
         $writer = $format === 'csv' ? ExcelWriter::CSV : ExcelWriter::XLSX;
-        $filename = str($report['title'])->slug() . '-' . now()->format('Ymd-His') . '.' . $extension;
+        $filename = str($report['title'])->slug().'-'.now()->format('Ymd-His').'.'.$extension;
 
         return Excel::download(new ReportTableExport($exportRows), $filename, $writer);
     }

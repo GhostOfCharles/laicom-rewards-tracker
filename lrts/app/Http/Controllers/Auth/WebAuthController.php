@@ -3,15 +3,16 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules\Password;
 use App\Models\User;
 use App\Services\ActivityLogger;
-use Illuminate\Support\Facades\DB;
-use EduLazaro\Laracaptcha\Rules\Captcha;
+use App\Services\LoginProtection;
 use EduLazaro\Laracaptcha\Facades\Captcha as CaptchaFacade;
+use EduLazaro\Laracaptcha\Rules\Captcha;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
 
 class WebAuthController extends Controller
 {
@@ -24,6 +25,7 @@ class WebAuthController extends Controller
     // Handle Customer Registration
     public function register(Request $request, ActivityLogger $activityLogger)
     {
+        $request->validate(['phone_number' => 'required|string']);
         $request->merge([
             'phone_number' => preg_replace('/\D/', '', (string) $request->phone_number),
         ]);
@@ -56,10 +58,12 @@ class WebAuthController extends Controller
                 'role' => 'customer',
             ]);
             $activityLogger->recordAs($user, 'auth.register', 'Customer account registered.', $user, ['email' => $user->email]);
+
             return $user;
         });
 
         Auth::login($user);
+        $request->session()->regenerate();
 
         // Customers land on their own dashboard
         return redirect()->route('customer.dashboard')->with('success', 'Account created successfully. Welcome to RTS!');
@@ -68,9 +72,10 @@ class WebAuthController extends Controller
     // Handle Login for both Customer and Admin
     public function login(Request $request, ActivityLogger $activityLogger)
     {
+        LoginProtection::validate($request);
         $credentials = $request->validate([
-            'email' => 'required|email',
-            'password' => 'required',
+            'email' => 'required|email|max:255',
+            'password' => 'required|string|max:4096',
         ]);
 
         if (Auth::attempt($credentials)) {
@@ -79,12 +84,14 @@ class WebAuthController extends Controller
             if ($request->routeIs('login.admin.submit') && Auth::user()->role !== 'admin') {
                 $activityLogger->recordAs(Auth::user(), 'auth.login_failed', 'Admin login denied for a non-admin account.', Auth::user(), ['email' => $credentials['email']]);
                 Auth::logout();
+                LoginProtection::failed($request);
 
                 return back()->withErrors([
                     'email' => 'This account does not have administrator access.',
                 ])->onlyInput('email');
             }
 
+            LoginProtection::clear($request);
             $activityLogger->record('auth.login', 'User logged in.', Auth::user(), ['login_route' => $request->routeIs('login.admin.submit') ? 'admin' : 'customer']);
 
             // Redirect based on user role
@@ -96,6 +103,7 @@ class WebAuthController extends Controller
             return redirect()->route('customer.dashboard');
         }
 
+        LoginProtection::failed($request);
         $activityLogger->recordAs(null, 'auth.login_failed', 'Login attempt failed.', null, ['email' => $credentials['email']]);
 
         return back()->withErrors([
@@ -111,6 +119,7 @@ class WebAuthController extends Controller
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
         return redirect()->route('portal');
     }
 }

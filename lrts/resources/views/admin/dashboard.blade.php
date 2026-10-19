@@ -1,13 +1,14 @@
 @extends('layouts.admin')
 
 @section('content')
+@if($overlapCount)<div class="alert alert-warning">{{ $overlapCount }} active promotions overlap on purchased products. Receipt review requires one reward choice per product.</div>@endif
 
 <!-- Premium Products Section -->
 <div class="mb-5">
     <div class="mb-2">
         <div class="catalog-section-title">
             <h6 class="mb-0 fw-bold">PREMIUM PRODUCTS @if($premiumExpiryAlertCount > 0)<span class="badge bg-warning text-dark rounded-0 align-middle ms-1" title="Products that are expired or will expire within 30 days" data-admin-count="premium-expiry">{{ $premiumExpiryAlertCount }} EXPIRY ALERTS</span>@else<span class="badge bg-warning text-dark rounded-0 align-middle ms-1" title="Products that are expired or will expire within 30 days" data-admin-count="premium-expiry" hidden>0 EXPIRY ALERTS</span>@endif</h6>
-            <button type="button" class="btn btn-sm laicom-btn-primary catalog-section-add" data-bs-toggle="modal" data-bs-target="#addPremiumProductModal" title="Add New Premium Product" aria-label="Add premium product"><i class="bi bi-plus-lg"></i></button>
+            <button type="button" class="btn btn-sm rts-btn-primary catalog-section-add" data-bs-toggle="modal" data-bs-target="#addPremiumProductModal" title="Add New Premium Product" aria-label="Add premium product"><i class="bi bi-plus-lg"></i></button>
         </div>
         <span class="small text-muted">Promotional reward stock · expiry alerts include expired products and products expiring within 30 days</span>
     </div>
@@ -55,11 +56,11 @@
                 <option value="expired" {{ $premiumExpiry === 'expired' ? 'selected' : '' }}>Expired</option>
             </select>
         </div>
-        <button type="submit" class="btn btn-sm laicom-btn-primary catalog-filter-submit">SEARCH</button>
+        <button type="submit" class="btn btn-sm rts-btn-primary catalog-filter-submit">SEARCH</button>
     </form>
 
-    <div class="table-responsive laicom-card p-1">
-        <table class="table table-bordered laicom-table mb-0 text-center align-middle">
+    <div class="table-responsive rts-card p-1">
+        <table class="table table-bordered rts-table mb-0 text-center align-middle">
             <thead class="table-light">
                 <tr>
                     <th scope="col">PRODUCT NAME</th>
@@ -94,7 +95,7 @@
     <div class="mb-2">
         <div class="catalog-section-title">
             <h6 class="mb-0 fw-bold">ACTIVE PROMOTIONS</h6>
-            <button type="button" class="btn btn-sm laicom-btn-primary catalog-section-add" data-bs-toggle="modal" data-bs-target="#addPromotionModal" title="Add Active Promotion" aria-label="Add promotion"><i class="bi bi-plus-lg"></i></button>
+            <button type="button" class="btn btn-sm rts-btn-primary catalog-section-add" data-bs-toggle="modal" data-bs-target="#addPromotionModal" title="Add Active Promotion" aria-label="Add promotion"><i class="bi bi-plus-lg"></i></button>
         </div>
     </div>
 
@@ -116,7 +117,7 @@
                 <option value="inactive" {{ $promotionStatus === 'inactive' ? 'selected' : '' }}>Inactive</option>
             </select>
         </div>
-        <button type="submit" class="btn btn-sm laicom-btn-primary catalog-filter-submit">SEARCH</button>
+        <button type="submit" class="btn btn-sm rts-btn-primary catalog-filter-submit">SEARCH</button>
     </form>
     <div class="table-responsive border border-dark border-2 p-1">
         <table class="table table-bordered mb-0 text-center align-middle">
@@ -154,20 +155,20 @@
 @if($premiumProductCount > 5)
 <div class="modal fade" id="allPremiumProductsModal" tabindex="-1" aria-labelledby="allPremiumProductsTitle" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
-        <div class="modal-content laicom-modal">
+        <div class="modal-content rts-modal">
             <div class="modal-header">
                 <h5 class="modal-title fw-bold" id="allPremiumProductsTitle">ALL PREMIUM PRODUCTS <span class="small fw-normal">({{ $premiumProductCount }})</span></h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-2">
                 <div class="table-responsive">
-                    <table class="table table-bordered laicom-table mb-0 text-center align-middle">
+                    <table class="table table-bordered rts-table mb-0 text-center align-middle">
                         <thead><tr><th>PRODUCT NAME</th><th>CATEGORY</th><th>STOCK</th><th>STATUS</th><th>EXPIRY</th><th>ACTIONS</th></tr></thead>
                         <tbody>@foreach($premiumProducts as $premium) @include('admin.partials.premium-product-row', ['premium' => $premium]) @endforeach</tbody>
                     </table>
                 </div>
             </div>
-            <div class="modal-footer py-2"><span class="small text-muted me-auto">Showing all {{ $premiumProductCount }} matching products</span><button type="button" class="btn btn-sm btn-outline-dark rounded-0" data-bs-dismiss="modal">CLOSE</button></div>
+            <div class="modal-footer py-2"><span class="small text-muted me-auto">{{ $premiumProducts->links() }}</span><button type="button" class="btn btn-sm btn-outline-dark rounded-0" data-bs-dismiss="modal">CLOSE</button></div>
         </div>
     </div>
 </div>
@@ -176,20 +177,20 @@
 @if($promotionCount > 5)
 <div class="modal fade" id="allPromotionsModal" tabindex="-1" aria-labelledby="allPromotionsTitle" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-scrollable">
-        <div class="modal-content laicom-modal">
+        <div class="modal-content rts-modal">
             <div class="modal-header">
                 <h5 class="modal-title fw-bold" id="allPromotionsTitle">ALL PROMOTIONS <span class="small fw-normal">({{ $promotionCount }})</span></h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-2">
                 <div class="table-responsive">
-                    <table class="table table-bordered laicom-table mb-0 text-center align-middle">
+                    <table class="table table-bordered rts-table mb-0 text-center align-middle">
                         <thead><tr><th>PROMOTION NAME</th><th>BUY REQUIREMENT</th><th>GET REWARD</th><th>ACTIONS</th></tr></thead>
                         <tbody>@foreach($promotions as $promo) @include('admin.partials.promotion-row', ['promo' => $promo]) @endforeach</tbody>
                     </table>
                 </div>
             </div>
-            <div class="modal-footer py-2"><span class="small text-muted me-auto">Showing all {{ $promotionCount }} matching promotions</span><button type="button" class="btn btn-sm btn-outline-dark rounded-0" data-bs-dismiss="modal">CLOSE</button></div>
+            <div class="modal-footer py-2"><span class="small text-muted me-auto">{{ $promotions->links() }}</span><button type="button" class="btn btn-sm btn-outline-dark rounded-0" data-bs-dismiss="modal">CLOSE</button></div>
         </div>
     </div>
 </div>
@@ -198,7 +199,7 @@
 <!-- Add New Premium Product Modal -->
 <div class="modal fade" id="addPremiumProductModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
-        <div class="modal-content laicom-modal">
+        <div class="modal-content rts-modal">
             <div class="modal-header border-bottom border-dark">
                 <h5 class="modal-title fw-bold">ADD NEW PREMIUM PRODUCT</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -255,7 +256,7 @@
 </div>
 
 <!-- Dynamic Edit Premium Product Modals (NEW — was missing) -->
-@foreach($allPremiumProducts as $premium)
+@foreach($editablePremiumProducts as $premium)
 <div class="modal fade" id="editPremiumProductModal{{ $premium->id }}" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content border-dark border-2 rounded-0">
@@ -274,6 +275,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold small">CURRENT STOCK QUANTITY:</label>
+                        <input type="hidden" name="expected_stock" value="{{ $premium->stock }}">
                         <input type="number" name="stock" class="form-control border-dark rounded-0" value="{{ $premium->stock }}" required min="0">
                     </div>
                     <div class="mb-3">
@@ -309,7 +311,7 @@
                         <label class="form-label fw-bold small">PRODUCT PICTURE:</label>
                         <input type="file" name="image" class="form-control border-dark rounded-0" accept="image/png,image/jpeg,image/gif">
                         @if ($premium->image_path)
-                            <div class="small text-muted mt-2 d-flex align-items-center gap-2"><img src="{{ asset('storage/' . $premium->image_path) }}" alt="Current {{ $premium->name }} image" class="laicom-thumbnail">Current image</div>
+                            <div class="small text-muted mt-2 d-flex align-items-center gap-2"><img src="{{ \Illuminate\Support\Facades\Storage::disk('public')->url($premium->image_path) }}" alt="Current {{ $premium->name }} image" class="rts-thumbnail">Current image</div>
                         @endif
                     </div>
 
@@ -327,7 +329,7 @@
 <!-- Add Active Promotion Modal -->
 <div class="modal fade" id="addPromotionModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
-        <div class="modal-content laicom-modal">
+        <div class="modal-content rts-modal">
             <div class="modal-header border-bottom border-dark">
                 <h5 class="modal-title fw-bold">ADD ACTIVE PROMOTION</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -342,12 +344,12 @@
 
                     <h6 class="fw-bold mt-4 mb-2 border-bottom border-dark pb-1">-BUY CONDITION-</h6>
                     <div class="mb-3">
-                        <label for="addPromotionBuyProduct" class="form-label fw-bold small">SELECT UNILEVER PRODUCT:</label>
+                        <label for="addPromotionBuyProduct" class="form-label fw-bold small">SELECT PURCHASED PRODUCT:</label>
                         <div class="lrts-admin-product-picker" data-admin-product-picker>
-                            <input type="text" id="addPromotionBuyProduct" class="form-select border-dark rounded-0 lrts-admin-product-picker-input" placeholder="Choose a product..." aria-label="Select Unilever product" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="addPromotionBuyProductOptions" autocomplete="off" required>
+                            <input type="text" id="addPromotionBuyProduct" class="form-select border-dark rounded-0 lrts-admin-product-picker-input" placeholder="Choose a product..." aria-label="Select purchased product" role="combobox" aria-autocomplete="list" aria-haspopup="listbox" aria-expanded="false" aria-controls="addPromotionBuyProductOptions" autocomplete="off" required>
                             <input type="hidden" name="buy_product_name" data-picker-value>
-                            <button type="button" class="lrts-admin-product-picker-toggle" aria-label="Toggle Unilever product list" aria-controls="addPromotionBuyProductOptions" aria-expanded="false"><i class="bi bi-chevron-down" aria-hidden="true"></i></button>
-                            <div id="addPromotionBuyProductOptions" class="lrts-admin-product-picker-options" role="listbox" aria-label="Unilever products" hidden>
+                            <button type="button" class="lrts-admin-product-picker-toggle" aria-label="Toggle purchased product list" aria-controls="addPromotionBuyProductOptions" aria-expanded="false"><i class="bi bi-chevron-down" aria-hidden="true"></i></button>
+                            <div id="addPromotionBuyProductOptions" class="lrts-admin-product-picker-options" role="listbox" aria-label="purchased products" hidden>
                                 @foreach($inventory as $item)
                                     <button type="button" id="add-promotion-buy-option-{{ $loop->index }}" class="lrts-admin-product-picker-option" role="option" aria-selected="false" data-product-label="{{ $item->name }}" data-product-value="{{ $item->name }}">
                                         <x-product-image :product="$item" :size="40" />
@@ -408,10 +410,10 @@
 </div>
 
 <!-- Dynamic Edit Promotion Modals -->
-@foreach($promotions as $promo)
+@foreach($editablePromotions as $promo)
 <div class="modal fade" id="editPromotionModal{{ $promo->id }}" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
-        <div class="modal-content laicom-modal">
+        <div class="modal-content rts-modal">
             <div class="modal-header border-bottom border-dark">
                 <h5 class="modal-title fw-bold">EDIT ACTIVE PROMOTION</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -428,7 +430,7 @@
 
                     <h6 class="fw-bold mt-4 mb-2 border-bottom border-dark pb-1">-BUY CONDITION-</h6>
                     <div class="mb-3">
-                        <label class="form-label fw-bold small">SELECT UNILEVER PRODUCT:</label>
+                        <label class="form-label fw-bold small">SELECT PURCHASED PRODUCT:</label>
                         <select name="buy_product_name" class="form-select border-dark rounded-0" required>
                             @foreach($inventory as $item)
                                 <option value="{{ $item->name }}" {{ $promo->buy_product_name === $item->name ? 'selected' : '' }}>

@@ -55,9 +55,9 @@ class AdminDashboardCatalogTest extends TestCase
         $product = null;
 
         for ($index = 1; $index <= 6; $index++) {
-            $product = $this->createPremium('Reward ' . $index, 'PRM-LIMIT-' . $index, 20, 'home_care');
+            $product = $this->createPremium('Reward '.$index, 'PRM-LIMIT-'.$index, 20, 'home_care');
             Promotion::create([
-                'title' => 'Promotion ' . $index,
+                'title' => 'Promotion '.$index,
                 'buy_product_name' => $inventory->name,
                 'premium_product_id' => $product->id,
                 'required_quantity' => 2,
@@ -83,9 +83,9 @@ class AdminDashboardCatalogTest extends TestCase
             ->assertSee('id="allPremiumProductsModal"', false)
             ->assertSee('id="allPromotionsModal"', false)
             ->assertSee('modal-dialog-scrollable', false)
-            ->assertSee('id="editPremiumProductModal' . $product->id . '"', false)
-            ->assertSee('id="editPromotionModal' . Promotion::orderBy('id')->first()->id . '"', false)
-            ->assertSee('data-bs-target="#editPremiumProductModal' . $product->id . '"', false)
+            ->assertSee('id="editPremiumProductModal'.$product->id.'"', false)
+            ->assertSee('id="editPromotionModal'.Promotion::orderBy('id')->first()->id.'"', false)
+            ->assertSee('data-bs-target="#editPremiumProductModal'.$product->id.'"', false)
             ->assertSee('table-responsive', false);
 
         preg_match_all('/data-bs-target="([^"]+)"/', $html, $targets);
@@ -121,7 +121,7 @@ class AdminDashboardCatalogTest extends TestCase
 
         $this->put(route('products.update', $legacyDuplicate->id), [
             'name' => 'knorr',
-            'stock' => 99,
+            'stock' => 99, 'expected_stock' => 100,
             'category' => 'food',
             'is_perishable' => 0,
         ])->assertRedirect(route('admin.dashboard'));
@@ -144,6 +144,7 @@ class AdminDashboardCatalogTest extends TestCase
     private function firstTableBody(string $html): string
     {
         preg_match('/<tbody>(.*?)<\/tbody>/s', $html, $matches);
+
         return $matches[1] ?? '';
     }
 }

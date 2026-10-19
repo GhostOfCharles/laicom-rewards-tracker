@@ -1,12 +1,12 @@
 @extends('layouts.admin')
 
 @section('content')
-    <div class="laicom-card p-3 mb-3">
+    <div class="rts-card p-3 mb-3">
         <h5 class="fw-bold border-bottom border-dark pb-2">CLAIM CODE LOOKUP</h5>
         <form method="GET" action="{{ route('admin.claims') }}" class="d-flex gap-2 flex-wrap">
             <input type="hidden" name="tab" value="{{ $tab }}">
-            <input class="form-control border-dark rounded-0 flex-grow-1" name="code" value="{{ $code }}" placeholder="Enter a claim code">
-            <button class="btn laicom-btn-primary rounded-0" type="submit"><i class="bi bi-search me-1"></i>LOOK UP</button>
+            <input class="form-control border-dark rounded-0 flex-grow-1" name="code" autofocus value="{{ $code }}" placeholder="Enter a claim code">
+            <button class="btn rts-btn-primary rounded-0" type="submit"><i class="bi bi-search me-1"></i>LOOK UP</button>
         </form>
     </div>
 
@@ -26,7 +26,7 @@
                 $hasExpiredProduct = $rewards->contains(fn ($reward) => $reward->premiumProduct?->isExpired());
                 $modalId = 'releaseClaim' . md5($groupKey);
             @endphp
-            <article class="laicom-card p-3">
+            <article class="rts-card p-3">
                 <div class="d-flex justify-content-between align-items-start gap-2 border-bottom border-dark pb-2 mb-2">
                     <div>
                         <h6 class="fw-bold mb-1">{{ $customer->name ?? 'Unknown customer' }} <span class="text-muted fw-normal">| {{ $customer->store_name ?? 'No store name' }}</span></h6>
@@ -43,7 +43,7 @@
                     </div>
                     <div class="col-12 col-lg-7">
                         <div class="table-responsive">
-                            <table class="table table-sm align-middle mb-0 laicom-table">
+                            <table class="table table-sm align-middle mb-0 rts-table">
                                 <thead><tr><th>REWARD</th><th>QTY</th><th>CLAIM CODE</th><th>REQUESTED</th><th>EXPIRES</th></tr></thead>
                                 <tbody>
                                     @foreach ($rewards as $reward)
@@ -64,25 +64,26 @@
                 @if (in_array($tab, ['awaiting', 'available'], true))
                     <div class="text-end mt-3">
                         @if (!$hasExpiredProduct)
-                            <button class="btn laicom-btn-primary rounded-0" data-bs-toggle="modal" data-bs-target="#{{ $modalId }}"><i class="bi bi-check-lg me-1"></i>CONFIRM RELEASE</button>
+                            <button class="btn rts-btn-primary rounded-0" data-bs-toggle="modal" data-bs-target="#{{ $modalId }}"><i class="bi bi-check-lg me-1"></i>CONFIRM RELEASE</button>
                         @else
                             <button class="btn btn-secondary rounded-0" disabled>CONFIRM RELEASE</button>
                         @endif
                     </div>
                     <div class="modal fade" id="{{ $modalId }}" tabindex="-1" aria-hidden="true">
                         <div class="modal-dialog modal-dialog-centered">
-                            <form method="POST" action="{{ $code ? route('admin.claims.release', $code) : route('admin.claims.release-receipt', $receipt) }}" class="modal-content laicom-modal rounded-0">
+                            <form method="POST" action="{{ $code ? route('admin.claims.release', $code) : route('admin.claims.release-receipt', $receipt) }}" class="modal-content rts-modal rounded-0">
                                 @csrf
                                 <div class="modal-header text-white rounded-0"><h5 class="modal-title fw-bold">CONFIRM REWARD RELEASE</h5><button class="btn-close btn-close-white" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div>
-                                <div class="modal-body"><p class="small">Confirm that the reward items were physically handed to {{ $customer->name ?? 'the customer' }}.</p><label class="form-label fw-bold small" for="note{{ md5($groupKey) }}">OPTIONAL NOTE</label><input id="note{{ md5($groupKey) }}" class="form-control border-dark rounded-0" name="release_note" maxlength="255"></div>
-                                <div class="modal-footer"><button type="button" class="btn btn-outline-dark rounded-0" data-bs-dismiss="modal">CANCEL</button><button class="btn laicom-btn-primary rounded-0" type="submit">CONFIRM RELEASE</button></div>
+                                <div class="modal-body"><p class="small">Confirm that the reward items were physically handed to {{ $customer->name ?? 'the customer' }}.</p><dl class="small"><dt>Claim code</dt><dd>{{ $code ?? 'Walk-in' }}</dd><dt>Store / contact</dt><dd>{{ $customer->store_name }} &middot; {{ $customer->phone_number }}</dd></dl><ul class="small">@foreach($rewards as $reward)<li>{{ $reward->reward_quantity }} &times; {{ $reward->premiumProduct?->name ?? $reward->reward_product_name }}</li>@endforeach</ul><label class="form-label fw-bold small" for="note{{ md5($groupKey) }}">OPTIONAL NOTE</label><input id="note{{ md5($groupKey) }}" class="form-control border-dark rounded-0" name="release_note" maxlength="255"></div>
+                                <div class="modal-footer"><button type="button" class="btn btn-outline-dark rounded-0" data-bs-dismiss="modal">CANCEL</button><button class="btn rts-btn-primary rounded-0" type="submit">CONFIRM RELEASE</button></div>
                             </form>
                         </div>
                     </div>
                 @endif
             </article>
         @empty
-            <div class="laicom-card p-4 text-center text-muted fw-bold">NO CLAIMS FOUND FOR THIS VIEW.</div>
+            <div class="rts-card p-4 text-center text-muted fw-bold">NO CLAIMS FOUND FOR THIS VIEW.</div>
         @endforelse
     </div>
+{{ $claimPages->links() }}
 @endsection

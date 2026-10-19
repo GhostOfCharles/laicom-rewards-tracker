@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Ticket;
 use App\Models\CustomerNotification;
+use App\Models\Ticket;
 use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,10 +16,11 @@ class TicketController extends Controller
 {
     public function index(Request $request)
     {
+        $request->validate(['ticket' => 'nullable|integer|min:1']);
         $filter = $request->query('status', 'all');
         $selectedId = $request->query('ticket');
 
-        $query = Ticket::with(['user', 'replies.user'])
+        $query = Ticket::with('user')
             ->withCount('replies')
             ->latest();
 
@@ -27,13 +28,15 @@ class TicketController extends Controller
             $query->where('status', $filter);
         }
 
-        $tickets = $query->get();
+        $search = $request->validate(['search' => 'nullable|string|max:100'])['search'] ?? '';
+        $query->when($search, fn ($q) => $q->where(fn ($q) => $q->where('subject', 'like', '%'.$search.'%')->orWhereHas('user', fn ($u) => $u->where('name', 'like', '%'.$search.'%'))));
+        $tickets = $query->paginate(20)->withQueryString();
 
         $selectedTicket = $selectedId
             ? Ticket::with(['user', 'replies.user', 'relatedReceipt'])->find($selectedId)
-            : $tickets->first();
+            : $tickets->first()?->load(['replies.user', 'relatedReceipt']);
 
-        return view('admin.tickets', compact('tickets', 'selectedTicket', 'filter'));
+        return view('admin.tickets', compact('tickets', 'selectedTicket', 'filter', 'search'));
     }
 
     public function reply(Request $request, Ticket $ticket, ActivityLogger $activityLogger)
@@ -61,26 +64,28 @@ class TicketController extends Controller
                     'attachment_path' => $attachmentPath,
                 ]);
                 if ($isInternal) {
-                    $activityLogger->record('ticket.internal_note', 'Internal note added to ticket #' . $locked->id . '.', $locked);
+                    $activityLogger->record('ticket.internal_note', 'Internal note added to ticket #'.$locked->id.'.', $locked);
                 } else {
-                    $activityLogger->record('ticket.replied', 'Admin replied to ticket #' . $locked->id . '.', $locked);
+                    $activityLogger->record('ticket.replied', 'Admin replied to ticket #'.$locked->id.'.', $locked);
                     CustomerNotification::create([
                         'user_id' => $locked->user_id,
                         'type' => 'ticket.replied',
                         'title' => 'Support replied',
-                        'body' => 'Support replied to your ticket: ' . $locked->subject,
+                        'body' => 'Support replied to your ticket: '.$locked->subject,
                         'receipt_id' => $locked->related_receipt_id,
                         'created_at' => now(),
                     ]);
                     if (in_array($locked->status, ['open', 'in_progress'], true)) {
                         $oldStatus = $locked->status;
                         $locked->update(['status' => 'pending', 'resolved_at' => null]);
-                        $activityLogger->record('ticket.status_changed', 'Ticket #' . $locked->id . ' moved to pending after admin reply.', $locked, ['old' => $oldStatus, 'new' => 'pending']);
+                        $activityLogger->record('ticket.status_changed', 'Ticket #'.$locked->id.' moved to pending after admin reply.', $locked, ['old' => $oldStatus, 'new' => 'pending']);
                     }
                 }
             });
         } catch (Throwable $exception) {
-            if ($attachmentPath) Storage::disk('private')->delete($attachmentPath);
+            if ($attachmentPath) {
+                Storage::disk('private')->delete($attachmentPath);
+            }
             throw $exception;
         }
 
@@ -109,12 +114,12 @@ class TicketController extends Controller
             $oldStatus = $locked->status;
             $locked->update($updates);
             if ($oldStatus !== $newStatus) {
-                $activityLogger->record('ticket.status_changed', 'Ticket #' . $locked->id . ' marked as ' . strtoupper(str_replace('_', ' ', $newStatus)) . '.', $locked, ['old' => $oldStatus, 'new' => $newStatus]);
+                $activityLogger->record('ticket.status_changed', 'Ticket #'.$locked->id.' marked as '.strtoupper(str_replace('_', ' ', $newStatus)).'.', $locked, ['old' => $oldStatus, 'new' => $newStatus]);
             }
         });
 
         return redirect()
             ->route('admin.tickets', ['ticket' => $ticket->id, 'status' => $request->query('status', 'all')])
-            ->with('success', 'Ticket marked as ' . strtoupper(str_replace('_', ' ', $newStatus)) . '.');
+            ->with('success', 'Ticket marked as '.strtoupper(str_replace('_', ' ', $newStatus)).'.');
     }
 }

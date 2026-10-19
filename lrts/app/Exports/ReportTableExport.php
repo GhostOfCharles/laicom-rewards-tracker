@@ -11,13 +11,11 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class ReportTableExport implements FromArray, ShouldAutoSize, WithEvents, WithStyles
 {
-    public function __construct(private readonly array $rows)
-    {
-    }
+    public function __construct(private readonly array $rows) {}
 
     public function array(): array
     {
-        return $this->rows;
+        return array_map(fn ($row) => array_map(fn ($value) => is_string($value) && preg_match('/^[=+@\-\t\r]/', $value) ? "'".$value : $value, $row), $this->rows);
     }
 
     public function styles(Worksheet $sheet): array
@@ -40,7 +38,7 @@ class ReportTableExport implements FromArray, ShouldAutoSize, WithEvents, WithSt
             AfterSheet::class => function (AfterSheet $event) {
                 $lastRow = count($this->rows);
                 if ($lastRow >= 7) {
-                    $event->sheet->getDelegate()->getStyle('A' . $lastRow . ':' . $event->sheet->getDelegate()->getHighestColumn() . $lastRow)
+                    $event->sheet->getDelegate()->getStyle('A'.$lastRow.':'.$event->sheet->getDelegate()->getHighestColumn().$lastRow)
                         ->getFont()->setBold(true);
                 }
                 $event->sheet->getDelegate()->getRowDimension(5)->setRowHeight(32);

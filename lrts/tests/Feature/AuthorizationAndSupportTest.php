@@ -2,14 +2,13 @@
 
 namespace Tests\Feature;
 
-use App\Models\Ticket;
 use App\Models\Inventory;
 use App\Models\Receipt;
+use App\Models\Ticket;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class AuthorizationAndSupportTest extends TestCase
@@ -108,7 +107,7 @@ class AuthorizationAndSupportTest extends TestCase
 
         $token = $login->json('token');
         Storage::fake('private');
-        $this->withHeader('Authorization', 'Bearer ' . $token)->post('/api/receipts', [
+        $this->withHeader('Authorization', 'Bearer '.$token)->post('/api/receipts', [
             'salesman_order_number' => 'API-ORDER-1',
             'order_date' => today()->toDateString(),
             'slip' => $this->fakePng('api-receipt.png'),
@@ -124,7 +123,7 @@ class AuthorizationAndSupportTest extends TestCase
         $adminToken = $admin->createToken('test')->plainTextToken;
         // The test application reuses guards between requests; clear Sanctum's cached customer.
         Auth::forgetGuards();
-        $this->withHeader('Authorization', 'Bearer ' . $adminToken)->post('/api/receipts', [
+        $this->withHeader('Authorization', 'Bearer '.$adminToken)->post('/api/receipts', [
             'salesman_order_number' => 'API-ADMIN-ORDER',
             'order_date' => today()->toDateString(),
             'slip' => $this->fakePng('api-admin-receipt.png'),
@@ -132,10 +131,5 @@ class AuthorizationAndSupportTest extends TestCase
         ])->assertForbidden();
 
         $this->assertDatabaseMissing('receipts', ['salesman_order_number' => 'API-ADMIN-ORDER']);
-    }
-
-    private function fakePng(string $name): UploadedFile
-    {
-        return UploadedFile::fake()->createWithContent($name, base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j5WQAAAAASUVORK5CYII='));
     }
 }

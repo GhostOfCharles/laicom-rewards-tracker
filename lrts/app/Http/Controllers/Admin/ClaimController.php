@@ -5,14 +5,13 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\CustomerNotification;
 use App\Models\EarnedReward;
-use App\Models\Inventory;
 use App\Models\PremiumProduct;
-use App\Models\Promotion;
 use App\Models\Receipt;
 use App\Services\ActivityLogger;
 use App\Services\ClaimService;
 use App\Services\PremiumStockLedger;
 use App\Services\RewardCalculator;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -26,15 +25,18 @@ class ClaimController extends Controller
         $validated = $request->validate([
             'status' => 'nullable|in:pending,approved,rejected,cancelled',
             'search' => 'nullable|string|max:100',
-            'claim_filter' => 'nullable|in:all,awaiting_release,claimed,none_claimed',
+            'claim_filter' => 'nullable|in:all,awaiting_release,awaiting_customer,claimed,none_claimed',
         ]);
 
-        $query = Receipt::with(['user', 'items', 'earnedRewards.premiumProduct', 'earnedRewards.releaser', 'activityLogs.user'])
+        if (! $request->hasAny(['status', 'claim_filter', 'search'])) {
+            $validated['status'] = 'pending';
+        }
+        $query = Receipt::with(['user', 'items', 'earnedRewards.premiumProduct', 'earnedRewards.releaser', 'items.inventory'])
             ->when($validated['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
             ->when(trim($validated['search'] ?? ''), function ($query, $term) {
                 $query->where(function ($query) use ($term) {
-                    $query->where('salesman_order_number', 'like', '%' . $term . '%')
-                        ->orWhereHas('user', fn ($users) => $users->where('name', 'like', '%' . $term . '%'));
+                    $query->where('salesman_order_number', 'like', '%'.$term.'%')
+                        ->orWhereHas('user', fn ($users) => $users->where('name', 'like', '%'.$term.'%'));
                 });
             });
 
@@ -44,20 +46,27 @@ class ClaimController extends Controller
             ->when($claimFilter === 'claimed', fn ($query) => $query->whereHas('earnedRewards', fn ($rewards) => $rewards->where('claim_status', 'claimed')))
             ->when($claimFilter === 'none_claimed', fn ($query) => $query->whereDoesntHave('earnedRewards', fn ($rewards) => $rewards->where('claim_status', 'claimed')));
 
-        $receipts = $query->latest('submitted_at')->paginate(25)->withQueryString();
-        $promotions = Promotion::with('premiumProduct')->where('is_active', true)->get();
-        $receiptProductImages = Inventory::query()->get(['name', 'image_path'])->keyBy('name');
-
+        $receipts = ($validated['status'] ?? null) === 'pending' ? $query->oldest('submitted_at')->paginate(25)->withQueryString() : $query->latest('submitted_at')->paginate(25)->withQueryString();
+        $duplicateHashes = Receipt::whereIn('slip_hash', $receipts->pluck('slip_hash')->filter())->groupBy('slip_hash')->havingRaw('COUNT(*) > 1')->pluck('slip_hash')->flip();
         foreach ($receipts as $receipt) {
-            $receipt->calculated_reward_groups = $receipt->status === 'pending' ? $calculator->forReceipt($receipt) : [];
-            $receipt->has_duplicate_slip = $receipt->slip_hash && Receipt::where('slip_hash', $receipt->slip_hash)->whereKeyNot($receipt->id)->exists();
+            $receipt->has_duplicate_slip = isset($duplicateHashes[$receipt->slip_hash]);
         }
 
-        return view('admin.receipts', compact('receipts', 'promotions', 'claimFilter', 'receiptProductImages'));
+        return view($request->header('X-RTS-Fragment') === 'lists' ? 'admin.partials.receipts-list' : 'admin.receipts', ['receipts' => $receipts, 'claimFilter' => $claimFilter, 'currentStatus' => $validated['status'] ?? '']);
+    }
+
+    public function panel(Request $request, Receipt $receipt, RewardCalculator $calculator)
+    {
+        $receipt->load(['user', 'items.inventory', 'earnedRewards.premiumProduct', 'earnedRewards.releaser', 'activityLogs.user']);
+        $groups = $receipt->status === 'pending' ? $calculator->forReceipt($receipt) : [];
+        $duplicateSlip = $receipt->slip_hash && Receipt::where('slip_hash', $receipt->slip_hash)->whereKeyNot($receipt->id)->exists();
+
+        return view('admin.partials.receipt-panel', compact('receipt', 'groups', 'duplicateSlip'));
     }
 
     public function approve(Request $request, int $id, RewardCalculator $calculator, PremiumStockLedger $ledger, ActivityLogger $activityLogger)
     {
+        $request->validate(['selections' => 'sometimes|array']);
         $admin = $request->user();
 
         try {
@@ -70,36 +79,37 @@ class ClaimController extends Controller
                 $groups = $calculator->forReceipt($receipt);
                 $selected = [];
                 $reservedByProduct = [];
-                foreach ($groups as $group) {
+                foreach ($groups as $groupIndex => $group) {
                     $promotionId = count($group['options']) === 1
                         ? $group['options'][0]['promotion_id']
-                        : $request->input('selections.' . $group['buy_product_name']);
+                        : ($request->input('selections', [])[$groupIndex] ?? $request->input('selections', [])[$group['buy_product_name']] ?? null);
 
-                    if (! $promotionId) {
-                        throw ValidationException::withMessages(['error' => 'Choose one reward for ' . $group['buy_product_name'] . ' before approval.']);
+                    if ((! is_string($promotionId) && ! is_int($promotionId)) || filter_var($promotionId, FILTER_VALIDATE_INT) === false || (int) $promotionId < 1) {
+                        throw ValidationException::withMessages(['error' => 'Choose one reward for '.$group['buy_product_name'].' before approval.']);
                     }
 
                     $option = collect($group['options'])->first(fn ($option) => (string) $option['promotion_id'] === (string) $promotionId);
                     if (! $option) {
-                        throw ValidationException::withMessages(['error' => 'The selected reward is not valid for ' . $group['buy_product_name'] . '. Refresh the page and choose a listed reward.']);
+                        throw ValidationException::withMessages(['error' => 'The selected reward is not valid for '.$group['buy_product_name'].'. Refresh the page and choose a listed reward.']);
                     }
 
-                    $product = PremiumProduct::query()->lockForUpdate()->find($option['premium_product_id']);
+                    $product = PremiumProduct::query()->find($option['premium_product_id']);
                     $reservedByProduct[$option['premium_product_id']] = ($reservedByProduct[$option['premium_product_id']] ?? 0) + $option['reward_quantity'];
                     if (! $product) {
-                        throw ValidationException::withMessages(['error' => 'Insufficient stock for ' . ($product?->name ?? $option['premium_name']) . '. Choose another available reward if one is listed.']);
+                        throw ValidationException::withMessages(['error' => 'Insufficient stock for '.($product?->name ?? $option['premium_name']).'. Choose another available reward if one is listed.']);
                     }
                     if ($product->isExpired()) {
-                        throw ValidationException::withMessages(['error' => 'Cannot approve this reward selection because ' . $product->name . ' has expired. Choose another listed reward.']);
+                        throw ValidationException::withMessages(['error' => 'Cannot approve this reward selection because '.$product->name.' has expired. Choose another listed reward.']);
                     }
 
                     $selected[] = ['group' => $group, 'option' => $option, 'product' => $product];
                 }
 
+                ksort($reservedByProduct);
                 foreach ($reservedByProduct as $productId => $requiredStock) {
                     $product = PremiumProduct::query()->lockForUpdate()->find($productId);
-                    if (! $product || $product->stock < $requiredStock) {
-                        throw ValidationException::withMessages(['error' => 'Insufficient stock for ' . ($product?->name ?? 'a selected reward') . '. Choose another available reward if one is listed.']);
+                    if (! $product || $product->isExpired() || $product->stock < $requiredStock) {
+                        throw ValidationException::withMessages(['error' => 'Insufficient stock for '.($product?->name ?? 'a selected reward').'. Choose another available reward if one is listed.']);
                     }
                 }
 
@@ -134,7 +144,7 @@ class ClaimController extends Controller
                 }
 
                 $receipt->update(['status' => 'approved', 'reviewed_by' => $admin->id, 'reviewed_at' => now()]);
-                $activityLogger->record('receipt.approved', 'Receipt ' . $receipt->salesman_order_number . ' approved.', $receipt, [
+                $activityLogger->record('receipt.approved', 'Receipt '.$receipt->salesman_order_number.' approved.', $receipt, [
                     'selections' => $selectionLog,
                     'stock_moved' => array_map(fn ($selection) => ['premium_product_id' => $selection['premium_product_id'], 'quantity' => $selection['quantity']], $selectionLog),
                 ]);
@@ -142,13 +152,13 @@ class ClaimController extends Controller
                     'user_id' => $receipt->user_id,
                     'type' => 'receipt.approved',
                     'title' => 'Receipt approved',
-                    'body' => 'Your order ' . $receipt->salesman_order_number . ' was approved. Your rewards are ready to request.',
+                    'body' => 'Your order '.$receipt->salesman_order_number.' was approved. Your rewards are ready to request.',
                     'receipt_id' => $receipt->id,
                     'created_at' => now(),
                 ]);
-            });
+            }, 3);
         } catch (RuntimeException $exception) {
-            return back()->withErrors(['error' => $exception->getMessage()]);
+            return back()->withErrors(['error' => $exception instanceof QueryException ? 'The record changed or is busy. Refresh and try again.' : $exception->getMessage()]);
         }
 
         return back()->with('success', 'Receipt approved and reward stock reserved.');
@@ -167,18 +177,18 @@ class ClaimController extends Controller
                 }
 
                 $receipt->update(['status' => 'rejected', 'rejection_reason' => $validated['reason'], 'reviewed_by' => $admin->id, 'reviewed_at' => now()]);
-                $activityLogger->record('receipt.rejected', 'Receipt ' . $receipt->salesman_order_number . ' rejected.', $receipt, ['reason' => $validated['reason']]);
+                $activityLogger->record('receipt.rejected', 'Receipt '.$receipt->salesman_order_number.' rejected.', $receipt, ['reason' => $validated['reason']]);
                 CustomerNotification::create([
                     'user_id' => $receipt->user_id,
                     'type' => 'receipt.rejected',
                     'title' => 'Receipt needs attention',
-                    'body' => 'Your order ' . $receipt->salesman_order_number . ' was rejected: ' . $validated['reason'],
+                    'body' => 'Your order '.$receipt->salesman_order_number.' was rejected: '.$validated['reason'],
                     'receipt_id' => $receipt->id,
                     'created_at' => now(),
                 ]);
-            });
+            }, 3);
         } catch (RuntimeException $exception) {
-            return back()->withErrors(['error' => $exception->getMessage()]);
+            return back()->withErrors(['error' => $exception instanceof QueryException ? 'The record changed or is busy. Refresh and try again.' : $exception->getMessage()]);
         }
 
         return back()->with('success', 'Receipt rejected. The reason has been sent to the customer.');
@@ -191,8 +201,9 @@ class ClaimController extends Controller
         try {
             $claims->release($receipt, $request->user(), $validated['release_note'] ?? null);
         } catch (RuntimeException $exception) {
-            return back()->withErrors(['error' => $exception->getMessage()]);
+            return back()->withErrors(['error' => $exception instanceof QueryException ? 'The record changed or is busy. Refresh and try again.' : $exception->getMessage()]);
         }
+
         return back()->with('success', 'Reward release confirmed.');
     }
 
@@ -203,8 +214,9 @@ class ClaimController extends Controller
         try {
             $claims->release($reward, $request->user(), $validated['release_note'] ?? null);
         } catch (RuntimeException $exception) {
-            return back()->withErrors(['error' => $exception->getMessage()]);
+            return back()->withErrors(['error' => $exception instanceof QueryException ? 'The record changed or is busy. Refresh and try again.' : $exception->getMessage()]);
         }
+
         return back()->with('success', 'Reward release confirmed.');
     }
 
@@ -215,8 +227,9 @@ class ClaimController extends Controller
         try {
             $claims->void($reward, $request->user(), $validated['reason'], $request->boolean('return_stock', true));
         } catch (RuntimeException $exception) {
-            return back()->withErrors(['error' => $exception->getMessage()]);
+            return back()->withErrors(['error' => $exception instanceof QueryException ? 'The record changed or is busy. Refresh and try again.' : $exception->getMessage()]);
         }
+
         return back()->with('success', 'Reward voided.');
     }
 }

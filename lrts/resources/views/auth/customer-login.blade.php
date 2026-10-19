@@ -29,8 +29,11 @@
             required
         />
 
+        @if(session('login_challenge'))<x-auth-captcha />@endif
+
         <x-auth-submit label="Sign In" loading-label="Signing in…" />
     </form>
+    @if(config('lrts.password_reset_enabled') && !in_array(config('mail.default'), ['log','array']))<p class="auth-switch"><a href="{{ route('password.request') }}">Forgot password?</a></p>@endif
 
     <p class="auth-switch">Don't have an account? <a href="{{ route('register.customer') }}">Sign up</a></p>
 @endsection

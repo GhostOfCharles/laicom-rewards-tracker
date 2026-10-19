@@ -7,7 +7,10 @@ use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class TicketController extends Controller
@@ -19,7 +22,7 @@ class TicketController extends Controller
             'category' => 'required|in:orders,rewards,promos,account,other',
             'related_receipt_id' => [
                 'nullable',
-                \Illuminate\Validation\Rule::exists('receipts', 'id')->where('user_id', Auth::id()),
+                Rule::exists('receipts', 'id')->where('user_id', Auth::id()),
             ],
             'body' => 'required|string|min:10|max:5000',
             'attachment' => 'nullable|file|mimes:jpeg,png,jpg,gif,webp,pdf|max:5120',
@@ -46,11 +49,14 @@ class TicketController extends Controller
                     'is_internal_note' => false,
                     'attachment_path' => $attachmentPath,
                 ]);
-                $activityLogger->record('ticket.created', 'Support ticket #' . $ticket->id . ' created.', $ticket, ['category' => $ticket->category, 'subject' => $ticket->subject]);
+                $activityLogger->record('ticket.created', 'Support ticket #'.$ticket->id.' created.', $ticket, ['category' => $ticket->category, 'subject' => $ticket->subject]);
+
                 return $ticket;
             });
         } catch (Throwable $exception) {
-            if ($attachmentPath) Storage::disk('private')->delete($attachmentPath);
+            if ($attachmentPath) {
+                Storage::disk('private')->delete($attachmentPath);
+            }
             throw $exception;
         }
 
@@ -61,7 +67,7 @@ class TicketController extends Controller
 
     public function reply(Request $request, Ticket $ticket, ActivityLogger $activityLogger)
     {
-        abort_unless($ticket->user_id === Auth::id(), 403);
+        Gate::authorize('update', $ticket);
 
         if (in_array($ticket->status, ['resolved', 'closed'], true)) {
             return back()->withErrors([
@@ -82,21 +88,27 @@ class TicketController extends Controller
         try {
             DB::transaction(function () use ($request, $ticket, $attachmentPath, $activityLogger) {
                 $locked = Ticket::query()->lockForUpdate()->findOrFail($ticket->id);
+                Gate::authorize('update', $locked);
+                if (in_array($locked->status, ['resolved', 'closed'])) {
+                    throw ValidationException::withMessages(['error' => 'This ticket no longer accepts replies.']);
+                }
                 $locked->replies()->create([
                     'user_id' => Auth::id(),
                     'body' => $request->body,
                     'is_internal_note' => false,
                     'attachment_path' => $attachmentPath,
                 ]);
-                $activityLogger->record('ticket.replied', 'Customer replied to ticket #' . $locked->id . '.', $locked);
+                $activityLogger->record('ticket.replied', 'Customer replied to ticket #'.$locked->id.'.', $locked);
                 if (in_array($locked->status, ['pending', 'in_progress'], true)) {
                     $oldStatus = $locked->status;
                     $locked->update(['status' => 'open', 'resolved_at' => null]);
-                    $activityLogger->record('ticket.status_changed', 'Ticket #' . $locked->id . ' reopened after customer reply.', $locked, ['old' => $oldStatus, 'new' => 'open']);
+                    $activityLogger->record('ticket.status_changed', 'Ticket #'.$locked->id.' reopened after customer reply.', $locked, ['old' => $oldStatus, 'new' => 'open']);
                 }
             });
         } catch (Throwable $exception) {
-            if ($attachmentPath) Storage::disk('private')->delete($attachmentPath);
+            if ($attachmentPath) {
+                Storage::disk('private')->delete($attachmentPath);
+            }
             throw $exception;
         }
 

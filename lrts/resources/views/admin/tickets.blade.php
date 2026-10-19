@@ -1,6 +1,8 @@
 @extends('layouts.admin')
 
 @section('content')
+<form class="d-flex gap-2 mb-3"><input type="hidden" name="status" value="{{ $filter }}"><input name="search" class="form-control" aria-label="Search tickets" placeholder="Subject or customer" value="{{ $search }}"><button class="btn rts-btn-primary">Search</button></form>
+{{ $tickets->links() }}
 
 @php
     $filters = [
@@ -18,7 +20,7 @@
     {{-- ============================================================
          LEFT — TICKET QUEUE
          ============================================================ --}}
-    <section class="laicom-card adm-queue-card">
+    <section class="rts-card adm-queue-card">
 
         <div class="card-header">TICKET QUEUE</div>
 
@@ -74,7 +76,7 @@
     {{-- ============================================================
          RIGHT — TICKET DETAIL
          ============================================================ --}}
-    <section class="laicom-card adm-detail-card">
+    <section class="rts-card adm-detail-card">
 
         @if ($selectedTicket)
 
@@ -110,7 +112,7 @@
                 </div>
             </div>
 
-            <div class="adm-ticket-thread">
+            <div class="adm-ticket-thread" data-poll-thread="{{ route('admin.tickets.replies',$selectedTicket) }}" data-after="{{ $selectedTicket->replies->max('id') ?? 0 }}">
                 @forelse ($selectedTicket->replies as $reply)
                     @php $isAdmin = $reply->user_id !== $selectedTicket->user_id; @endphp
 

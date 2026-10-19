@@ -1,357 +1,511 @@
-<!-- LRTS README -->
 
-<p align="center">
-  <img src="public/images/laicom-logo-header.png" alt="Laicom Rewards Tracker System" width="280">
-</p>
+<div align="center">
 
-<h1 align="center">Laicom Rewards Tracker System</h1>
-<p align="center"><strong>LRTS capstone project for Laicom Sales &amp; Promotions, Inc.</strong></p>
-<p align="center">A responsive platform for reviewing customer orders, managing promotional rewards, and tracking reward claims.</p>
+<img src="public/images/rts-logo.png" alt="Rewards Tracker System Logo" width="180">
+
+# Rewards Tracker System (RTS)
+
+**A Customer Order and Promotional Rewards Management Platform**
+
+Developed as a capstone project for promotional rewards administration.
+
+A responsive web application for managing customer orders, evaluating promotional rewards, tracking claims, and maintaining reward inventory.
+
+</div>
 
 ---
 
 ## Contents
 
-- [Overview](#overview)
-- [How It Works](#how-it-works)
-- [Roles and Features](#roles-and-features)
-- [Application Pages](#application-pages)
-- [Architecture](#architecture)
-- [Data Model](#data-model)
-- [Technology and Open-Source Software](#technology-and-open-source-software)
-- [Project Structure](#project-structure)
-- [Screenshots](#screenshots)
-- [Local Setup](#local-setup)
-- [Configuration](#configuration)
-- [Running the App](#running-the-app)
-- [Testing](#testing)
-- [Security and Deployment](#security-and-deployment)
-- [Known Test Status](#known-test-status)
+1. [Overview](#overview)
+2. [How It Works](#how-it-works)
+3. [Roles and Features](#roles-and-features)
+4. [Application Pages](#application-pages)
+5. [Architecture](#architecture)
+6. [Data Model](#data-model)
+7. [Technology and Open-Source Software](#technology-and-open-source-software)
+8. [Project Structure](#project-structure)
+9. [Screenshots](#screenshots)
+10. [Local Setup](#local-setup)
+11. [Configuration](#configuration)
+12. [Running the App](#running-the-app)
+13. [Testing](#testing)
+14. [Security and Deployment](#security-and-deployment)
+15. [Known Test Status](#known-test-status)
+
+---
 
 ## Overview
 
-LRTS is a Laravel web application that centralizes customer-submitted order details and helps Laicom staff review promotional reward eligibility, manage reward stock, and handle customer support.
+**Rewards Tracker System (RTS)** is a Laravel-based web application designed to centralize customer order submissions, promotional reward eligibility, reward inventory management, and customer support.
 
-Customers submit an order number, order date, and one or more purchased-product lines selected from the inventory catalog. Staff review each submission and its qualifying promotions. When an order is approved, the system records the earned rewards and reserves the required premium-product stock.
+The system allows customers to submit purchase details and track earned promotional rewards, while administrators review orders, verify eligibility, manage reward stock, and process claims.
 
-LRTS has two product catalogs with different purposes:
+When an order is approved, the system creates the corresponding reward records and reserves the required premium-product stock.
 
-- **Inventory** contains customer-purchased products used when recording order lines.
-- **Premium products** are the reward items offered through promotions.
+### Product Catalogs
 
-The application supports customer and administrator roles. There is no separate salesman role or point-of-sale integration in this Laravel project; customer order details are submitted through the web dashboard or API and reviewed by staff.
+RTS maintains two separate catalogs:
+
+- **Inventory:** Customer-purchased products used when submitting order details.
+- **Premium Products:** Promotional reward items distributed to eligible customers.
+
+### User Roles
+
+The application supports two primary roles:
+
+- **Customer:** Submits orders, tracks promotional rewards, manages claims, and contacts support.
+- **Administrator:** Reviews orders, manages products and promotions, oversees reward claims, and monitors system activities.
+
+There is no separate salesman role or direct point-of-sale integration in the current Laravel application. Customer order information is submitted through the web dashboard or API and reviewed by administrators.
+
+---
 
 ## How It Works
 
-1. A customer registers, signs in, and submits an order number, order date, purchased products, quantities, and a required receipt image.
-2. The system normalizes order numbers, checks for an existing active submission, and validates the order date and product lines.
-3. An administrator reviews the receipt. The reward calculator finds qualifying promotions; when multiple reward choices are available for a purchased-product group, the administrator selects one.
-4. Approval creates reward records and reserves premium-product stock. Rejected or cancelled order numbers can be submitted again.
-5. The customer requests a claim code. Staff confirm the physical handover, and the customer confirms receipt in the dashboard.
-6. The system records notifications, stock movements, and audit events. A scheduled task expires overdue reward claims and writes off expired premium stock.
+1. **Customer Registration:** A customer creates an account with CAPTCHA verification and signs in.
+2. **Order Submission:** The customer provides an order number, order date, purchased products, quantities, and a receipt image.
+3. **Order Validation:** The system normalizes order numbers, checks for duplicate active submissions, and validates order information.
+4. **Administrator Review:** An administrator reviews the submitted receipt and checks qualifying promotions.
+5. **Reward Approval:** Eligible rewards are recorded and the corresponding premium-product stock is reserved.
+6. **Reward Claim:** The customer requests a claim code, staff confirm physical handover, and the customer confirms receipt.
+7. **Activity Recording:** The system records notifications, stock movements, and audit events.
+8. **Expiration Handling:** Scheduled tasks process overdue reward claims and expired premium stock.
 
-Key business limits are configurable in **config/lrts.php**: the current claim window is 30 days, the maximum order age is 60 days, and the receipt-image upload limit is 5 MB.
+Rejected or cancelled order numbers may be submitted again.
+
+### Business Rules
+
+Important limits are configurable in `config/lrts.php`.
+
+| Setting | Value |
+|---|---|
+| Reward claim window | 30 days |
+| Maximum order age | 60 days |
+| Receipt image upload limit | 10 MB |
+
+These values should be verified against the current configuration before deployment.
+
+---
 
 ## Roles and Features
 
 ### Customer
 
-- Register with CAPTCHA verification and sign in to a personal dashboard.
-- Submit orders from the inventory catalog with a receipt image.
-- Track receipt states: processing, approved, rejected, or cancelled.
-- View active promotions, earned rewards, claim codes, and claim history.
-- Confirm receipt after staff records a reward handover.
-- Read notifications and create support tickets with attachments.
+Customers can:
+
+- Register with CAPTCHA verification.
+- Sign in to a personal dashboard.
+- Submit orders with purchased products and receipt images.
+- Track order statuses: Processing, Approved, Rejected, or Cancelled.
+- View available promotional offers.
+- Track earned rewards and claim codes.
+- Review reward claim history.
+- Confirm reward receipt after staff handover.
+- Receive system notifications.
+- Create support tickets with attachments.
+- Communicate with the support team.
 
 ### Administrator
 
-- Manage premium reward products, stock, categories, images, and expiry information.
-- Manage customer-purchased inventory, including category, name search, and dates.
-- Create and maintain promotions with purchase requirements, reward products, and date ranges.
-- Review receipts, choose qualifying rewards, and approve or reject submissions.
-- Find claim records, confirm reward handovers, and manage reward exceptions.
-- Respond to support tickets and add internal notes.
-- View activity history and generate filtered reports with CSV or XLSX export.
+Administrators can:
+
+- Manage premium reward products, quantities, categories, images, and expiry information.
+- Manage the customer-purchased product inventory.
+- Create and update promotional offers.
+- Configure purchase requirements and corresponding rewards.
+- Review customer receipt submissions.
+- Approve or reject submitted orders.
+- Select qualifying promotional rewards.
+- Manage reward claims and physical handovers.
+- Monitor premium stock movements.
+- Handle customer support tickets and internal notes.
+- View activity logs.
+- Generate filtered reports.
+- Export reports in CSV and XLSX formats.
+
+---
 
 ## Application Pages
 
-| Route | Page | Summary |
+| Route | Page | Description |
 |---|---|---|
-| / | Portal | Entry point for customer and administrator sign-in |
-| /login | Customer login | Customer authentication and registration link |
-| /register | Customer registration | Customer account form with password feedback and CAPTCHA |
-| /admin/login | Administrator login | Administrator sign-in |
-| /dashboard | Customer dashboard | Order submission, reward tracking, promotions, claims, notifications, and support |
-| /admin/dashboard | Premium products and promotions | Reward catalog and promotion management |
-| /admin/inventory | Inventory | Purchased-product catalog with category and name filters |
-| /admin/receipts | Receipts | Search and filter order submissions and reward states; review and approve/reject |
-| /admin/claims | Claims | Claim lookup and tabs for release, confirmation, completion, and void/expiry states |
-| /admin/tickets | Support tickets | Ticket queue, conversation, status changes, and internal notes |
-| /admin/reports | Reports | Promotion, premium-stock, and inventory-movement reports |
-| /admin/activity-log | Activity log | Filterable audit history |
+| `/` | Portal | Entry point for customer and administrator authentication |
+| `/login` | Customer Login | Customer authentication |
+| `/register` | Registration | Customer account registration with CAPTCHA |
+| `/admin/login` | Admin Login | Administrator authentication |
+| `/dashboard` | Customer Dashboard | Order submission, rewards, promotions, claims, and support |
+| `/admin/dashboard` | Admin Dashboard | Premium products and promotion management |
+| `/admin/inventory` | Inventory | Purchased-product catalog management |
+| `/admin/receipts` | Receipts | Customer order review and approval |
+| `/admin/claims` | Claims | Reward release, confirmation, completion, and expiry |
+| `/admin/tickets` | Support Tickets | Customer inquiries and ticket management |
+| `/admin/reports` | Reports | Promotion, stock, and inventory reports |
+| `/admin/activity-log` | Activity Log | Administrator activity and audit records |
+| `/account` | Account settings | Customer profile and secure password change |
+| `/notifications` | Notifications | Paginated customer notifications |
+| `/admin/customers` | Customer accounts | Audited account recovery |
 
-The premium-stock history view is opened from the relevant product actions in the administrator workspace.
+Premium stock history can be accessed through the corresponding product management actions.
+
+---
 
 ## Architecture
 
-LRTS is a single Laravel application organized around MVC, with service classes for shared business rules.
+RTS follows a **Laravel MVC architecture** with dedicated service classes for reusable business logic.
 
-~~~text
-Customer/Admin browser                 API client
-        |                                  |
-        +---------- Laravel routes --------+
-                   web.php / api.php
-                          |
-           Session auth, role checks, Sanctum
-                          |
-                     Controllers
-                          |
-     Receipt, reward, claim, stock, and audit services
-                          |
-                 Eloquent models
-                          |
-             MySQL database and file storage
-                          |
-            Blade views / JSON responses
-~~~
+```text
+Customer / Admin Browser         API Client
+           |                         |
+           +------ Laravel Routes ---+
+                       |
+                web.php / api.php
+                       |
+           Authentication & Middleware
+                       |
+                   Controllers
+                       |
+              Application Services
+          (Receipts, Rewards, Claims,
+               Stock, Auditing)
+                       |
+                 Eloquent Models
+                       |
+             MySQL & File Storage
+                       |
+             Blade Views / JSON API
+```
 
-- **Web routes** use Laravel session authentication and role-checking middleware.
-- **API routes** provide token-based authentication with Laravel Sanctum.
-- **Controllers** handle HTTP requests and responses; services hold reusable business rules.
-- **Blade views** render the customer and administrator interfaces.
-- **Migrations** define and evolve the relational schema.
-- **Private storage** holds receipt images and support attachments; authorized controllers serve them.
+### Architectural Components
 
-The API currently exposes login, authenticated-user, and receipt-submission endpoints. This repository contains the Laravel API; document a separate mobile client only if it is included in the project deliverables.
+**Routes**
+- Web routes use Laravel session authentication.
+- API routes use Laravel Sanctum token authentication.
+
+**Controllers**
+- Handle incoming requests, validation, and HTTP responses.
+
+**Services**
+- Contain reusable business logic for receipts, rewards, stock movements, claims, and auditing.
+
+**Models**
+- Represent database entities using Laravel Eloquent.
+
+**Views**
+- Use Laravel Blade templates for customer and administrator interfaces.
+
+**Database**
+- MySQL stores application records and relationships.
+- Laravel migrations define and maintain the database schema.
+
+**File Storage**
+- Receipt images and support attachments are stored privately.
+- Authorized controllers control access to sensitive files.
+
+The API currently includes authentication, user information, and receipt-submission endpoints.
+
+A separate mobile application should only be documented if it is included in the actual project deliverables.
+
+---
 
 ## Data Model
 
-The principal tables and their responsibilities are:
+The application's primary database tables are:
 
 | Area | Tables | Purpose |
 |---|---|---|
-| Accounts | users, personal_access_tokens | Customer/admin accounts and API tokens |
-| Catalogs | inventories, premium_products | Purchased-product catalog and reward-product catalog |
-| Promotions | promotions | Buy requirements, reward product, dates, and active state |
-| Orders | receipts, receipt_items, receipt_order_guards | Submitted orders, line items, and duplicate-submission protection |
-| Rewards | earned_rewards | Reward quantities, claim codes, lifecycle states, and expiry |
-| Stock history | stock_movements, premium_stock_movements | Inventory and premium-product balance changes |
-| Support | tickets, ticket_replies | Customer support conversations and attachments |
-| Notifications and audit | customer_notifications, activity_logs | Customer alerts and append-only action history |
-| Laravel support | sessions, password_reset_tokens, cache, jobs, failed_jobs | Framework session, cache, and queue support |
+| Accounts | `users`, `personal_access_tokens` | User accounts and API authentication |
+| Catalogs | `inventories`, `premium_products` | Purchased products and reward items |
+| Promotions | `promotions` | Promotion requirements and reward configurations |
+| Orders | `receipts`, `receipt_items`, `receipt_order_guards` | Order submissions and duplicate protection |
+| Rewards | `earned_rewards` | Earned rewards, claim codes, and lifecycle states |
+| Stock | `stock_movements`, `premium_stock_movements` | Stock transaction history |
+| Support | `tickets`, `ticket_replies` | Customer support conversations |
+| Notifications | `customer_notifications` | Customer notifications |
+| Auditing | `activity_logs` | System activity records |
+| Laravel Support | `sessions`, `password_reset_tokens`, `cache`, `jobs`, `failed_jobs` | Framework support |
 
-An ERD should show users with many receipts and tickets; receipts with many line items and earned rewards; tickets with many replies; and products with their corresponding stock movements. Promotions refer to a premium reward product and store the purchased-product name used for qualification. Activity records can refer to different subject models.
+### Database Relationships
 
-Use the migrations in **database/migrations** as the authoritative schema history. For a paper or presentation, diagram the final schema rather than copying the first version of a table before later migrations changed it.
+The main relationships include:
+
+- One customer can submit multiple receipts.
+- One receipt can contain multiple purchased products.
+- One receipt can generate multiple earned rewards.
+- One customer can create multiple support tickets.
+- One ticket can contain multiple replies.
+- Products can have multiple stock movement records.
+- Promotions reference premium reward products.
+- Activity logs record actions related to different entities.
+
+For database documentation and ERD creation, use the current migrations in `database/migrations` as the authoritative schema reference.
+
+---
 
 ## Technology and Open-Source Software
 
-### Runtime and application stack
+### Application Stack
 
-| Technology | Use |
+| Technology | Purpose |
 |---|---|
-| PHP 8.2+ | Application runtime |
-| Laravel 12 | Backend framework, routing, validation, authentication, and database access |
-| MySQL | Database connection selected in the current local configuration |
+| PHP 8.2+ | Server-side application runtime |
+| Laravel 12 | Backend framework |
+| MySQL 8 | Relational database |
 | Blade | Server-rendered templates |
-| Bootstrap 5.3.0 | Responsive components and layout, loaded from jsDelivr |
-| Bootstrap Icons 1.11.1 | Interface icons, loaded from jsDelivr |
-| Vanilla JavaScript and custom CSS | Dashboard interactions and Laicom styling in public/css/laicom.css |
+| Bootstrap 5.3.0 | Responsive UI components |
+| Bootstrap Icons 1.11.1 | Interface icons |
+| Vanilla JavaScript | Frontend interactions |
+| Custom CSS | System-specific design and styling |
 | Composer | PHP dependency management |
 
-### Selected packages and services
+### Additional Packages
 
-| Package or service | Purpose |
+| Package / Service | Purpose |
 |---|---|
-| Laravel Sanctum 4.3 | API token authentication |
-| edulazaro/laracaptcha 1.0 | CAPTCHA integration; Turnstile is the default configured driver, with reCAPTCHA drivers available |
-| Maatwebsite/Laravel-Excel 3.1 | CSV and XLSX report downloads |
-| Cloudflare Turnstile | Registration bot protection when configured with valid keys |
-| PHPUnit 11 | Automated tests |
+| Laravel Sanctum 4.3 | API authentication |
+| edulazaro/laracaptcha 1.0 | CAPTCHA integration |
+| Laravel Excel 3.1 | CSV and XLSX export |
+| Cloudflare Turnstile | Registration bot protection |
+| PHPUnit 11 | Automated testing |
 
-The Composer lockfile contains resolved PHP package versions and license metadata. Bootstrap and Bootstrap Icons are separate CDN assets; retain their upstream attribution and license notices. Composer development tools such as Faker, Pint, Sail, and Pail are development tooling rather than application features.
+### Frontend Assets
 
-Vite and Tailwind starter files are present in the repository, but the main Blade pages currently load Bootstrap from the CDN and the custom Laicom stylesheet directly. Confirm the asset pipeline before describing Vite/Tailwind as active runtime dependencies.
+The main interfaces use Bootstrap, Bootstrap Icons, custom CSS, and JavaScript.
+
+The repository also contains Vite and Tailwind starter files. Their actual usage should be verified before treating them as active frontend dependencies.
+
+Open-source libraries retain their respective licensing requirements.
+
+---
 
 ## Project Structure
 
-~~~text
+```text
 app/
-  Exports/                 Report export formatting
-  Http/Controllers/
-    Admin/                  Administrator workflows
-    Api/                    Token-authenticated API
-    Auth/                   Web authentication
-  Http/Middleware/          Administrator/customer role checks
-  Models/                   Eloquent data models
-  Services/                 Receipt, reward, claim, stock, and audit rules
+├── Exports/                     Report exports
+├── Http/
+│   ├── Controllers/
+│   │   ├── Admin/               Administrator workflows
+│   │   ├── Api/                 API endpoints
+│   │   └── Auth/                Web authentication
+│   └── Middleware/              Access control
+├── Models/                      Database models
+└── Services/                    Business logic
+
 config/
-  lrts.php                  Claim window, order age, and upload limit
+└── lrts.php                     Business settings
+
 database/
-  migrations/               Database schema history
-  seeders/                  Demo accounts and catalog data
+├── migrations/                  Database schema
+└── seeders/                     Demo data
+
 public/
-  css/laicom.css            LRTS design system
-  images/                   Logos and portal background
-resources/views/
-  admin/                    Administrator pages and partials
-  auth/                     Login and registration pages
-  customer/                 Customer dashboard
-  layouts/                  Shared administrator layout
+├── css/                         Application styles
+└── images/                      RTS branding and UI images
+
+resources/
+└── views/
+    ├── admin/                   Administrator interfaces
+    ├── auth/                    Authentication pages
+    ├── customer/                Customer dashboard
+    └── layouts/                 Shared layouts
+
 routes/
-  web.php                   Browser routes
-  api.php                   JSON API routes
-  console.php               Scheduled reward-expiry task
-storage/app/private/         Private receipt and ticket uploads
+├── web.php                      Browser routes
+├── api.php                      API routes
+└── console.php                  Scheduled commands
+
+storage/
+└── app/
+    └── private/                 Protected uploads
+
 tests/
-  Feature/                  Workflow and integration tests
-  Unit/                     Unit tests
-~~~
+├── Feature/                     Integration and workflow tests
+└── Unit/                        Unit tests
+```
+
+Some internal filenames may retain legacy naming conventions. Those paths should be verified against the current repository before renaming, since changing asset paths without updating their references could break the application.
+
+---
 
 ## Screenshots
 
-This repository currently includes the Laicom logos and portal background, but no application screenshots. Add current, privacy-safe screenshots under a documentation folder and link them here when available.
+Application screenshots can be added to the repository under a dedicated documentation directory.
+
+Suggested structure:
+
+```text
+docs/
+└── screenshots/
+    ├── portal.png
+    ├── customer-dashboard.png
+    ├── reward-tracker.png
+    ├── admin-dashboard.png
+    └── reports.png
+```
+
+Only use authorized screenshots with sensitive customer information removed.
+
+---
 
 ## Local Setup
 
 ### Prerequisites
 
-Install these before you begin:
+Install the following:
 
-- **PHP 8.2 or later** — https://windows.php.net/download
-- **Composer** — https://getcomposer.org/download
-- **Node.js 18+** (includes npm) — https://nodejs.org
-- **MySQL 8** — https://dev.mysql.com/downloads
-- **Git** — https://git-scm.com
+- [PHP 8.2 or later](https://windows.php.net/download)
+- [Composer](https://getcomposer.org/download)
+- [Node.js 18+](https://nodejs.org)
+- [MySQL 8](https://dev.mysql.com/downloads)
+- [Git](https://git-scm.com)
 
-### Enable required PHP extensions
+### Required PHP Extensions
 
-Open your `php.ini` file and uncomment these lines (remove the `;` at the start):
+Enable the following extensions in `php.ini`:
 
-~~~ini
+```ini
 extension=gd
 extension=zip
 extension=pdo_mysql
-~~~
+```
 
-- `gd` and `zip` — required by the Excel export package
-- `pdo_mysql` — required for MySQL connections
+These extensions support image processing, Excel exports, and MySQL connectivity.
 
-Restart your web server (Apache, nginx, or XAMPP) after editing, or restart your terminal if using PHP's built-in server.
+Restart your server or terminal after updating the configuration.
 
-### Clone the repository
+### Clone the Repository
 
-~~~bash
-git clone <github-repo-link> lrts
-cd lrts
-~~~
+```bash
+git clone <repository-url> rts
+cd rts
+```
 
-Replace `<github-repo-link>` with the actual URL. The `lrts` at the end names the folder. This creates a new `lrts` folder in your current directory containing the project.
+Replace `<repository-url>` with the actual GitHub repository URL.
 
-### Install PHP dependencies
+### Install Dependencies
 
-~~~bash
+```bash
 composer install
-~~~
+```
 
-This installs all the packages listed in `composer.lock` into the `vendor/` folder. It's the same command every teammate runs after cloning. It does **not** add new packages — it just installs what's already declared.
+If the frontend asset pipeline is required:
 
-### Install frontend dependencies
-
-~~~bash
+```bash
 npm install
-~~~
+```
 
-Installs JavaScript packages declared in `package.json`. Only required if the project's Vite/Tailwind asset pipeline is active.
+### Configure Environment
 
-### Create the `.env` file
+Create the `.env` file.
 
-If `.env` does not exist, copy the example file:
+**Windows:**
 
-~~~bash
-# Windows
+```powershell
 copy .env.example .env
+```
 
-# macOS / Linux / Git Bash
+**macOS / Linux:**
+
+```bash
 cp .env.example .env
-~~~
+```
 
-Then generate the application key:
+Generate the application key:
 
-~~~bash
+```bash
 php artisan key:generate
-~~~
+```
 
-Never commit a real `.env` file or credentials. Use a sanitized `.env.example` as the template.
+Never commit the `.env` file or actual credentials.
 
-### Create the database
+### Create the Database
 
-Create a database named `lrts` in MySQL:
+Create a MySQL database named `lrts`:
 
-~~~sql
-CREATE DATABASE lrts CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-~~~
+```sql
+CREATE DATABASE lrts
+CHARACTER SET utf8mb4
+COLLATE utf8mb4_unicode_ci;
+```
 
-You can do this via MySQL Workbench, phpMyAdmin, or the command line:
+### Configure Database Connection
 
-~~~bash
-mysql -u root -p
-~~~
+Update `.env`:
 
-Then paste the `CREATE DATABASE` line above.
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=lrts
+DB_USERNAME=root
+DB_PASSWORD=your_mysql_password
+```
 
-### Run migrations with demo data
+### Run Database Migrations
 
-~~~bash
+```bash
 php artisan migrate --seed
-~~~
+```
 
-The seeder creates demo accounts and sample catalog data. Treat seeded credentials as development-only; replace or remove them before any public deployment.
+The seeder may create development accounts and sample catalog records.
 
-### Create the public storage symlink
+Do not use demo credentials in production.
 
-~~~bash
+### Configure Storage
+
+```bash
 php artisan storage:link
-~~~
+```
 
-This links `public/storage` to `storage/app/public` so uploaded product images render properly. The application stores receipt images and support attachments on a private disk — do not move those files to a publicly accessible directory.
+This creates the public storage link for assets intended to be publicly accessible.
 
-### Build frontend assets
+Sensitive receipt images and support attachments must remain in private storage.
 
-~~~bash
+### Build Assets
+
+If the Vite build pipeline is active:
+
+```bash
 npm run build
-~~~
+```
 
-Only required if the project's Vite/Tailwind asset pipeline is active.
+### Clear Application Caches
 
-### Clear caches
-
-~~~bash
+```bash
 php artisan config:clear
 php artisan view:clear
 php artisan route:clear
 php artisan cache:clear
-~~~
+```
 
-Good habit after the first install or after editing `.env`.
+---
 
 ## Configuration
 
-Set local values in the ignored `.env` file. Common settings include:
+Application settings are managed through the `.env` file.
 
-| Variable | Purpose |
+| Variable | Description |
 |---|---|
-| APP_NAME, APP_ENV, APP_KEY, APP_DEBUG, APP_URL | Application identity, mode, encryption key, debugging, and base URL |
-| DB_CONNECTION, DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME, DB_PASSWORD | Database connection |
-| CAPTCHA_DRIVER | CAPTCHA provider; defaults to Turnstile |
-| TURNSTILE_KEY, TURNSTILE_SECRET | Turnstile site and secret keys |
-| RECAPTCHA_KEY, RECAPTCHA_SECRET | Optional reCAPTCHA v2 keys |
-| RECAPTCHA_V3_KEY, RECAPTCHA_V3_SECRET, RECAPTCHA_V3_MIN_SCORE | Optional reCAPTCHA v3 configuration |
+| `APP_NAME` | Application name |
+| `APP_ENV` | Application environment |
+| `APP_KEY` | Application encryption key |
+| `APP_DEBUG` | Debug mode |
+| `APP_URL` | Application URL |
+| `DB_CONNECTION` | Database driver |
+| `DB_HOST` | Database host |
+| `DB_PORT` | Database port |
+| `DB_DATABASE` | Database name |
+| `DB_USERNAME` | Database username |
+| `DB_PASSWORD` | Database password |
+| `CAPTCHA_DRIVER` | CAPTCHA provider |
+| `TURNSTILE_KEY` | Turnstile site key |
+| `TURNSTILE_SECRET` | Turnstile secret key |
 
-Example local `.env` values:
+### Example Local Configuration
 
-~~~env
-APP_NAME=LRTS
+```env
+APP_NAME="Rewards Tracker System"
 APP_ENV=local
 APP_DEBUG=true
 APP_URL=http://127.0.0.1:8000
@@ -365,129 +519,222 @@ DB_PASSWORD=your_mysql_password_here
 
 CAPTCHA_DRIVER=turnstile
 TURNSTILE_KEY=1x00000000000000000000AA
-TURNSTILE_SECRET=1x0000000000000000000000000000000AA
-~~~
+TURNSTILE_SECRET=1x0000000000000000000000000000AA
+```
 
-Adjust these three things:
+The Turnstile credentials above are intended for local development testing only.
 
-1. **`DB_USERNAME` and `DB_PASSWORD`** — match your local MySQL credentials. If you use XAMPP with default settings, `DB_USERNAME=root` and `DB_PASSWORD=` (empty) usually work.
-2. **`TURNSTILE_KEY` and `TURNSTILE_SECRET`** — the values above are Cloudflare's official **always-pass test keys**. For local development they work fine. For real captcha verification, get your own keys from [dash.cloudflare.com](https://dash.cloudflare.com) → Turnstile.
-3. **`APP_URL`** — only needs changing if you serve on a different port or host.
+Use real environment-specific credentials in deployed environments.
 
-Use real provider keys only in local or deployment secrets. Do not paste them into README files, screenshots, issue trackers, or source control.
+Never expose production secrets in documentation or source control.
+
+---
 
 ## Running the App
 
-Start the local development server:
+Start the local Laravel development server:
 
-~~~bash
+```bash
 php artisan serve
-~~~
+```
 
-The app runs at:
+Open:
 
-~~~text
+```text
 http://127.0.0.1:8000
-~~~
+```
 
-Open that in your browser and log in with the demo accounts (or register a new customer).
+### Testing on Another Device
 
-For phone testing on the same Wi-Fi network, start it with:
+To test on a phone connected to the same network, run:
 
-~~~bash
+```bash
 php artisan serve --host=0.0.0.0 --port=8000
-~~~
+```
 
-The `0.0.0.0` is important — it makes Laravel listen on your LAN IP, not just localhost.
+Find your computer's local IPv4 address.
 
-Then find your computer's LAN IP. Open a new Command Prompt or PowerShell window and run:
+On Windows:
 
-~~~bash
+```powershell
 ipconfig
-~~~
+```
 
-Look for **IPv4 Address** under your active Wi-Fi adapter. It looks like `192.168.1.45` or `192.168.254.112`.
+For example, if your computer's local IP is `192.168.1.45`, access the application through:
 
-On your phone's browser, open:
+```text
+http://192.168.1.45:8000
+```
 
-~~~text
-http://<your-ipv4-address>:8000
-~~~
+Make sure:
 
-For example:
+- Both devices use the same local network.
+- Windows Firewall permits the connection.
+- Router client isolation is not blocking communication.
+- The correct local IPv4 address and port are used.
 
-~~~text
-http://192.168.168.54:8000
-~~~
+Do not expose the development server directly to the public internet.
 
-Replace `192.168.168.54` with your actual IPv4 address.
+### Scheduled Tasks
 
-If your phone can't connect:
+For local scheduled task testing:
 
-- Make sure the phone is on the **same Wi-Fi network** as your computer
-- Check Windows Firewall — allow `php.exe` on **Private networks** when prompted
-- Some routers have "AP isolation" or "client isolation" turned on — disable it in router settings
-- If you're using a VPN, disconnect it
-
-For local scheduled-task testing, run:
-
-~~~bash
+```bash
 php artisan schedule:work
-~~~
+```
 
-### Captcha on phone may fail
+### CAPTCHA Testing on Mobile
 
-Cloudflare Turnstile treats `192.168.x.x` addresses as non-localhost domains and may reject HTTP-only origins. Two options:
+Cloudflare Turnstile may reject unsupported local network origins.
 
-- **For quick local testing** — temporarily disable the captcha in `.env`:
-  ~~~env
-  CAPTCHA_DRIVER=null
-  ~~~
-  Then run `php artisan config:clear` and reload. Remember to switch it back.
+For temporary local testing, use an explicitly supported development configuration.
 
-- **For real testing over HTTPS** — use a tunneling service like [ngrok](https://ngrok.com) or [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) to get a public HTTPS URL for your local server, then add that URL to your Turnstile widget's allowed domains.
+Alternatively, use an HTTPS tunnel such as:
 
-### Quick command summary
+- [ngrok](https://ngrok.com)
+- [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)
 
-~~~bash
-git clone <repo-url> lrts
-cd lrts
+Configure the appropriate allowed hostname with the CAPTCHA provider.
+
+Never disable CAPTCHA protection in a public production environment.
+
+---
+
+## Quick Setup Commands
+
+```bash
+git clone <repository-url> rts
+cd rts
+
 composer install
-npm install
+
 cp .env.example .env
 php artisan key:generate
-mysql -u root -p -e "CREATE DATABASE lrts CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-# Edit .env with your database credentials
+
+# Configure the MySQL database in .env
+
 php artisan migrate --seed
 php artisan storage:link
+
 php artisan serve
-~~~
+```
+
+If frontend building is required:
+
+```bash
+npm install
+npm run build
+```
+
+---
 
 ## Testing
 
-Run the automated suite:
+Run the automated test suite:
 
-~~~bash
+```bash
 php artisan test
-~~~
+```
 
-The test configuration in phpunit.xml uses an in-memory SQLite database, independent of the MySQL connection used by the current local application configuration.
+The current PHPUnit configuration uses an in-memory SQLite database for automated testing.
+
+The local application is configured to use MySQL.
+
+### Recommended Testing Areas
+
+- Authentication and authorization
+- Customer registration
+- Order submission and validation
+- Duplicate order prevention
+- Promotional reward qualification
+- Administrator receipt approval
+- Reward stock reservation
+- Claim requests and handover
+- Customer receipt confirmation
+- Expired reward handling
+- Support tickets
+- Reports and exports
+- API access restrictions
+
+Database concurrency behavior should also be verified using MySQL before a production release.
+
+---
 
 ## Security and Deployment
 
-Before deploying:
+Before deployment:
 
-- Set APP_ENV=production, APP_DEBUG=false, a strong APP_KEY, and HTTPS with the correct APP_URL.
-- Replace/remove demo accounts and rotate any seeded passwords.
-- Configure real CAPTCHA keys and verify registration against the intended provider.
-- Keep receipt images and ticket attachments on private storage and test authorization on download routes.
-- Set up the Laravel scheduler to run every minute; the reward-expiry command is scheduled daily at 00:10.
-- Back up the database and uploaded files and document a restore test.
-- Apply migrations deliberately; do not use migrate:fresh on a database containing data.
-- Test the complete receipt approval, claim release, customer confirmation, and expired-stock workflows using the deployment database.
+1. Set `APP_ENV=production`.
+2. Disable debugging using `APP_DEBUG=false`.
+3. Configure HTTPS and the correct `APP_URL`.
+4. Secure application secrets and credentials.
+5. Remove or replace development accounts and predictable passwords.
+6. Configure valid production CAPTCHA credentials.
+7. Verify authentication, authorization, and role permissions.
+8. Ensure receipt images and attachments remain privately accessible.
+9. Configure durable file storage and backups.
+10. Configure the Laravel scheduler.
+11. Apply database migrations carefully.
+12. Verify stock and reward transaction integrity.
+13. Test the complete order and reward claim workflow.
+14. Confirm that application logs do not expose sensitive data.
+15. Verify the production environment after deployment.
 
-## Known Test Status
+Never use `php artisan migrate:fresh` on a database containing production data.
 
-At the latest documented local test run, 27 tests passed and 2 failed in ReceiptRewardWorkflowTest. The receipt-image requirement mismatch has since been corrected in the service and customer form; the suite has not been rerun.
+Do not rotate an existing production `APP_KEY` without evaluating its effect on encrypted application data.
 
-The remaining documented mismatch is that a test expects rewards to become claimed immediately after staff release, while the current flow records them as released first and changes them to claimed after the customer confirms receipt.
+### Scheduled Reward Expiration
+
+The reward expiration command is scheduled daily at **00:10**.
+
+The production environment must invoke the Laravel scheduler regularly for expiration processing to work.
+
+### Data Protection
+
+Sensitive information should be protected through:
+
+- Authentication and role-based access controls
+- Server-side validation
+- Private file storage
+- Secure database configuration
+- Protected session management
+- Audit logging
+- Reliable database and file backups
+
+---
+
+## Verification and operations
+
+`php artisan test` runs the SQLite regression suite. MySQL concurrency tests skip unless an isolated existing database named `rts_test_*` is supplied through `RTS_MYSQL_TEST_DATABASE`; they never reset a database. See `docs/DEPLOYMENT.md` for setup, mail/storage configuration, backups, restore drills and polling checks. Current implementation results are recorded in `docs/IMPLEMENTATION_PROGRESS.md`.
+
+The UI uses self-hosted Bootstrap/icons, shared `public/css/rts.css`, Blade components and extracted customer scripts. Admin counters poll every 20 seconds; customer tracking every 30 seconds (60 on other tabs); visible support threads every 10?15 seconds. Polling pauses on hidden/idle pages and only updates safe read-only UI automatically.
+
+Create the initial administrator with `php artisan lrts:make-admin email@example.com "Administrator"`. Production seeding creates no accounts or demo data. Existing accounts are preserved and must be reviewed manually before deployment.
+
+---
+
+## Project Purpose
+
+Rewards Tracker System aims to improve the management of promotional rewards by centralizing customer submissions, administrator reviews, reward tracking, inventory monitoring, and support workflows.
+
+The project focuses on:
+
+- **Efficiency:** Reducing manual processing and repetitive administrative work.
+- **Transparency:** Providing customers with visibility into order and reward statuses.
+- **Accuracy:** Maintaining reliable promotional reward and stock records.
+- **Accountability:** Recording important administrative and transactional activities.
+- **Accessibility:** Providing a responsive interface for customers and administrators.
+- **Maintainability:** Supporting future improvements through an organized Laravel architecture.
+
+---
+
+<div align="center">
+
+### Rewards Tracker System
+
+**Manage rewards. Track progress.**
+
+Built with Laravel, PHP, MySQL, Bootstrap, and JavaScript.
+
+</div>
