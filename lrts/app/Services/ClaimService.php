@@ -75,7 +75,7 @@ class ClaimService
                     'claim_code' => $claimCode,
                     'reward_ids' => $rewards->modelKeys(),
                 ]);
-                $this->notify($user->id, 'reward.claim_requested', 'Claim code ready', 'Your claim code for order ' . $lockedReceipt->salesman_order_number . ' is ' . $claimCode . '. Show it to Laicom staff when collecting your rewards.', $lockedReceipt->id);
+                $this->notify($user->id, 'reward.claim_requested', 'Claim code ready', 'Your claim code for order ' . $lockedReceipt->salesman_order_number . ' is ' . $claimCode . '. Show it to staff when collecting your rewards.', $lockedReceipt->id);
             }
 
             return $claimCode;

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LRTS - Customer Dashboard</title>
+    <title>RTS - Customer Dashboard</title>
     <link rel="icon" href="{{ asset('favicon.ico') }}?v={{ filemtime(public_path('favicon.ico')) }}" type="image/x-icon">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
@@ -12,14 +12,16 @@
 <body class="laicom-page laicom-customer-dashboard">
 
     <!-- Navigation Bar -->
-    <nav class="navbar navbar-expand-lg navbar-dark laicom-navbar py-3 shadow-sm">
+    <nav class="navbar navbar-expand-lg navbar-dark laicom-navbar shadow-sm">
         <div class="container-fluid px-3 px-md-4">
             <button class="btn btn-sm lrts-menu-toggle me-3" id="menuToggle" type="button" aria-expanded="false" aria-controls="primaryNav" aria-label="Toggle navigation">
                 <i class="bi bi-list fs-5"></i>
             </button>
 
             <a class="navbar-brand fw-bold d-flex align-items-center lrts-customer-brand" href="#order">
-                <img src="{{ asset('images/laicom-logo.png') }}" alt="Laicom" width="24" height="24" class="me-2"> <span class="lrts-customer-brand-text">LAICOM REWARDS TRACKER</span>
+                <img src="{{ asset('images/rts-logo.png') }}" alt="RTS logo">
+                <span class="lrts-customer-brand-divider" aria-hidden="true"></span>
+                <span class="lrts-customer-brand-text">REWARDS TRACKER SYSTEM</span>
             </a>
 
             <div class="d-flex align-items-center text-white ms-auto">
@@ -130,9 +132,13 @@
                             </div>
                             <div id="order_validation_message" class="lrts-order-validation" role="alert" aria-live="polite" hidden></div>
 
-                            <div class="border border-dark border-2 bg-white mb-4 position-relative lrts-order-item-list">
+                            <div class="mb-4 position-relative lrts-order-item-list">
                                 <ul id="item_listbox" class="list-unstyled mb-0" role="listbox" aria-label="Selected products">
-                                    <li class="p-4 text-muted text-center fw-bold" id="empty_msg">NO PRODUCTS SELECTED YET.</li>
+                                    <li class="lrts-product-empty" id="empty_msg">
+                                        <span class="lrts-product-empty-icon" aria-hidden="true"><i class="bi bi-cart3"></i></span>
+                                        <strong>No products selected yet</strong>
+                                        <p>Choose a product above and click Add to build your purchase list.</p>
+                                    </li>
                                 </ul>
                             </div>
 
@@ -258,7 +264,7 @@
                                     @foreach($claimableReceipts as $claimReceipt)
                                         @php $claimCode = $claimReceipt->earnedRewards->first(fn($reward) => $reward->claim_status === 'claim_requested')?->claim_code; $awaitingConfirmation = $claimReceipt->earnedRewards->contains(fn($reward) => $reward->claim_status === 'released'); @endphp
                                         <div class="border border-dark mb-3 p-3 bg-white"><div class="d-flex flex-wrap justify-content-between gap-2 align-items-center"><div><strong>ORDER #{{ $claimReceipt->salesman_order_number }}</strong><div class="small text-muted">{{ $claimReceipt->earnedRewards->whereIn('claim_status', ['unclaimed', 'claim_requested', 'released'])->sum('reward_quantity') }} rewards · approved {{ $claimReceipt->reviewed_at?->format('M d, Y') ?? '' }}</div></div>
-                                            @if($claimCode)<div class="text-end"><span class="badge bg-warning text-dark border border-dark rounded-0">REQUESTED</span><div class="fw-bold fs-5">{{ $claimCode }}</div><small>Show this code to Laicom staff.</small></div>@endif
+                                            @if($claimCode)<div class="text-end"><span class="badge bg-warning text-dark border border-dark rounded-0">REQUESTED</span><div class="fw-bold fs-5">{{ $claimCode }}</div><small>Show this code to staff.</small></div>@endif
                                             @if($claimReceipt->earnedRewards->contains(fn($reward) => $reward->claim_status === 'unclaimed'))<form method="POST" action="{{ route('customer.receipts.claim', $claimReceipt) }}" onsubmit="return confirm('Request all available rewards for this order?');">@csrf<button class="btn laicom-btn-primary btn-sm fw-bold" type="submit">{{ $claimCode ? 'REQUEST REMAINING REWARDS' : 'REQUEST CLAIM CODE' }}</button></form>@endif
                                         </div><div class="table-responsive mt-2"><table class="table table-sm mb-0 align-middle"><thead><tr><th>PREMIUM ITEM</th><th>QTY</th><th>STATUS</th></tr></thead><tbody>
                                             @foreach($claimReceipt->earnedRewards->whereIn('claim_status', ['unclaimed', 'claim_requested', 'released']) as $reward)<tr><td>{{ $reward->premiumProduct?->name ?? $reward->reward_product_name ?? 'Reward item' }}</td><td>{{ number_format($reward->reward_quantity) }}</td><td>{{ $reward->claim_status === 'released' ? 'AWAITING YOUR CONFIRMATION' : strtoupper(str_replace('_', ' ', $reward->claim_status)) }}</td></tr>@endforeach
@@ -295,7 +301,7 @@
                                     $faqs = [
                                         ['q' => 'How do I submit a new order?', 'a' => 'Go to Submit New Order, select products and quantities, enter the order number and date, and upload a receipt photo. Staff use it to review your order.'],
                                         ['q' => 'Why is my order still "Processing"?', 'a' => 'Orders are reviewed by admin before rewards are issued. This usually takes less than 24 hours.'],
-                                        ['q' => 'How do I claim a reward?', 'a' => 'After your order is approved, open Promos & Claim and request a claim code. Show it to Laicom staff. When staff mark the reward as handed over, confirm receipt in your dashboard; then it moves to Claim History.'],
+                                        ['q' => 'How do I claim a reward?', 'a' => 'After your order is approved, open Promos & Claim and request a claim code. Show it to staff. When staff mark the reward as handed over, confirm receipt in your dashboard; then it moves to Claim History.'],
                                         ['q' => 'What if my reward is missing?', 'a' => 'Submit an inquiry here in the Help tab. Include your order number and the reward you expected so we can trace it.'],
                                         ['q' => 'How do I contact support?', 'a' => 'Click the chat bubble in the bottom-right corner, or use the Open Support Chat button below.'],
                                     ];
@@ -548,7 +554,7 @@
                     <!-- FOOTER -->
                     <div class="lrts-create-footer">
                         <div class="lrts-create-privacy">
-                            <i class="bi bi-shield-lock"></i> Your inquiry is private and only visible to Laicom support.
+                            <i class="bi bi-shield-lock"></i> Your inquiry is private and only visible to system support.
                         </div>
                         <div class="lrts-create-actions">
                             <button type="button" class="lrts-create-btn-cancel" data-bs-dismiss="modal">CANCEL</button>
@@ -1121,6 +1127,7 @@
             const quantity = document.getElementById('product_quantity');
 
             const mainListbox = document.getElementById('item_listbox');
+            const emptyProductsMarkup = document.getElementById('empty_msg').outerHTML;
             const modalSummaryList = document.getElementById('modal_summary_list');
             const hiddenContainer = document.getElementById('hidden_inputs_container');
             const processReceiptButton = document.getElementById('process_receipt_btn');
@@ -1485,7 +1492,7 @@
                     selectedOrderItem = null;
 
                     if (mainListbox.querySelectorAll('.lrts-order-item').length === 0) {
-                        mainListbox.innerHTML = '<li class="p-4 text-muted text-center fw-bold" id="empty_msg">NO PRODUCTS SELECTED YET.</li>';
+                        mainListbox.innerHTML = emptyProductsMarkup;
                         modalSummaryList.innerHTML = '<li class="text-muted" id="modal_empty_msg">No items recorded.</li>';
                     }
                     showOrderValidation();

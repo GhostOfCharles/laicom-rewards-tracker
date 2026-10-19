@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LRTS Admin Portal</title>
+    <title>RTS Admin Portal</title>
     <link rel="icon" href="{{ asset('favicon.ico') }}?v={{ filemtime(public_path('favicon.ico')) }}" type="image/x-icon">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Include Bootstrap Icons for the pencil, minus, and plus symbols -->
@@ -16,7 +16,7 @@
             <!-- Sidebar Navigation -->
             <div class="col-md-3 col-lg-2 p-3 sidebar shadow-sm">
                 <div class="laicom-sidebar-head text-center p-3 mb-4">
-                    <img src="{{ asset('images/laicom-logo.png') }}" alt="Laicom" class="mb-2">
+                    <img src="{{ asset('images/rts-logo.png') }}" alt="Rewards Tracker System" class="mb-2">
                     <div class="small fw-bold">ADMIN DASHBOARD</div>
                 </div>
                 <ul class="nav flex-column gap-2">

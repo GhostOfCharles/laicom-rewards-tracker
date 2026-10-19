@@ -22,9 +22,9 @@
         <div class="lrts-inventory-search flex-grow-1">
             <label for="inventorySearch" class="form-label small fw-bold mb-1">SEARCH INVENTORY</label>
             <div class="input-group input-group-sm">
-                <span class="input-group-text border-dark border-2 rounded-0 bg-white"><i class="bi bi-search" aria-hidden="true"></i></span>
-                <input id="inventorySearch" type="search" name="search" value="{{ $search }}" maxlength="255" class="form-control border-dark border-2 rounded-0" placeholder="Search by product name..." aria-label="Search inventory by product name">
-                <button type="submit" class="btn laicom-btn-primary">SEARCH</button>
+                <span class="input-group-text rounded-0 bg-white"><i class="bi bi-search" aria-hidden="true"></i></span>
+                <input id="inventorySearch" type="search" name="search" value="{{ $search }}" maxlength="255" class="form-control form-control-sm border-dark border-2 rounded-0" placeholder="Search by product name..." aria-label="Search inventory by product name">
+                <button type="submit" class="btn btn-sm laicom-btn-primary">SEARCH</button>
             </div>
         </div>
         @if ($category || $search !== '')

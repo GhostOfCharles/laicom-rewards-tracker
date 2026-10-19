@@ -90,7 +90,7 @@ class CustomerController extends Controller
         }
 
         return redirect()->route('customer.dashboard', ['tab' => 'promos', 'section' => 'claims'])
-            ->with('success', 'Your claim code is ' . $code . '. Show it to Laicom staff to receive your rewards.');
+            ->with('success', 'Your claim code is ' . $code . '. Show it to staff to receive your rewards.');
     }
 
     public function confirmRewardsReceived(Request $request, Receipt $receipt, ClaimService $claims)

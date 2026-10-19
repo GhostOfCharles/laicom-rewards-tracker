@@ -62,7 +62,7 @@ class WebAuthController extends Controller
         Auth::login($user);
 
         // Customers land on their own dashboard
-        return redirect()->route('customer.dashboard')->with('success', 'Account created successfully. Welcome to LRTS!');
+        return redirect()->route('customer.dashboard')->with('success', 'Account created successfully. Welcome to RTS!');
     }
 
     // Handle Login for both Customer and Admin

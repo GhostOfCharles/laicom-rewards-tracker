@@ -1,5 +1,5 @@
 /* ============================================================
-   LRTS GLOBAL DESIGN SYSTEM & POLISH
+   RTS GLOBAL DESIGN SYSTEM & POLISH
    ============================================================ */
 
 /* ---- 1. Design Tokens ---- */
@@ -100,6 +100,10 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
     padding: 0.3rem 0.65rem;
     font-size: 0.8rem;
     min-height: var(--laicom-control-height-sm);
+}
+.laicom-admin-dashboard .lrts-inventory-search .input-group-text {
+    min-height: var(--laicom-control-height-sm);
+    border-color: #8795a9;
 }
 .laicom-page .form-control:focus, .laicom-page .form-select:focus, .laicom-page textarea:focus {
     box-shadow: 0 0 0 3px rgba(18, 40, 76, 0.12) !important;
@@ -759,8 +763,8 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
     top: calc(100% + .15rem);
     right: 0;
     left: 0;
-    max-height: min(20rem, 45vh);
-    max-height: min(20rem, 45dvh);
+    max-height: min(270px, 35vh);
+    max-height: min(270px, 35dvh);
     overflow-y: auto;
     overscroll-behavior: contain;
     border: 1px solid var(--laicom-navy);
@@ -839,7 +843,12 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
 .laicom-customer-dashboard .lrts-order-line-quantity::-webkit-inner-spin-button,
 .laicom-customer-dashboard .lrts-order-line-quantity::-webkit-outer-spin-button { margin: 0; -webkit-appearance: none; }
 .laicom-customer-dashboard .lrts-order-line-quantity.is-invalid { border-color: var(--laicom-red); }
-.laicom-customer-dashboard .lrts-order-item-list { height: min(20rem, 38vh); overflow-y: auto; overscroll-behavior: contain; }
+.laicom-customer-dashboard .lrts-order-item-list { height: min(20rem, 38vh); overflow-y: auto; overscroll-behavior: contain; border: 1px solid #d6deea; border-radius: 12px; background: #fff; }
+.laicom-customer-dashboard .lrts-order-item-list:has(#empty_msg) { height: auto; border-color: #dbe6f6; background: #f4f8ff; }
+.laicom-customer-dashboard .lrts-product-empty { display: flex; min-height: 216px; flex-direction: column; align-items: center; justify-content: center; gap: .65rem; padding: 1.5rem; text-align: center; }
+.laicom-customer-dashboard .lrts-product-empty-icon { display: grid; width: 3.5rem; height: 3.5rem; place-items: center; border-radius: 50%; background: #e4edfc; color: var(--laicom-navy); font-size: 1.6rem; }
+.laicom-customer-dashboard .lrts-product-empty strong { color: var(--laicom-navy); font-size: 1rem; font-weight: 600; }
+.laicom-customer-dashboard .lrts-product-empty p { max-width: 27rem; margin: 0; color: #667085; font-size: .85rem; line-height: 1.5; }
 .laicom-customer-dashboard .lrts-order-summary-scroll { height: 7.5rem; overflow-y: auto; overscroll-behavior: contain; }
 .laicom-customer-dashboard .lrts-receipt-photo-preview { max-width: 100%; max-height: 16.25rem; object-fit: contain; }
 .laicom-customer-dashboard .lrts-empty-state-icon { font-size: 2rem; }
@@ -973,12 +982,13 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
     overflow: hidden;
     background: linear-gradient(145deg, #f1f5fb 0%, #fff 52%, #edf2fa 100%);
 }
-.laicom-customer-dashboard > .navbar { z-index: 1020; flex: 0 0 auto; min-height: 4.25rem; border-bottom: 3px solid var(--laicom-red); box-shadow: 0 4px 14px rgba(18, 40, 76, .18) !important; }
+.laicom-customer-dashboard > .navbar { z-index: 1020; flex: 0 0 auto; min-height: 4.25rem; padding-block: .75rem; border-bottom: 3px solid var(--laicom-red); box-shadow: 0 4px 14px rgba(18, 40, 76, .18) !important; }
 .laicom-customer-dashboard .lrts-customer-brand,
 .laicom-customer-dashboard .lrts-customer-brand:hover,
 .laicom-customer-dashboard .lrts-customer-brand:focus,
-.laicom-customer-dashboard .lrts-customer-brand:active { color: var(--laicom-red) !important; text-decoration: none; transition: none; }
-.laicom-customer-dashboard .lrts-customer-brand img { width: 24px; height: 24px; object-fit: contain; }
+.laicom-customer-dashboard .lrts-customer-brand:active { gap: .85rem; color: #fff !important; text-decoration: none; transition: none; }
+.laicom-customer-dashboard .lrts-customer-brand img { width: 4.5rem; height: auto; max-height: 3rem; object-fit: contain; }
+.laicom-customer-dashboard .lrts-customer-brand-divider { width: 1px; height: 2rem; flex: 0 0 1px; background: rgba(255, 255, 255, .65); }
 .laicom-customer-dashboard .lrts-customer-brand-text { color: inherit; font-size: 1rem; font-weight: 900; letter-spacing: .055em; white-space: nowrap; }
 .laicom-customer-dashboard .navbar .btn-outline-light { border-color: rgba(255, 255, 255, .78); background: rgba(255, 255, 255, .04); color: #fff; }
 .laicom-customer-dashboard .navbar .btn-outline-light:hover { border-color: #fff; background: #fff; color: var(--laicom-navy); }
@@ -1001,7 +1011,7 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
     box-shadow: 4px 0 14px rgba(18, 40, 76, .06);
     z-index: 1040;
 }
-.laicom-customer-dashboard .lrts-sidebar-heading { margin-bottom: .85rem; padding: .55rem .65rem .7rem; border-bottom: 2px solid var(--laicom-red); color: var(--laicom-navy); font-size: .67rem; font-weight: 900; letter-spacing: .12em; }
+.laicom-customer-dashboard .lrts-sidebar-heading { margin-bottom: .85rem; padding: .55rem 0 .7rem; border-bottom: 2px solid var(--laicom-red); color: var(--laicom-navy); font-size: .67rem; font-weight: 900; letter-spacing: .12em; text-align: left; }
 .laicom-customer-dashboard .lrts-sidebar .nav { display: flex; flex-direction: column; gap: .5rem; }
 .laicom-customer-dashboard .lrts-sidebar .nav-item { width: 100%; }
 .laicom-customer-dashboard .lrts-sidebar .nav-pills .nav-link {
@@ -1047,6 +1057,9 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
 .laicom-customer-dashboard .laicom-card { margin-bottom: 1.25rem; }
 .laicom-customer-dashboard .laicom-card > .card-header,
 .laicom-customer-dashboard .card > .card-header { min-height: 3rem; padding: .8rem 1rem; border-bottom: 3px solid var(--laicom-red); border-radius: .65rem .65rem 0 0; background: linear-gradient(105deg, #12284c, #1b3a68); color: #fff; letter-spacing: .045em; }
+.laicom-customer-dashboard #order .laicom-card { overflow: visible; }
+.laicom-customer-dashboard #order .card-header { min-height: 2.75rem; padding: .6rem 1rem; gap: 1rem; }
+.laicom-customer-dashboard #order .card-header > span:first-child { font-size: .95rem; }
 .laicom-customer-dashboard .laicom-card .card-body { padding: 1.15rem; }
 .laicom-customer-dashboard .modal-content { overflow: hidden; border: 1px solid #cbd5e2 !important; border-radius: .75rem !important; box-shadow: 0 16px 44px rgba(10, 27, 53, .24); }
 .laicom-customer-dashboard .modal-header { border-radius: .7rem .7rem 0 0; }
@@ -1127,7 +1140,8 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
     .laicom-customer-dashboard > .navbar > .container-fluid { gap: .35rem; padding-right: .6rem !important; padding-left: .6rem !important; }
     .laicom-customer-dashboard .lrts-menu-toggle { width: 2.1rem; min-width: 2.1rem; min-height: 2.1rem; margin-right: .25rem !important; padding: .2rem; }
     .laicom-customer-dashboard .lrts-customer-brand { min-width: 0; gap: .25rem; margin-right: .25rem; }
-    .laicom-customer-dashboard .lrts-customer-brand img { width: 24px; height: 24px; margin-right: 0 !important; }
+    .laicom-customer-dashboard .lrts-customer-brand img { width: 2.5rem; height: auto; margin-right: 0 !important; }
+    .laicom-customer-dashboard .lrts-customer-brand-divider { height: 1.5rem; }
     .laicom-customer-dashboard .lrts-customer-brand-text { font-size: clamp(.58rem, 2.6vw, .78rem); letter-spacing: .01em; }
     .laicom-customer-dashboard > .navbar .laicom-bell { min-width: 2.1rem; min-height: 2.1rem; padding: .25rem .4rem; }
     .laicom-customer-dashboard > .navbar .dropdown.me-3 { margin-right: .4rem !important; }
@@ -1151,7 +1165,7 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
     .laicom-customer-dashboard .lrts-product-combobox-option { min-height: 3.25rem; gap: .65rem; padding: .4rem .55rem; }
     .laicom-customer-dashboard .lrts-product-combobox-option img { width: 2.4rem; height: 2.4rem; flex-basis: 2.4rem; }
     .laicom-customer-dashboard .lrts-product-combobox-option span { font-size: .82rem; }
-    .laicom-customer-dashboard .lrts-product-combobox-options { max-height: min(18rem, 45vh); max-height: min(18rem, 45dvh); }
+    .laicom-customer-dashboard .lrts-product-combobox-options { max-height: min(270px, 35vh); max-height: min(270px, 35dvh); }
     .laicom-customer-dashboard #order .card-body > .d-flex.justify-content-between { flex-wrap: wrap; gap: .5rem; }
     .laicom-customer-dashboard #order .card-body > .d-flex.justify-content-between .btn { flex: 1 1 auto; min-width: 0; padding-right: .6rem !important; padding-left: .6rem !important; }
     .laicom-customer-dashboard .lrts-notification-menu { position: fixed !important; inset: 4rem .5rem auto !important; width: auto !important; min-width: 0 !important; max-width: none; transform: none !important; }
