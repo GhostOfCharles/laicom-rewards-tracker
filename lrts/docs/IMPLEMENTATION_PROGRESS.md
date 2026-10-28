@@ -41,3 +41,16 @@ Application phases 0-7 implemented and verified as below. Existing application d
 - Verify rights to supplied artwork. No infrastructure deployment, live secret rotation or existing-data deletion occurred. A newly created rts_test_* database contains only test/browser fixtures and is retained for repeatable checks; QA server/browser are stopped after verification.
 
 Cleanup: stopped the dedicated 8900 QA server and 9331 headless browser; removed the temporary QA credential file and four QA-only receipt images after verifying the application database did not reference them. Existing customer files were retained.
+
+## 2026-10-26: Role-selection heading animation
+- Added portal-only vanilla JS typing/backspacing and blinking caret; original typography/geometry, accessible label, static reduced-motion fallback and page lifecycle cleanup retained. No other headings or role routes changed.
+- Files: portal.blade.php, auth.css, new portal-typewriter.js, AuthenticationUiTest.php and this log.
+- Verified: 7 authentication tests (113 assertions), JS syntax and diff checks; Edge at 1440px/320px confirmed looping/timing, zero layout shifts/console errors, reduced-motion fallback, lifecycle timers and both role links. Temporary QA server/browser stopped; no database changes.
+
+### Customer login follow-up
+- Reused the animation for "Welcome Back, Customer." on customer login only, with stable multiline spacing/caret placement on mobile. Admin/registration headings remain static.
+- Updated customer-login.blade.php, shared animation/CSS and auth regression expectations. All 7 auth tests passed (114 assertions); customer and portal browser checks at 1440px/320px passed with zero layout shifts/console errors. QA helpers stopped; no database changes.
+
+### Role-selection heading removal
+- Removed the landing heading and its animation script; the existing centered, content-sized card naturally closes the heading space. Subtitle, logo, buttons and footer retain their styles. Customer login animation unchanged.
+- Shared header omits absent headings; card accessibility references the existing subtitle. Updated regression expectations; tests not rerun for this targeted removal.

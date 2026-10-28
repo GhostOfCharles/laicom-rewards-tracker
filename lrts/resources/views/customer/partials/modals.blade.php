@@ -10,8 +10,8 @@
                     <!-- HEADER -->
                     <div class="lrts-create-header">
                         <div class="lrts-create-header-row">
-                            <h6 class="lrts-create-title">
-                                <i class="bi bi-life-preserver"></i> CREATE NEW TICKET
+                            <h6 class="lrts-create-title" id="lrtsCreateTitle">
+                                <i class="bi bi-ticket-detailed" aria-hidden="true"></i> CREATE NEW TICKET
                             </h6>
                             <button type="button" class="lrts-create-close" data-bs-dismiss="modal" aria-label="Close">
                                 <i class="bi bi-x-lg"></i>
@@ -20,15 +20,15 @@
                         <div class="lrts-create-subtitle">
                             We typically reply within 24 hours.
                         </div>
+                        <div class="lrts-create-accent"></div>
                     </div>
-                    <div class="lrts-create-accent"></div>
 
                     <!-- BODY -->
                     <div class="lrts-create-body">
 
                         <!-- Subject -->
                         <div class="lrts-create-field">
-                            <label class="lrts-create-label">
+                            <label class="lrts-create-label" for="lrtsCreateSubject">
                                 <i class="bi bi-tag"></i> SUBJECT
                             </label>
                             <input type="text"
@@ -44,23 +44,23 @@
 
                         <!-- Category chips -->
                         <div class="lrts-create-field">
-                            <label class="lrts-create-label">
+                            <label class="lrts-create-label" id="lrtsCreateCategoryLabel">
                                 <i class="bi bi-list-check"></i> CATEGORY
                             </label>
                             <input type="hidden" name="category" id="lrtsCreateCategory" value="" required>
-                            <div class="lrts-create-chips" id="lrtsCreateChips">
-                                <button type="button" class="lrts-create-chip" data-value="orders"><i class="bi bi-bag"></i> Orders</button>
-                                <button type="button" class="lrts-create-chip" data-value="rewards"><i class="bi bi-gift"></i> Rewards</button>
-                                <button type="button" class="lrts-create-chip" data-value="promos"><i class="bi bi-tags"></i> Promos</button>
-                                <button type="button" class="lrts-create-chip" data-value="account"><i class="bi bi-person"></i> Account</button>
-                                <button type="button" class="lrts-create-chip" data-value="other"><i class="bi bi-question-circle"></i> Other</button>
+                            <div class="lrts-create-chips" id="lrtsCreateChips" role="radiogroup" aria-labelledby="lrtsCreateCategoryLabel">
+                                <button type="button" class="lrts-create-chip" data-value="orders" role="radio" aria-checked="false" tabindex="0"><i class="bi bi-bag" aria-hidden="true"></i> Orders</button>
+                                <button type="button" class="lrts-create-chip" data-value="rewards" role="radio" aria-checked="false" tabindex="-1"><i class="bi bi-gift" aria-hidden="true"></i> Rewards</button>
+                                <button type="button" class="lrts-create-chip" data-value="promos" role="radio" aria-checked="false" tabindex="-1"><i class="bi bi-tags" aria-hidden="true"></i> Promos</button>
+                                <button type="button" class="lrts-create-chip" data-value="account" role="radio" aria-checked="false" tabindex="-1"><i class="bi bi-person" aria-hidden="true"></i> Account</button>
+                                <button type="button" class="lrts-create-chip" data-value="other" role="radio" aria-checked="false" tabindex="-1"><i class="bi bi-question-circle" aria-hidden="true"></i> Other</button>
                             </div>
-                            <div class="lrts-create-error" id="lrtsCategoryError" style="display:none;">Please select a category.</div>
+                            <div class="lrts-create-error" id="lrtsCategoryError" role="alert" style="display:none;">Please select a category.</div>
                         </div>
 
                         <!-- Related order -->
                         <div class="lrts-create-field">
-                            <label class="lrts-create-label">
+                            <label class="lrts-create-label" for="lrtsCreateReceipt">
                                 <i class="bi bi-receipt"></i> RELATED ORDER <span class="lrts-create-optional">(OPTIONAL)</span>
                             </label>
                             <select name="related_receipt_id" id="lrtsCreateReceipt" class="lrts-create-input">
@@ -88,7 +88,7 @@
 
                         <!-- Message -->
                         <div class="lrts-create-field">
-                            <label class="lrts-create-label">
+                            <label class="lrts-create-label" for="lrtsCreateBody">
                                 <i class="bi bi-chat-left-text"></i> MESSAGE
                             </label>
                             <textarea name="body"
@@ -110,7 +110,7 @@
                             <label for="lrtsCreateAttachment" class="lrts-create-dropzone" id="lrtsDropzone">
                                 <i class="bi bi-cloud-arrow-up lrts-create-dropzone-icon"></i>
                                 <div class="lrts-create-dropzone-text">
-                                    Drop a screenshot here, or <span>click to browse</span>
+                                    Drag a file here or click to browse
                                 </div>
                                 <div class="lrts-create-dropzone-hint">
                                     Allowed: JPG, PNG, GIF, WEBP, PDF (Max 5MB)
@@ -125,6 +125,7 @@
                             <div class="lrts-create-file-info" id="lrtsFileInfo" style="display:none;">
                                 <i class="bi bi-file-earmark-check"></i>
                                 <span id="lrtsFileName"></span>
+                                <span class="lrts-create-file-size"></span>
                                 <button type="button" class="lrts-create-file-remove" id="lrtsFileRemove" aria-label="Remove file">
                                     <i class="bi bi-x-lg"></i>
                                 </button>
@@ -142,7 +143,9 @@
                         <div class="lrts-create-actions">
                             <button type="button" class="lrts-create-btn-cancel" data-bs-dismiss="modal">CANCEL</button>
                             <button type="submit" class="lrts-create-btn-submit">
-                                <i class="bi bi-send-fill"></i> SUBMIT TICKET
+                                <i class="bi bi-send-fill" aria-hidden="true"></i>
+                                <span class="lrts-create-spinner" aria-hidden="true" hidden></span>
+                                <span class="lrts-create-submit-label">SUBMIT TICKET</span>
                             </button>
                         </div>
                     </div>

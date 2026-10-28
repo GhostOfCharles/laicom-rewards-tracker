@@ -43,7 +43,7 @@
                     <li class="nav-item">
                         <a class="nav-link text-dark {{ request()->routeIs('admin.activity-log') ? 'active' : '' }}" href="{{ route('admin.activity-log') }}"><i class="bi bi-clock-history me-2"></i>ACTIVITY LOG</a>
                     </li>
-                    <li class="nav-item"><a class="nav-link text-dark {{ request()->routeIs('admin.customers*') ? 'active' : '' }}" href="{{ route('admin.customers') }}"><i class="bi bi-people me-2"></i>Customer accounts</a></li>
+                    <li class="nav-item"><a class="nav-link text-dark {{ request()->routeIs('admin.customers*') ? 'active' : '' }}" href="{{ route('admin.customers') }}"><i class="bi bi-people me-2"></i>CUSTOMER ACCOUNTS</a></li>
                 </ul>
             </div>
 

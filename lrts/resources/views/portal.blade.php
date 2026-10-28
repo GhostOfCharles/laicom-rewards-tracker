@@ -1,7 +1,6 @@
 @extends('layouts.auth')
 
 @section('title', 'Welcome')
-@section('auth-heading', 'Welcome Back')
 @section('auth-description', 'Select your role to continue.')
 @section('auth-page-class', 'lrts-portal-page')
 @section('auth-card-class', 'portal-card')

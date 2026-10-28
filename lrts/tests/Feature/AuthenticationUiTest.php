@@ -14,11 +14,30 @@ class AuthenticationUiTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_typewriter_script_is_only_loaded_on_customer_login(): void
+    {
+        $this->get(route('portal'))->assertOk()
+            ->assertDontSeeText('Welcome Back')
+            ->assertDontSee('id="auth-title"', false)
+            ->assertDontSee('js/portal-typewriter.js', false)
+            ->assertSee('aria-labelledby="auth-description"', false)
+            ->assertSee('href="'.route('login.customer').'"', false)
+            ->assertSee('href="'.route('login.admin').'"', false);
+
+        $this->get(route('login.customer'))->assertOk()
+            ->assertSeeText('Welcome Back, Customer.')
+            ->assertSee('js/portal-typewriter.js', false);
+
+        foreach (['login.admin', 'register.customer'] as $routeName) {
+            $this->get(route($routeName))->assertOk()->assertDontSee('js/portal-typewriter.js', false);
+        }
+    }
+
     public function test_public_authentication_pages_keep_accessible_fields_and_original_form_routes(): void
     {
         $pages = [
-            ['portal', 'Welcome Back', null, []],
-            ['login.customer', 'Welcome Back', 'login.customer.submit', ['email' => 'email', 'password' => 'password']],
+            ['portal', 'Select your role to continue.', null, []],
+            ['login.customer', 'Welcome Back, Customer.', 'login.customer.submit', ['email' => 'email', 'password' => 'password']],
             ['login.admin', 'Admin Login', 'login.admin.submit', ['email' => 'email', 'password' => 'password']],
             ['register.customer', 'Create an Account', 'register.customer.submit', [
                 'name' => 'text', 'email' => 'email', 'store_name' => 'text',

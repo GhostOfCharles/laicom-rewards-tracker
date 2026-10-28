@@ -105,6 +105,28 @@ class AdminDashboardCatalogTest extends TestCase
         $this->assertStringNotContainsString('Promotion 2', $searchBodies[1][1]);
     }
 
+    public function test_all_premium_products_modal_keeps_paginated_rows_and_one_footer_summary(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        for ($index = 1; $index <= 21; $index++) {
+            $this->createPremium(sprintf('Pager Product %02d', $index), sprintf('PRM-PAGER-%02d', $index), 1, 'food');
+        }
+
+        $firstPage = $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk();
+        $firstHtml = $firstPage->getContent();
+        preg_match('/id="allPremiumProductsModal".*?class="modal-body p-2 premium-products-body".*?<tbody>(.*?)<\/tbody>/s', $firstHtml, $firstRows);
+        $this->assertStringContainsString('Pager Product 01', $firstRows[1] ?? '');
+        $this->assertStringNotContainsString('Pager Product 21', $firstRows[1] ?? '');
+        $this->assertSame(1, substr_count($firstHtml, 'id="premiumProductsResultCount"'));
+        $this->assertStringContainsString('Showing 1 to 20 of 21 results', $firstHtml);
+        $this->assertStringContainsString('premium_page=2', $firstHtml);
+
+        $secondPage = $this->get(route('admin.dashboard', ['premium_page' => 2]))->assertOk();
+        preg_match('/id="allPremiumProductsModal".*?class="modal-body p-2 premium-products-body".*?<tbody>(.*?)<\/tbody>/s', $secondPage->getContent(), $secondRows);
+        $this->assertStringContainsString('Pager Product 21', $secondRows[1] ?? '');
+        $this->assertStringContainsString('Showing 21 to 21 of 21 results', $secondPage->getContent());
+    }
+
     public function test_new_premium_product_names_cannot_duplicate_existing_names_by_case_only(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

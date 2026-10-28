@@ -173,6 +173,18 @@
 .auth-sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 /* Role-specific details retain the approved portal's layout. */
+.lrts-auth-page .portal-typewriter { position: relative; }
+.lrts-auth-page .portal-typewriter-reserve { visibility: hidden; white-space: pre; }
+.lrts-auth-page .portal-typewriter-display { position: absolute; inset: 0; }
+.lrts-auth-page .portal-typewriter-text { position: absolute; top: 0; left: 50%; transform: translateX(-50%); white-space: pre; }
+.lrts-auth-page .portal-typewriter-display::after { content: ""; position: absolute; left: 50%; top: .1em; height: 1em; margin-left: .06em; transform: translate(var(--portal-caret-offset, 0px), var(--portal-caret-line, 0px)); border-left: 1px solid currentColor; animation: portal-caret 1s step-end infinite; }
+.lrts-customer-login-page .auth-intro { width: 100%; min-width: 0; }
+.lrts-customer-login-page .portal-typewriter-reserve { white-space: normal; }
+.lrts-customer-login-page .portal-typewriter-text { width: 100%; white-space: normal; }
+@keyframes portal-caret { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+    .lrts-auth-page .portal-typewriter-display::after { display: none; animation: none; }
+}
 .portal-actions { display: grid; width: 100%; gap: var(--auth-space-sm); }
 .portal-role-button { display: grid; grid-template-columns: 1.5rem minmax(0, 1fr) 1rem; gap: var(--auth-space-lg); text-align: left; }
 .portal-role-button i { display: inline-flex; align-items: center; justify-content: center; line-height: 1; }

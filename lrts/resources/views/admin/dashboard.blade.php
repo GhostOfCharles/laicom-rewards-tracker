@@ -160,15 +160,19 @@
                 <h5 class="modal-title fw-bold" id="allPremiumProductsTitle">ALL PREMIUM PRODUCTS <span class="small fw-normal">({{ $premiumProductCount }})</span></h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body p-2">
-                <div class="table-responsive">
+            <div class="modal-body p-2 premium-products-body">
+                <div class="table-responsive premium-products-table-scroll">
                     <table class="table table-bordered rts-table mb-0 text-center align-middle">
                         <thead><tr><th>PRODUCT NAME</th><th>CATEGORY</th><th>STOCK</th><th>STATUS</th><th>EXPIRY</th><th>ACTIONS</th></tr></thead>
                         <tbody>@foreach($premiumProducts as $premium) @include('admin.partials.premium-product-row', ['premium' => $premium]) @endforeach</tbody>
                     </table>
                 </div>
             </div>
-            <div class="modal-footer py-2"><span class="small text-muted me-auto">{{ $premiumProducts->links() }}</span><button type="button" class="btn btn-sm btn-outline-dark rounded-0" data-bs-dismiss="modal">CLOSE</button></div>
+            <div class="modal-footer py-2 premium-products-footer">
+                <span class="small text-muted" id="premiumProductsResultCount" aria-live="polite">Showing {{ $premiumProducts->firstItem() ?? 0 }} to {{ $premiumProducts->lastItem() ?? 0 }} of {{ $premiumProducts->total() }} results</span>
+                <div id="premiumProductsPagination" aria-live="polite">{{ $premiumProducts->links('pagination::bootstrap-5') }}</div>
+                <button type="button" class="btn btn-sm btn-outline-dark rounded-0" data-bs-dismiss="modal">CLOSE</button>
+            </div>
         </div>
     </div>
 </div>
@@ -699,6 +703,63 @@
 
 <script>
     (() => {
+        let premiumPageLoading = false;
+
+        const loadPremiumPage = async (url, updateHistory = true) => {
+            const modal = document.getElementById('allPremiumProductsModal');
+            const currentRows = modal?.querySelector('tbody');
+            const currentPagination = document.getElementById('premiumProductsPagination');
+            const currentCount = document.getElementById('premiumProductsResultCount');
+            if (!modal || !currentRows || !currentPagination || !currentCount || premiumPageLoading) return;
+
+            premiumPageLoading = true;
+            modal.setAttribute('aria-busy', 'true');
+
+            try {
+                const response = await fetch(url, {
+                    credentials: 'same-origin',
+                    headers: { 'Accept': 'text/html', 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (!response.ok) throw new Error('Unable to load premium products.');
+
+                const page = new DOMParser().parseFromString(await response.text(), 'text/html');
+                const nextModal = page.getElementById('allPremiumProductsModal');
+                const nextRows = nextModal?.querySelector('tbody');
+                const nextPagination = page.getElementById('premiumProductsPagination');
+                const nextCount = page.getElementById('premiumProductsResultCount');
+                if (!nextRows || !nextPagination || !nextCount) throw new Error('Premium product results were not found.');
+
+                currentRows.replaceChildren(...Array.from(nextRows.childNodes, node => document.importNode(node, true)));
+                currentPagination.replaceChildren(...Array.from(nextPagination.childNodes, node => document.importNode(node, true)));
+                currentCount.textContent = nextCount.textContent;
+
+                document.querySelectorAll('[id^="editPremiumProductModal"]').forEach(editModal => editModal.remove());
+                page.querySelectorAll('[id^="editPremiumProductModal"]').forEach(editModal => {
+                    document.body.appendChild(document.importNode(editModal, true));
+                });
+
+                if (updateHistory) history.pushState({}, '', url);
+                modal.querySelector('.premium-products-table-scroll').scrollTop = 0;
+            } catch (error) {
+                window.location.assign(url);
+            } finally {
+                premiumPageLoading = false;
+                modal.removeAttribute('aria-busy');
+            }
+        };
+
+        document.addEventListener('click', event => {
+            const link = event.target.closest('#allPremiumProductsModal #premiumProductsPagination a');
+            if (!link) return;
+            event.preventDefault();
+            loadPremiumPage(link.href);
+        });
+
+        window.addEventListener('popstate', () => {
+            const modal = document.getElementById('allPremiumProductsModal');
+            if (modal?.classList.contains('show')) loadPremiumPage(window.location.href, false);
+        });
+
         document.querySelectorAll('.premium-perishable-toggle').forEach((toggle) => {
             const form = toggle.closest('form');
             const fields = form?.querySelector('.premium-expiry-fields');

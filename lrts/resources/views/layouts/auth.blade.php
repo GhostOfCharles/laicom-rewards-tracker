@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="{{ asset('css/auth.css') }}?v={{ filemtime(public_path('css/auth.css')) }}">
 </head>
 <body class="lrts-auth-page @yield('auth-page-class')" style="--auth-background-image: image-set(url('{{ $authBackgroundWebpUrl }}') type('image/webp'), url('{{ $authBackgroundUrl }}') type('image/jpeg')); ">
-    <main class="auth-card @yield('auth-card-class')" aria-labelledby="auth-title">
+    <main class="auth-card @yield('auth-card-class')" aria-labelledby="{{ $__env->hasSection('auth-heading') ? 'auth-title' : 'auth-description' }}">
         @hasSection('auth-back')
             <a href="@yield('auth-back')" class="auth-back"><i class="bi bi-arrow-left" aria-hidden="true"></i> Back</a>
         @endif

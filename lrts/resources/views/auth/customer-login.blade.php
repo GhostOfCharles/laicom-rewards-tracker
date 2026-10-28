@@ -2,7 +2,8 @@
 
 @section('title', 'Customer Login')
 @section('auth-back', route('portal'))
-@section('auth-heading', 'Welcome Back')
+@section('auth-heading', 'Welcome Back, Customer.')
+@section('auth-page-class', 'lrts-customer-login-page')
 @section('auth-description', 'Sign in to access your rewards.')
 
 @section('content')
@@ -37,3 +38,7 @@
 
     <p class="auth-switch">Don't have an account? <a href="{{ route('register.customer') }}">Sign up</a></p>
 @endsection
+
+@push('scripts')
+    <script src="{{ asset('js/portal-typewriter.js') }}?v={{ filemtime(public_path('js/portal-typewriter.js')) }}"></script>
+@endpush
