@@ -194,7 +194,7 @@
                     </table>
                 </div>
             </div>
-            <div class="modal-footer py-2"><span class="small text-muted me-auto">{{ $promotions->links() }}</span><button type="button" class="btn btn-sm btn-outline-dark rounded-0" data-bs-dismiss="modal">CLOSE</button></div>
+            <div class="modal-footer py-2"><div class="small text-muted me-auto">{{ $promotions->links('pagination::bootstrap-5') }}</div><button type="button" class="btn btn-sm btn-outline-dark rounded-0" data-bs-dismiss="modal">CLOSE</button></div>
         </div>
     </div>
 </div>

@@ -92,7 +92,7 @@
     </div>
 </div>
 
-{{ $inventory->links() }}
+<div class="lrts-inventory-pagination">{{ $inventory->links('pagination::bootstrap-5') }}</div>
 <!-- Add Inventory Item Modal -->
 <div class="modal fade" id="addInventoryModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">

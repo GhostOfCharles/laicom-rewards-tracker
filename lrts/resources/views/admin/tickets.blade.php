@@ -2,7 +2,7 @@
 
 @section('content')
 <form class="d-flex gap-2 mb-3"><input type="hidden" name="status" value="{{ $filter }}"><input name="search" class="form-control" aria-label="Search tickets" placeholder="Subject or customer" value="{{ $search }}"><button class="btn rts-btn-primary">Search</button></form>
-{{ $tickets->links() }}
+{{ $tickets->links('pagination::bootstrap-5') }}
 
 @php
     $filters = [

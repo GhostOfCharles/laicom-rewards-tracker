@@ -85,5 +85,5 @@
             <div class="rts-card p-4 text-center text-muted fw-bold">NO CLAIMS FOUND FOR THIS VIEW.</div>
         @endforelse
     </div>
-{{ $claimPages->links() }}
+{{ $claimPages->links('pagination::bootstrap-5') }}
 @endsection

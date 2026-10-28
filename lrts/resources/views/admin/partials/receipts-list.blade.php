@@ -32,5 +32,5 @@
     <div class="lrts-receipt-card-modal-actions"><button type="button" class="btn rts-btn-primary" data-receipt-panel="{{ route('admin.receipts.panel',$receipt) }}">{{ $receipt->status==='pending' ? 'Review receipt' : 'View details' }}</button></div>
 </article>
 @empty<x-empty-state title="No receipts match this filter" icon="receipt" />@endforelse
-</div>{{ $receipts->links() }}
+</div>{{ $receipts->links('pagination::bootstrap-5') }}
 </div>
