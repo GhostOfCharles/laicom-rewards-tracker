@@ -1,17 +1,15 @@
 document.addEventListener('DOMContentLoaded', function() {
-            const zoomableImages = document.querySelectorAll('.lrts-zoomable-img');
             const lightbox = document.getElementById('lrtsImageLightbox');
             const lightboxImg = document.getElementById('lrtsLightboxImg');
 
-            // Attach click event to all zoomable images
-            zoomableImages.forEach(img => {
-                img.addEventListener('click', function() {
+            document.addEventListener('click', function(event) {
+                    const img = event.target.closest('.lrts-zoomable-img');
+                    if (!img) return;
                     // Get the source from data-src or src
-                    const src = this.getAttribute('data-src') || this.src;
+                    const src = img.getAttribute('data-src') || img.src;
                     lightboxImg.src = src;
                     lightbox.classList.add('is-open');
                     document.body.style.overflow = 'hidden'; // Prevent background scrolling
-                });
             });
 
             // Function to close the lightbox

@@ -14,7 +14,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 } catch (_) {}
             });
 
-            document.querySelectorAll('[data-open-reward-ticket]').forEach(button => button.addEventListener('click', () => {
+            document.addEventListener('click', event => {
+                const button = event.target.closest('[data-open-reward-ticket]');
+                if (!button) return;
                 const receiptSelect = document.getElementById('lrtsCreateReceipt');
                 const receiptId = button.dataset.receiptId;
                 const option = receiptSelect?.querySelector(`option[value="${receiptId}"]`);
@@ -25,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.querySelectorAll('#lrtsCreateChips .lrts-create-chip').forEach(chip => chip.classList.toggle('is-selected', chip.dataset.value === 'rewards'));
                 const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('createTicketModal'));
                 modal.show();
-            }));
+            });
 
             const slipInput = document.getElementById('receiptSlipInput');
             slipInput?.addEventListener('change', () => {

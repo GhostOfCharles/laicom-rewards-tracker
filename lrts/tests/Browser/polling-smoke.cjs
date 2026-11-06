@@ -22,7 +22,7 @@ async function main() {
                 if (mode === 'fail') throw Error('Offline');
                 if (mode === 'pending') await new Promise(resolve => { release = resolve; });
                 return {ok: mode !== 'expired', status: mode === 'expired' ? 401 : 200, redirected: false,
-                    headers: {get() { return '"same"'; }}, async json() { return {version: 'same'}; }};
+                    headers: {get() { return '"same"'; }}, async json() { return {version: 'same', receipts: 2}; }};
             } finally { active--; }
         },
     });

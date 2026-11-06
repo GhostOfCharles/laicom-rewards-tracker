@@ -13,6 +13,7 @@
 
     @php $eligibilityData = $promotions->map(fn($p)=>['product'=>$p->buy_product_name,'title'=>$p->title,'required'=>$p->required_quantity]); @endphp
     <script>window.rtsCustomerConfig = {notificationsPreview: @json(route('customer.notifications.preview')), notificationsRead: @json(route('customer.notifications.read')), csrf: @json(csrf_token())}; window.rtsPromotions = @json($eligibilityData);</script>
+    <script type="application/json" id="rts-promotion-data">@json($eligibilityData)</script>
     <!-- Navigation Bar -->
     <nav class="navbar navbar-expand-lg navbar-dark rts-navbar shadow-sm">
         <div class="container-fluid px-3 px-md-4">

@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\CustomerNotification;
+use App\Models\EarnedReward;
+use App\Models\Promotion;
 use App\Models\Receipt;
 use App\Models\Ticket;
 use App\Models\TicketReply;
@@ -46,6 +48,69 @@ class PollingTest extends TestCase
         $this->getJson(route('customer.pulse'))->assertJsonPath('unseen_support_tickets', 0);
         $this->actingAs($admin)->getJson(route('admin.tickets.replies', $ticket))->assertOk()->assertJsonCount(2, 'messages');
         $this->getJson(route('admin.tickets.replies', [$ticket, 'after' => $public->id]))->assertJsonCount(0, 'messages');
+    }
+
+    public function test_customer_version_tracks_old_rewards_promotions_and_ticket_status(): void
+    {
+        $customer = User::factory()->create();
+        $other = User::factory()->create();
+        $receipt = Receipt::factory()->create(['user_id' => $customer->id]);
+        $promotion = Promotion::factory()->create();
+        $rewards = EarnedReward::factory()->count(101)->create([
+            'user_id' => $customer->id, 'receipt_id' => $receipt->id,
+            'promotion_id' => $promotion->id, 'premium_product_id' => $promotion->premium_product_id,
+        ]);
+        $ticket = Ticket::create(['user_id' => $customer->id, 'subject' => 'Question', 'category' => 'orders', 'status' => 'open']);
+        $this->actingAs($customer);
+        $version = $this->getJson(route('customer.pulse'))->json('version');
+
+        Receipt::factory()->create(['user_id' => $other->id]);
+        Cache::forget('rts-pulse:customer:'.$customer->id);
+        $this->assertSame($version, $this->getJson(route('customer.pulse'))->json('version'));
+
+        $rewards->first()->update(['claim_status' => 'released']);
+        Cache::forget('rts-pulse:customer:'.$customer->id);
+        $next = $this->getJson(route('customer.pulse'))->json('version');
+        $this->assertNotSame($version, $next);
+
+        $promotion->update(['title' => 'Updated promotion']);
+        Cache::forget('rts-pulse:customer:'.$customer->id);
+        $version = $this->getJson(route('customer.pulse'))->json('version');
+        $this->assertNotSame($next, $version);
+
+        $ticket->update(['status' => 'closed']);
+        Cache::forget('rts-pulse:customer:'.$customer->id);
+        $this->assertNotSame($version, $this->getJson(route('customer.pulse'))->json('version'));
+    }
+
+    public function test_customer_dashboard_returns_current_claim_actions_and_is_scoped(): void
+    {
+        $customer = User::factory()->create();
+        $other = User::factory()->create();
+        $receipt = Receipt::factory()->create(['user_id' => $customer->id, 'status' => 'approved']);
+        $reward = EarnedReward::factory()->create(['user_id' => $customer->id, 'receipt_id' => $receipt->id, 'claim_status' => 'unclaimed']);
+        Receipt::factory()->create(['user_id' => $other->id, 'salesman_order_number' => 'PRIVATE-OTHER-ORDER']);
+        $this->actingAs($customer)->get(route('customer.dashboard'))->assertOk()->assertSee('REQUEST CLAIM CODE')->assertDontSee('PRIVATE-OTHER-ORDER');
+
+        $reward->update(['claim_status' => 'released']);
+        $this->get(route('customer.dashboard'))->assertOk()->assertSee('I RECEIVED THESE REWARDS')->assertDontSee('PRIVATE-OTHER-ORDER');
+    }
+
+    public function test_notification_changes_update_the_customer_version_and_list_is_private(): void
+    {
+        $customer = User::factory()->create();
+        $other = User::factory()->create();
+        $this->actingAs($customer);
+        $version = $this->getJson(route('customer.pulse'))->json('version');
+        $notification = CustomerNotification::create(['user_id' => $customer->id, 'type' => 'test', 'title' => 'Your update', 'body' => 'A reward changed', 'created_at' => now()]);
+        CustomerNotification::create(['user_id' => $other->id, 'type' => 'test', 'title' => 'Another customer secret', 'body' => 'Private', 'created_at' => now()]);
+        Cache::forget('rts-pulse:customer:'.$customer->id);
+        $response = $this->getJson(route('customer.pulse'))->assertJsonPath('unread_notifications', 1);
+        $this->assertNotSame($version, $response->json('version'));
+        $this->get(route('customer.notifications'))->assertOk()->assertSee('Your update')->assertDontSee('Another customer secret')->assertSee('data-customer-notifications', false);
+        $notification->update(['read_at' => now()]);
+        Cache::forget('rts-pulse:customer:'.$customer->id);
+        $this->assertNotSame($response->json('version'), $this->getJson(route('customer.pulse'))->assertJsonPath('unread_notifications', 0)->json('version'));
     }
 
     public function test_admin_etag_and_poll_throttle_and_panel_access(): void

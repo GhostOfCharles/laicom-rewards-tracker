@@ -1,5 +1,10 @@
 # RTS implementation progress
 
+## 2026-11-04: Customer polling
+- Customer dashboard and notifications now poll every 8 seconds; open ticket threads poll immediately and every 5 seconds. Changed sections refresh without replacing open dialogs or ticket drafts; ticket reply rendering remains customer-scoped.
+- Updated customer pulse/version tracking, dashboard and notification views, shared poller, customer event handlers, and polling tests. Corrected shared admin polling for numeric receipt counts.
+- Verified: PollingTest (6 tests, 106 assertions), receipt/reward and support feature tests (10 tests, 88 assertions), deterministic poller smoke and local browser smoke. Live deployment, production load and real multi-user browser sessions were not verified.
+
 ## Status
 Application phases 0-7 implemented and verified as below. Existing application database, credentials and private uploads were not reset, rotated or deleted. New schema migrations have been exercised on isolated SQLite/MySQL fixtures, not applied to the existing application database. No deployment or Git commits were made; pre-existing README/roadmap work was preserved.
 
