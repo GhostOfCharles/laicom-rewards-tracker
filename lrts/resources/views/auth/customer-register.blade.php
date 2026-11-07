@@ -1,60 +1,68 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LRTS - Customer Registration</title>
-    <link rel="icon" href="{{ asset('favicon.ico') }}" type="image/x-icon">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="{{ asset('css/laicom.css') }}">
-</head>
-<body class="lrts-auth-page" style="--lrts-auth-bg-image: url('{{ asset('images/portal-bg.jpg') }}');">
-    <div class="login-card">
-        <img src="{{ asset('images/laicom-logo-header.png') }}" alt="LRTS" class="logo-header">
-        <div class="subtitle">LAICOM REWARDS TRACKER SYSTEM</div>
+@extends('layouts.auth')
 
-        <h5 class="welcome-title">CUSTOMER REGISTRATION</h5>
-        <div class="title-divider"></div>
+@section('title', 'Create an Account')
+@section('auth-back', route('login.customer'))
+@section('auth-heading', 'Create an Account')
+@section('auth-description', 'Register to start tracking your rewards.')
 
-        @if ($errors->any())
-            <div class="alert alert-danger py-2 small">
-                <ul class="mb-0 ps-3">
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
-
-        <form action="{{ route('register.customer.submit') }}" method="POST">
+@section('content')
+        <form action="{{ route('register.customer.submit') }}" method="POST" class="auth-form" data-auth-form>
             @csrf
 
-            <div class="input-icon">
-                <i class="bi bi-person-fill"></i>
-                <input type="text" name="name" placeholder="FULL NAME" required value="{{ old('name') }}">
-            </div>
+            <x-auth-field
+                name="name"
+                label="Full Name"
+                icon="person-fill"
+                autocomplete="name"
+                :value="old('name')"
+                required
+            />
 
-            <div class="input-icon">
-                <i class="bi bi-envelope-fill"></i>
-                <input type="email" name="email" placeholder="EMAIL / USERNAME" required value="{{ old('email') }}">
-            </div>
+            <x-auth-field
+                name="email"
+                type="email"
+                label="Email / Username"
+                icon="envelope-fill"
+                autocomplete="username"
+                :value="old('email')"
+                required
+            />
 
-            <div class="input-icon">
-                <i class="bi bi-shop"></i>
-                <input type="text" name="store_name" placeholder="STORE NAME" value="{{ old('store_name') }}">
-            </div>
+            <x-auth-field
+                name="store_name"
+                label="Store Name"
+                icon="shop"
+                autocomplete="organization"
+                :value="old('store_name')"
+                required
+            />
 
-            <div class="input-icon">
-                <i class="bi bi-telephone-fill"></i>
-                <input type="text" name="phone_number" id="phoneNumber" placeholder="09XX XXX XXXX" value="{{ old('phone_number') }}" inputmode="numeric" maxlength="13" pattern="09[0-9]{2} [0-9]{3} [0-9]{4}">
-            </div>
+            <x-auth-field
+                name="phone_number"
+                id="phoneNumber"
+                label="Contact Number"
+                icon="telephone-fill"
+                placeholder="09XX XXX XXXX"
+                autocomplete="tel-national"
+                :value="old('phone_number')"
+                inputmode="numeric"
+                maxlength="13"
+                pattern="09[0-9]{2} [0-9]{3} [0-9]{4}"
+                required
+            />
 
-            <div class="input-icon pw-input-wrap">
-                <i class="bi bi-lock-fill"></i>
-                <input type="password" name="password" id="registerPassword" class="pw-input" placeholder="PASSWORD" required autocomplete="new-password" aria-describedby="pwStrength">
-                <button type="button" class="pw-toggle" id="pwToggle" aria-label="Show password" aria-pressed="false">SHOW</button>
-            </div>
+            <x-auth-field
+                name="password"
+                type="password"
+                id="registerPassword"
+                label="Password"
+                icon="lock-fill"
+                class="pw-input"
+                autocomplete="new-password"
+                described-by="pwStrength"
+                toggle-id="pwToggle"
+                required
+            />
             <div class="pw-strength" id="pwStrength" style="display:none;" aria-live="polite">
                 <div class="pw-strength-bars">
                     <span class="pw-bar" data-bar="1"></span>
@@ -71,27 +79,30 @@
                 </ul>
             </div>
 
-            <div class="input-icon">
-                <i class="bi bi-lock-fill"></i>
-                <input type="password" name="password_confirmation" id="registerPasswordConfirmation" placeholder="CONFIRM PASSWORD" required autocomplete="new-password" aria-describedby="pwMatch">
-            </div>
+            <x-auth-field
+                name="password_confirmation"
+                type="password"
+                id="registerPasswordConfirmation"
+                label="Confirm Password"
+                icon="lock-fill"
+                autocomplete="new-password"
+                described-by="pwMatch"
+                required
+            />
             <div class="pw-match" id="pwMatch" style="display:none;" aria-live="polite"></div>
 
             {{-- Cloudflare Turnstile widget (renders based on CAPTCHA_DRIVER in .env) --}}
-            <div class="captcha-wrapper">
-                <x-laracaptcha::widget />
+            <div class="auth-captcha captcha-wrapper" aria-label="Security verification">
+                <x-auth-captcha />
             </div>
 
-            <button type="submit" class="btn-login">REGISTER</button>
+            <x-auth-submit label="Create Account" loading-label="Creating account…" />
         </form>
 
-        <span class="login-link">ALREADY A MEMBER? <a href="{{ route('login.customer') }}">LOGIN</a></span>
+        <p class="auth-switch">Already have an account? <a href="{{ route('login.customer') }}">Sign in</a></p>
+@endsection
 
-        <div class="card-footer-text">
-            LAICOM SALES &amp; PROMOTIONS, INC.<br>
-            <span class="small-line">REWARDS TODAY. STRONGER TOMORROW.</span>
-        </div>
-    </div>
+@push('scripts')
     <script>
         (() => {
             const password = document.getElementById('registerPassword');
@@ -102,7 +113,6 @@
             const bars = [...document.querySelectorAll('.pw-bar')];
             const requirements = [...document.querySelectorAll('.pw-req')];
             const match = document.getElementById('pwMatch');
-            const toggle = document.getElementById('pwToggle');
 
             const updateStrength = () => {
                 const value = password.value;
@@ -165,18 +175,9 @@
             password.addEventListener('input', () => { updateStrength(); updateMatch(); });
             confirmation.addEventListener('input', updateMatch);
             phone.addEventListener('input', formatPhone);
-            toggle.addEventListener('click', () => {
-                const showing = password.type === 'password';
-                password.type = showing ? 'text' : 'password';
-                toggle.textContent = showing ? 'HIDE' : 'SHOW';
-                toggle.setAttribute('aria-label', showing ? 'Hide password' : 'Show password');
-                toggle.setAttribute('aria-pressed', String(showing));
-            });
-
             formatPhone();
             updateStrength();
             updateMatch();
         })();
     </script>
-</body>
-</html>
+@endpush

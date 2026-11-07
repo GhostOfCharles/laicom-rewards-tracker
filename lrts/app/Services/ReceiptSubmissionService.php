@@ -2,11 +2,13 @@
 
 namespace App\Services;
 
+use App\Models\Inventory;
 use App\Models\Receipt;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -16,11 +18,10 @@ use Throwable;
 class ReceiptSubmissionService
 {
     private const MAX_SLIP_EDGE = 1600;
+
     private const MAX_COMPRESSED_SLIP_BYTES = 1_048_576;
 
-    public function __construct(private readonly ActivityLogger $activityLogger)
-    {
-    }
+    public function __construct(private readonly ActivityLogger $activityLogger) {}
 
     public function createFromRequest(Request $request, User $user): Receipt
     {
@@ -29,11 +30,11 @@ class ReceiptSubmissionService
 
         $validated = $request->validate([
             'salesman_order_number' => ['required', 'string', 'max:100'],
-            'order_date' => ['required', 'date_format:Y-m-d', 'before_or_equal:today', 'after_or_equal:' . $minimumDate],
-            'slip' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:' . $slipLimit],
+            'order_date' => ['required', 'date_format:Y-m-d', 'before_or_equal:today', 'after_or_equal:'.$minimumDate],
+            'slip' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:'.$slipLimit],
             'customer_note' => ['nullable', 'string', 'max:500'],
             'items' => ['required', 'array', 'min:1', 'max:50'],
-            'items.*.product_name' => ['required', 'string', 'exists:inventories,name'],
+            'items.*.product_name' => ['required', 'string', 'max:255'],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:9999'],
             'items.*.unit_price' => ['nullable', 'numeric', 'min:0'],
         ], [
@@ -50,9 +51,10 @@ class ReceiptSubmissionService
         $slip = $request->file('slip');
         $compressedSlip = $slip ? $this->compressSlip($slip) : null;
         $slipPath = null;
+        $duplicateBlocked = false;
 
         try {
-            return DB::transaction(function () use ($validated, $orderNumber, $compressedSlip, $user, &$slipPath) {
+            return DB::transaction(function () use ($validated, $orderNumber, $compressedSlip, $user, &$slipPath, &$duplicateBlocked) {
                 $orderHash = hash('sha256', $orderNumber);
                 DB::table('receipt_order_guards')->insertOrIgnore([
                     'order_number_hash' => $orderHash,
@@ -67,6 +69,7 @@ class ReceiptSubmissionService
                     ->exists();
 
                 if ($duplicate) {
+                    $duplicateBlocked = true;
                     throw ValidationException::withMessages([
                         'salesman_order_number' => 'This order number was already submitted. If you think this is a mistake, contact support.',
                     ]);
@@ -85,14 +88,19 @@ class ReceiptSubmissionService
                 ]);
 
                 foreach ($validated['items'] as $item) {
+                    $inventory = Inventory::where('name_key', Inventory::nameKey($item['product_name']))->lockForUpdate()->first();
+                    if (! $inventory) {
+                        throw ValidationException::withMessages(['items' => 'Choose a product from the current catalog.']);
+                    }
                     $receipt->items()->create([
-                        'product_name' => $item['product_name'],
+                        'product_name' => $inventory->name,
+                        'inventory_id' => $inventory->id,
                         'quantity' => (int) $item['quantity'],
                         'unit_price' => $item['unit_price'] ?? 0,
                     ]);
                 }
 
-                $this->activityLogger->record('receipt.submitted', 'Receipt ' . $orderNumber . ' submitted for review.', $receipt, [
+                $this->activityLogger->record('receipt.submitted', 'Receipt '.$orderNumber.' submitted for review.', $receipt, [
                     'order_number' => $orderNumber,
                     'order_date' => $validated['order_date'],
                     'item_lines' => count($validated['items']),
@@ -102,6 +110,9 @@ class ReceiptSubmissionService
                 return $receipt->load('items');
             });
         } catch (Throwable $exception) {
+            if ($duplicateBlocked) {
+                $this->activityLogger->record('receipt.duplicate_blocked', 'Duplicate order submission blocked.', null, ['order_number_hash' => hash('sha256', $orderNumber)]);
+            }
             if ($slipPath) {
                 Storage::disk('private')->delete($slipPath);
             }
@@ -116,10 +127,19 @@ class ReceiptSubmissionService
         }
 
         $sourceBytes = file_get_contents($slip->getRealPath());
+        $dimensions = $sourceBytes === false ? false : @getimagesizefromstring($sourceBytes);
+        if (! $dimensions || $dimensions[0] < 1 || $dimensions[1] < 1 || $dimensions[0] * $dimensions[1] > 40_000_000) {
+            throw ValidationException::withMessages(['slip' => 'Choose a valid receipt photo smaller than 40 megapixels.']);
+        }
+        $memoryLimit = ini_parse_quantity(ini_get('memory_limit'));
+        if ($memoryLimit > 0 && $memoryLimit - memory_get_usage(true) < $dimensions[0] * $dimensions[1] * 8 + strlen($sourceBytes) * 2 + 16777216) {
+            throw ValidationException::withMessages(['slip' => 'This photo is too large to process. Choose a smaller image.']);
+        }
         $image = $sourceBytes === false ? false : @imagecreatefromstring($sourceBytes);
         unset($sourceBytes);
 
         if ($image === false) {
+            Log::warning('GD could not decode a validated receipt image.', ['width' => $dimensions[0], 'height' => $dimensions[1]]);
             throw ValidationException::withMessages(['slip' => 'Upload a valid receipt image.']);
         }
 
@@ -210,6 +230,7 @@ class ReceiptSubmissionService
             $rotated = imagerotate($image, $angle, 0);
             if ($rotated !== false) {
                 imagedestroy($image);
+
                 return $rotated;
             }
         }
@@ -219,8 +240,15 @@ class ReceiptSubmissionService
 
     private function storeCompressedSlip(string $bytes): string
     {
-        $path = 'receipt-slips/' . Str::uuid() . '.jpg';
-        Storage::disk('private')->put($path, $bytes);
+        $path = 'receipt-slips/'.Str::uuid().'.jpg';
+        try {
+            if (! Storage::disk('private')->put($path, $bytes)) {
+                throw new RuntimeException('Receipt write failed.');
+            }
+        } catch (Throwable $exception) {
+            Log::warning('Receipt storage unavailable.', ['exception_type' => get_class($exception)]);
+            throw ValidationException::withMessages(['slip' => 'Receipt storage is temporarily unavailable. Please try again.']);
+        }
 
         return $path;
     }

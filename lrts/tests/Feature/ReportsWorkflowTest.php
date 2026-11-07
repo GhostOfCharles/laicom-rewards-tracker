@@ -78,7 +78,7 @@ class ReportsWorkflowTest extends TestCase
         $this->put(route('admin.inventory.update', $item->id), [
             'name' => 'Expiring Soap',
             'category' => 'home_care',
-            'stock_balance' => 17,
+            'stock_balance' => 17, 'expected_stock' => 20,
             'entry_date' => today()->subDays(1)->toDateString(),
             'expiry_date' => today()->addDays(10)->toDateString(),
         ])->assertRedirect();
@@ -138,7 +138,7 @@ class ReportsWorkflowTest extends TestCase
         $this->assertStringContainsString('premium-reward-stock-movement-', $xlsx->headers->get('content-disposition'));
         if (class_exists(\ZipArchive::class)) {
             $xlsxFile = $xlsx->baseResponse->getFile()->getPathname();
-            $workbook = new \ZipArchive();
+            $workbook = new \ZipArchive;
             $this->assertSame(true, $workbook->open($xlsxFile));
             $sheetXml = $workbook->getFromName('xl/worksheets/sheet1.xml');
             $workbook->close();
@@ -158,6 +158,6 @@ class ReportsWorkflowTest extends TestCase
             'range' => 'custom',
             'start_date' => today()->subDays(3)->toDateString(),
             'end_date' => today()->toDateString(),
-        ]))->assertOk()->assertSee('Range: ' . today()->subDays(3)->format('M d, Y') . ' to ' . today()->format('M d, Y'));
+        ]))->assertOk()->assertSee('Range: '.today()->subDays(3)->format('M d, Y').' to '.today()->format('M d, Y'));
     }
 }

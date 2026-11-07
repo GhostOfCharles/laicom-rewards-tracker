@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class ProductImageResolver
 {
@@ -17,7 +17,7 @@ class ProductImageResolver
         $productName = trim((string) data_get($product, 'name', ''));
         $label = $productName !== '' ? $productName : trim((string) $name);
         $imagePath = trim((string) data_get($product, 'image_path', ''));
-        $hasStoredImage = $imagePath !== '' && Storage::disk('public')->exists($imagePath);
+        $hasStoredImage = $imagePath !== '' && ! str_contains($imagePath, '..');
 
         $words = preg_split('/\s+/u', $label, -1, PREG_SPLIT_NO_EMPTY) ?: [];
         $initials = collect(array_slice($words, 0, 2))
@@ -25,7 +25,7 @@ class ProductImageResolver
             ->implode('');
 
         return [
-            'src' => $hasStoredImage ? asset('storage/' . ltrim($imagePath, '/')) : null,
+            'src' => $hasStoredImage ? Storage::disk('public')->url(ltrim($imagePath, '/')) : null,
             'label' => $label !== '' ? $label : 'Product',
             'initials' => $initials !== '' ? Str::upper($initials) : '?',
         ];

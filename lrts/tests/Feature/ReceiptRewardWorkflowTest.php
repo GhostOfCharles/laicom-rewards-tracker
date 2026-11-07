@@ -9,7 +9,6 @@ use App\Models\Promotion;
 use App\Models\Receipt;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -139,10 +138,13 @@ class ReceiptRewardWorkflowTest extends TestCase
         $this->assertSame('claim_requested', $earnedReward->fresh()->claim_status);
         $this->actingAs($admin)->post(route('admin.rewards.release', $earnedReward))
             ->assertRedirect()->assertSessionHas('success');
+        $this->assertSame('released', $earnedReward->fresh()->claim_status);
+        $this->assertNull($earnedReward->fresh()->claimed_at);
+        $this->actingAs($customer)->post(route('customer.receipts.confirm-received', $receipt))->assertRedirect()->assertSessionHas('success');
         $this->assertSame('claimed', $earnedReward->fresh()->claim_status);
         $this->assertNotNull($earnedReward->fresh()->claimed_at);
 
-        $adminPage = $this->actingAs($admin)->get(route('admin.receipts'))->assertOk();
+        $adminPage = $this->actingAs($admin)->get(route('admin.receipts.panel', $receipt))->assertOk();
         $adminPage->assertSee('PURCHASED PRODUCTS')->assertSee('REWARD DETAILS &amp; HISTORY', false);
 
         $rejectedReceipt = Receipt::create([
@@ -236,11 +238,6 @@ class ReceiptRewardWorkflowTest extends TestCase
 
         $this->assertDatabaseHas('receipts', ['id' => $receipt->id, 'status' => 'pending']);
         $this->assertDatabaseMissing('earned_rewards', ['receipt_id' => $receipt->id]);
-        $this->actingAs($admin)->get(route('admin.receipts'))->assertSee('WARNING: EXPIRED REWARD PRODUCT');
-    }
-
-    private function fakePng(string $name): UploadedFile
-    {
-        return UploadedFile::fake()->createWithContent($name, base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j5WQAAAAASUVORK5CYII='));
+        $this->actingAs($admin)->get(route('admin.receipts.panel', $receipt))->assertSee('WARNING: EXPIRED REWARD PRODUCT');
     }
 }

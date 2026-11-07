@@ -1,0 +1,43 @@
+name: RTS checks
+on: [push, pull_request]
+jobs:
+  application:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: lrts
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: rts_test_ci
+        ports: ['3306:3306']
+        options: --health-cmd="mysqladmin ping --silent" --health-interval=10s --health-timeout=5s --health-retries=10
+    env:
+      APP_ENV: testing
+      DB_CONNECTION: sqlite
+      DB_DATABASE: ':memory:'
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_USERNAME: root
+      DB_PASSWORD: ''
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: gd, zip, pdo_mysql, pdo_sqlite
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: composer install --no-interaction --prefer-dist
+      - run: cp .env.example .env && php artisan key:generate
+      - run: php artisan test --exclude-group=mysql
+      - run: php artisan test --group=mysql
+        env:
+          RTS_MYSQL_TEST_DATABASE: rts_test_ci
+      - run: node tests/Browser/polling-smoke.cjs

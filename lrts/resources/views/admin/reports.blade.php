@@ -1,7 +1,7 @@
 @extends('layouts.admin')
 
 @section('content')
-    <div class="laicom-card p-4 mb-4">
+    <div class="rts-card p-4 mb-4">
         <h5 class="fw-bold mb-4 border-bottom border-dark pb-2">REPORT TYPE</h5>
         <form method="GET" action="{{ route('admin.reports') }}" id="reportForm">
             <div class="row g-3">
@@ -50,12 +50,12 @@
             </div>
 
             <div class="text-end mt-4">
-                <button type="submit" class="btn laicom-btn-primary px-5 fw-bold"><i class="bi bi-play-fill me-1"></i>GENERATE</button>
+                <button type="submit" class="btn rts-btn-primary px-5 fw-bold"><i class="bi bi-play-fill me-1"></i>GENERATE</button>
             </div>
         </form>
     </div>
 
-    <div class="laicom-card p-4">
+    <div class="rts-card p-4">
         <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 border-bottom border-dark pb-2 mb-3">
             <div>
                 <h5 class="fw-bold mb-1">{{ strtoupper($reports[$reportType]) }} PREVIEW</h5>
@@ -158,7 +158,7 @@
         @endif
 
         <div class="table-responsive border border-dark">
-            <table class="table table-hover align-middle mb-0 laicom-table">
+            <table class="table table-hover align-middle mb-0 rts-table">
                 <thead>
                     <tr>@foreach ($columns as $column)<th class="text-nowrap">{{ $column }}</th>@endforeach</tr>
                 </thead>

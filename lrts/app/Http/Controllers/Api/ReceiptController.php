@@ -10,6 +10,7 @@ class ReceiptController extends Controller
 {
     public function store(Request $request, ReceiptSubmissionService $submissions)
     {
+        abort_unless($request->user()->tokenCan('receipts:create'), 403);
         abort_unless($request->user()->role === 'customer', 403, 'Customer access is required.');
 
         $receipt = $submissions->createFromRequest($request, $request->user());

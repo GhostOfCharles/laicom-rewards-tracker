@@ -1,0 +1,3 @@
+@props(['name', 'label', 'type' => 'text', 'value' => null])
+@php $fieldId = $attributes->get('id', $name); @endphp
+<div class="mb-3"><label for="{{ $fieldId }}" class="form-label">{{ $label }}</label><input id="{{ $fieldId }}" name="{{ $name }}" type="{{ $type }}" {{ $attributes->except('id')->class(['form-control', 'is-invalid' => $errors->has($name)]) }} @if(!in_array($type,['password','file'])) value="{{ old($name, $value) }}" @endif @error($name) aria-invalid="true" aria-describedby="{{ $fieldId }}-error" @enderror>@error($name)<div id="{{ $fieldId }}-error" class="invalid-feedback">{{ $message }}</div>@enderror</div>

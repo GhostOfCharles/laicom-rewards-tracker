@@ -13,13 +13,13 @@ return new class extends Migration
             $table->integer('stock')->default(0)->after('name');
         });
 
-        // 2. Refactor the Inventories table to hold Unilever products instead of premium stock
+        // 2. Refactor the Inventories table to hold purchased products instead of premium stock
         Schema::table('inventories', function (Blueprint $table) {
             // Drop the old foreign key that linked it to premium products
             $table->dropForeign(['premium_product_id']);
             $table->dropColumn('premium_product_id');
-            
-            // Add the correct columns for Unilever products
+
+            // Add the correct columns for purchased products
             $table->string('name')->after('id');
             $table->string('category')->after('name');
         });

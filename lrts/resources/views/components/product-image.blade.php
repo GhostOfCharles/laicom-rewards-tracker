@@ -5,7 +5,7 @@
 @endphp
 
 @if ($r['src'])
-    <img src="{{ $r['src'] }}" alt="{{ $r['label'] }}" loading="lazy"
+    <img src="{{ $r['src'] }}" alt="{{ $r['label'] }}" loading="lazy" width="{{ $size }}" height="{{ $size }}"
          class="{{ $class }}"
          style="width:{{ $size }}px;height:{{ $size }}px;object-fit:contain;"
          onerror="this.hidden=true;this.nextElementSibling.hidden=false;">
