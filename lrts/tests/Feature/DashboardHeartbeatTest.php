@@ -96,7 +96,7 @@ class DashboardHeartbeatTest extends TestCase
         $next->assertDontSee('Public support response')->assertDontSee('Private internal note');
     }
 
-    public function test_refresh_regions_protect_form_and_modal_nodes(): void
+    public function test_pages_use_existing_poller_without_enabling_the_unused_live_dashboard(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $customer = User::factory()->create(['role' => 'customer']);
@@ -115,21 +115,15 @@ class DashboardHeartbeatTest extends TestCase
             $document = new DOMDocument;
             $document->loadHTML($html, LIBXML_NOERROR | LIBXML_NOWARNING);
             $xpath = new DOMXPath($document);
-            $regions = $xpath->query('//*[@data-live-region]');
-            $this->assertGreaterThan(0, $regions->length, $route);
-            $keys = [];
-            foreach ($regions as $region) {
-                $keys[] = $region->getAttribute('data-live-region');
-                $this->assertSame(0, $xpath->query('.//script | .//*[contains(concat(" ", normalize-space(@class), " "), " modal ")]', $region)->length, $route);
-                if ($region->hasAttribute('data-live-preserve-forms')) {
-                    foreach ($xpath->query('.//form', $region) as $form) $this->assertNotSame('', $form->getAttribute('id'));
-                    $this->assertSame(0, $xpath->query('.//input[not(ancestor::form)] | .//textarea[not(ancestor::form)] | .//select[not(ancestor::form)]', $region)->length, $route);
-                } else {
-                    $this->assertSame(0, $xpath->query('.//form | .//input | .//textarea | .//select', $region)->length, $route.' '.$region->getAttribute('data-live-region'));
-                }
-                $this->assertSame(0, $xpath->query('ancestor::form | ancestor::*[@data-live-region]', $region)->length, $route);
+            $this->assertSame(1, $xpath->query('//script[contains(@src, "/js/rts-poll.js")]')->length, $route);
+            $this->assertSame(0, $xpath->query('//*[@data-live-dashboard]')->length, $route);
+            $expectedEndpoint = route(str_starts_with($route, 'admin.') ? 'admin.nav-counts' : 'customer.pulse');
+            $this->assertSame($expectedEndpoint, $document->getElementsByTagName('body')->item(0)->getAttribute('data-pulse-url'), $route);
+            if ($route === 'admin.receipts') {
+                $regions = $xpath->query('//*[@data-refresh-region="receipts"]');
+                $this->assertSame(1, $regions->length);
+                $this->assertSame(0, $xpath->query('.//*[contains(concat(" ", normalize-space(@class), " "), " modal ")]', $regions->item(0))->length);
             }
-            $this->assertSame($keys, array_values(array_unique($keys)), $route);
             foreach ($xpath->query('//button[@form]') as $button) {
                 $this->assertSame(1, $xpath->query('//form[@id="'.$button->getAttribute('form').'"]')->length, $route.' must keep each action form available');
             }

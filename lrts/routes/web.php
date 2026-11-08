@@ -16,6 +16,7 @@ use App\Http\Controllers\Auth\WebAuthController;
 use App\Http\Controllers\Customer\AccountController;
 use App\Http\Controllers\Customer\PulseController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\HeartbeatController;
 use App\Http\Controllers\ReceiptSlipController;
 use App\Http\Controllers\TicketAttachmentController;
 use App\Http\Controllers\TicketController;
@@ -70,6 +71,7 @@ Route::post('/admin/login', [WebAuthController::class, 'login'])->middleware('th
 Route::post('/logout', [WebAuthController::class, 'logout'])->name('logout');
 
 Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
+    Route::get('/heartbeat', HeartbeatController::class)->middleware('throttle:pulse')->name('admin.heartbeat');
     Route::get('/nav-counts', NavCountController::class)->middleware('throttle:pulse')->name('admin.nav-counts');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
 
@@ -136,6 +138,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
 });
 
 Route::middleware(['auth', 'customer', 'password.current', 'throttle:pulse'])->group(function () {
+    Route::get('/dashboard/heartbeat', HeartbeatController::class)->name('customer.heartbeat');
     Route::get('/dashboard/pulse', PulseController::class)->name('customer.pulse');
     Route::get('/dashboard/tickets/{ticket}/replies', [TicketRepliesController::class, 'index'])->name('customer.tickets.replies');
     Route::post('/dashboard/tickets/{ticket}/read', [TicketRepliesController::class, 'read'])->name('customer.tickets.read');

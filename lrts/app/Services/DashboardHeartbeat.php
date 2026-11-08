@@ -21,12 +21,17 @@ class DashboardHeartbeat
 
     public function adminCounts(): array
     {
-        return Cache::remember('dashboard:admin:counts', self::TTL, fn () => [
+        return Cache::remember('rts-pulse:admin', 5, fn () => [
             'receipts' => Receipt::where('status', 'pending')->count(),
             'claims' => EarnedReward::where('claim_status', 'claim_requested')->distinct('receipt_id')->count('receipt_id'),
-            'tickets' => Ticket::whereIn('status', ['open', 'pending', 'in_progress'])->count(),
-            'premium-expiry' => PremiumProduct::where('is_perishable', true)
-                ->whereDate('expiry_date', '<=', today()->addDays(30)->toDateString())->count(),
+            'tickets' => Ticket::unarchived()->whereIn('status', ['open', 'pending', 'in_progress'])->count(),
+            'premium-expiry' => PremiumProduct::where('is_perishable', true)->whereDate('expiry_date', '<=', \App\Services\BusinessDate::today()->addDays(30))->count(),
+            'version' => hash('sha256', json_encode([
+                Receipt::orderBy('id')->get(['id', 'status', 'updated_at']),
+                EarnedReward::orderBy('id')->get(['id', 'claim_status', 'updated_at']),
+                Ticket::orderBy('id')->get(['id', 'status', 'archived_at', 'updated_at']),
+                TicketReply::max('id'),
+            ])),
         ]);
     }
 
