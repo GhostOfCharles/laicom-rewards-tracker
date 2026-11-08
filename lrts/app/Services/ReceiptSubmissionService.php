@@ -25,12 +25,13 @@ class ReceiptSubmissionService
 
     public function createFromRequest(Request $request, User $user): Receipt
     {
-        $minimumDate = today()->subDays((int) config('lrts.order_max_age_days', 60))->toDateString();
+        $today = BusinessDate::today();
+        $minimumDate = $today->subDays((int) config('lrts.order_max_age_days', 60))->toDateString();
         $slipLimit = (int) config('lrts.slip_max_kb', 10240);
 
         $validated = $request->validate([
             'salesman_order_number' => ['required', 'string', 'max:100'],
-            'order_date' => ['required', 'date_format:Y-m-d', 'before_or_equal:today', 'after_or_equal:'.$minimumDate],
+            'order_date' => ['required', 'date_format:Y-m-d', 'before_or_equal:'.$today->toDateString(), 'after_or_equal:'.$minimumDate],
             'slip' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:'.$slipLimit],
             'customer_note' => ['nullable', 'string', 'max:500'],
             'items' => ['required', 'array', 'min:1', 'max:50'],

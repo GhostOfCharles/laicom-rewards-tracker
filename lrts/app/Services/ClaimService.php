@@ -25,6 +25,9 @@ class ClaimService
             if ($lockedReceipt->user_id !== $user->id) {
                 abort(403);
             }
+            if ($lockedReceipt->archived_at) {
+                throw new RuntimeException('Archived receipts are read only.');
+            }
             if ($lockedReceipt->status !== 'approved') {
                 throw new RuntimeException('Rewards can only be requested for an approved receipt.');
             }
@@ -101,6 +104,9 @@ class ClaimService
                 throw new RuntimeException('No releasable rewards were found for that claim.');
             }
             $receipt = Receipt::query()->lockForUpdate()->findOrFail($receiptId);
+            if ($receipt->archived_at) {
+                throw new RuntimeException('Archived receipts are read only.');
+            }
             $rewards = $query->where('receipt_id', $receiptId)->orderBy('id')->lockForUpdate()->get();
             if ($rewards->isEmpty()) {
                 throw new RuntimeException('No releasable rewards were found for that claim.');
@@ -150,6 +156,9 @@ class ClaimService
             if ($lockedReceipt->user_id !== $user->id) {
                 abort(403);
             }
+            if ($lockedReceipt->archived_at) {
+                throw new RuntimeException('Archived receipts are read only.');
+            }
 
             $rewards = EarnedReward::query()
                 ->where('receipt_id', $lockedReceipt->id)
@@ -182,7 +191,10 @@ class ClaimService
     public function void(EarnedReward $reward, User $admin, string $reason, bool $returnStock = true): EarnedReward
     {
         return DB::transaction(function () use ($reward, $admin, $reason, $returnStock) {
-            Receipt::query()->lockForUpdate()->findOrFail($reward->receipt_id);
+            $receipt = Receipt::query()->lockForUpdate()->findOrFail($reward->receipt_id);
+            if ($receipt->archived_at) {
+                throw new RuntimeException('Archived receipts are read only.');
+            }
             $locked = EarnedReward::query()->lockForUpdate()->findOrFail($reward->id);
             if (! in_array($locked->claim_status, ['unclaimed', 'claim_requested'], true)) {
                 throw new RuntimeException('Only available or requested rewards can be voided.');
@@ -218,7 +230,10 @@ class ClaimService
     public function expire(EarnedReward $reward): bool
     {
         return DB::transaction(function () use ($reward) {
-            Receipt::query()->lockForUpdate()->findOrFail($reward->receipt_id);
+            $receipt = Receipt::query()->lockForUpdate()->findOrFail($reward->receipt_id);
+            if ($receipt->archived_at) {
+                return false;
+            }
             $locked = EarnedReward::query()->lockForUpdate()->findOrFail($reward->id);
             if (! in_array($locked->claim_status, ['unclaimed', 'claim_requested'], true)
                 || ! $locked->expires_at
@@ -251,7 +266,10 @@ class ClaimService
     public function expireForProduct(EarnedReward $reward): bool
     {
         return DB::transaction(function () use ($reward) {
-            Receipt::query()->lockForUpdate()->findOrFail($reward->receipt_id);
+            $receipt = Receipt::query()->lockForUpdate()->findOrFail($reward->receipt_id);
+            if ($receipt->archived_at) {
+                return false;
+            }
             $locked = EarnedReward::query()->lockForUpdate()->findOrFail($reward->id);
             if (! in_array($locked->claim_status, ['unclaimed', 'claim_requested'], true)) {
                 return false;

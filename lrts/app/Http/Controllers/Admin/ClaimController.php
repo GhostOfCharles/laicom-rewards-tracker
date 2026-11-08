@@ -26,17 +26,25 @@ class ClaimController extends Controller
             'status' => 'nullable|in:pending,approved,rejected,cancelled',
             'search' => 'nullable|string|max:100',
             'claim_filter' => 'nullable|in:all,awaiting_release,awaiting_customer,claimed,none_claimed',
+            'archive' => 'nullable|in:active,archived',
+            'date_from' => 'nullable|date_format:Y-m-d',
+            'date_to' => 'nullable|date_format:Y-m-d|after_or_equal:date_from',
         ]);
 
-        if (! $request->hasAny(['status', 'claim_filter', 'search'])) {
+        $archive = $validated['archive'] ?? 'active';
+        if ($archive === 'active' && ! $request->hasAny(['status', 'claim_filter', 'search', 'date_from', 'date_to'])) {
             $validated['status'] = 'pending';
         }
         $query = Receipt::with(['user', 'items', 'earnedRewards.premiumProduct', 'earnedRewards.releaser', 'items.inventory'])
+            ->when($archive === 'archived', fn ($query) => $query->whereNotNull('archived_at'), fn ($query) => $query->whereNull('archived_at'))
             ->when($validated['status'] ?? null, fn ($query, $status) => $query->where('status', $status))
+            ->when($validated['date_from'] ?? null, fn ($query, $date) => $query->whereDate('submitted_at', '>=', $date))
+            ->when($validated['date_to'] ?? null, fn ($query, $date) => $query->whereDate('submitted_at', '<=', $date))
             ->when(trim($validated['search'] ?? ''), function ($query, $term) {
                 $query->where(function ($query) use ($term) {
                     $query->where('salesman_order_number', 'like', '%'.$term.'%')
-                        ->orWhereHas('user', fn ($users) => $users->where('name', 'like', '%'.$term.'%'));
+                        ->orWhereHas('user', fn ($users) => $users->where('name', 'like', '%'.$term.'%'))
+                        ->when(ctype_digit($term), fn ($query) => $query->orWhere('id', (int) $term));
                 });
             });
 
@@ -52,7 +60,25 @@ class ClaimController extends Controller
             $receipt->has_duplicate_slip = isset($duplicateHashes[$receipt->slip_hash]);
         }
 
-        return view($request->header('X-RTS-Fragment') === 'lists' ? 'admin.partials.receipts-list' : 'admin.receipts', ['receipts' => $receipts, 'claimFilter' => $claimFilter, 'currentStatus' => $validated['status'] ?? '']);
+        return view($request->header('X-RTS-Fragment') === 'lists' ? 'admin.partials.receipts-list' : 'admin.receipts', ['receipts' => $receipts, 'claimFilter' => $claimFilter, 'currentStatus' => $validated['status'] ?? '', 'archive' => $archive]);
+    }
+
+    public function archive(Receipt $receipt, ActivityLogger $activityLogger)
+    {
+        DB::transaction(function () use ($receipt, $activityLogger) {
+            $locked = Receipt::query()->lockForUpdate()->findOrFail($receipt->id);
+            if ($locked->archived_at) {
+                return;
+            }
+            $locked->setRelation('earnedRewards', $locked->earnedRewards()->orderBy('id')->lockForUpdate()->get());
+            if (! $locked->canBeArchived()) {
+                throw ValidationException::withMessages(['error' => 'Only completed receipts with no ongoing rewards can be archived.']);
+            }
+            $locked->update(['archived_at' => now()]);
+            $activityLogger->record('receipt.archived', 'Receipt '.$locked->salesman_order_number.' archived.', $locked);
+        }, 3);
+
+        return redirect()->route('admin.receipts', ['archive' => 'archived'])->with('success', 'Receipt archived. Its details remain available in Archived.');
     }
 
     public function panel(Request $request, Receipt $receipt, RewardCalculator $calculator)
@@ -66,13 +92,18 @@ class ClaimController extends Controller
 
     public function approve(Request $request, int $id, RewardCalculator $calculator, PremiumStockLedger $ledger, ActivityLogger $activityLogger)
     {
-        $request->validate(['selections' => 'sometimes|array']);
+        $request->validate([
+            'selections' => 'sometimes|array',
+            'available_stock' => 'sometimes|accepted',
+            'award_quantities' => 'required_with:available_stock|array',
+            'award_quantities.*' => 'required|integer|min:1',
+        ]);
         $admin = $request->user();
 
         try {
             DB::transaction(function () use ($request, $id, $calculator, $ledger, $activityLogger, $admin) {
                 $receipt = Receipt::with('items')->lockForUpdate()->findOrFail($id);
-                if ($receipt->status !== 'pending') {
+                if ($receipt->archived_at || $receipt->status !== 'pending') {
                     throw ValidationException::withMessages(['error' => 'Only processing receipts can be approved.']);
                 }
 
@@ -108,23 +139,43 @@ class ClaimController extends Controller
                 ksort($reservedByProduct);
                 foreach ($reservedByProduct as $productId => $requiredStock) {
                     $product = PremiumProduct::query()->lockForUpdate()->find($productId);
-                    if (! $product || $product->isExpired() || $product->stock < $requiredStock) {
+                    if (! $product || $product->isExpired() || (! $request->boolean('available_stock') && $product->stock < $requiredStock)) {
                         throw ValidationException::withMessages(['error' => 'Insufficient stock for '.($product?->name ?? 'a selected reward').'. Choose another available reward if one is listed.']);
                     }
                 }
+
+                // Allocate shared stock in the same order shown in the review panel.
+                $remaining = [];
+                foreach ($reservedByProduct as $productId => $requiredStock) {
+                    $remaining[$productId] = (int) PremiumProduct::findOrFail($productId)->stock;
+                }
+                foreach ($selected as $index => &$selection) {
+                    $option = $selection['option'];
+                    $productId = $option['premium_product_id'];
+                    $quantity = min($option['reward_quantity'], $remaining[$productId]);
+                    if ($quantity < 1) {
+                        throw ValidationException::withMessages(['error' => 'No stock remains for '.$option['premium_name'].'. Restock or choose another reward before approval.']);
+                    }
+                    if ($request->boolean('available_stock') && (int) $request->input('award_quantities.'.$index) !== $quantity) {
+                        throw ValidationException::withMessages(['error' => 'Reward availability changed. Reopen the receipt and review the quantities before approval.']);
+                    }
+                    $selection['quantity'] = $quantity;
+                    $remaining[$productId] -= $quantity;
+                }
+                unset($selection);
 
                 $selectionLog = [];
                 foreach ($selected as $selection) {
                     $group = $selection['group'];
                     $option = $selection['option'];
                     $product = $selection['product'];
-                    $ledger->move($product, -$option['reward_quantity'], 'reward_reserved', $receipt, 'Reward stock reserved when order approved.');
+                    $ledger->move($product, -$selection['quantity'], 'reward_reserved', $receipt, 'Reward stock reserved when order approved.');
                     EarnedReward::create([
                         'user_id' => $receipt->user_id,
                         'receipt_id' => $receipt->id,
                         'promotion_id' => $option['promotion_id'],
                         'premium_product_id' => $option['premium_product_id'],
-                        'reward_quantity' => $option['reward_quantity'],
+                        'reward_quantity' => $selection['quantity'],
                         'claim_status' => 'unclaimed',
                         'expires_at' => now()->addDays((int) config('lrts.claim_window_days', 30)),
                         'selected_by' => $admin->id,
@@ -139,20 +190,26 @@ class ClaimController extends Controller
                         'buy_product_name' => $group['buy_product_name'],
                         'promotion_id' => $option['promotion_id'],
                         'premium_product_id' => $option['premium_product_id'],
-                        'quantity' => $option['reward_quantity'],
+                        'quantity' => $selection['quantity'],
+                        'eligible_quantity' => $option['reward_quantity'],
+                        'unawarded_quantity' => $option['reward_quantity'] - $selection['quantity'],
                     ];
                 }
 
+                $reduced = collect($selectionLog)->sum('unawarded_quantity') > 0;
                 $receipt->update(['status' => 'approved', 'reviewed_by' => $admin->id, 'reviewed_at' => now()]);
                 $activityLogger->record('receipt.approved', 'Receipt '.$receipt->salesman_order_number.' approved.', $receipt, [
                     'selections' => $selectionLog,
+                    'reduced_award_confirmed' => $reduced,
                     'stock_moved' => array_map(fn ($selection) => ['premium_product_id' => $selection['premium_product_id'], 'quantity' => $selection['quantity']], $selectionLog),
                 ]);
                 CustomerNotification::create([
                     'user_id' => $receipt->user_id,
                     'type' => 'receipt.approved',
                     'title' => 'Receipt approved',
-                    'body' => 'Your order '.$receipt->salesman_order_number.' was approved. Your rewards are ready to request.',
+                    'body' => $reduced
+                        ? 'Your order '.$receipt->salesman_order_number.' was approved with '.collect($selectionLog)->sum('quantity').' reward item(s) based on available stock. This is the final award; the remaining '.collect($selectionLog)->sum('unawarded_quantity').' item(s) will not be owed. View your rewards for details.'
+                        : 'Your order '.$receipt->salesman_order_number.' was approved. Your rewards are ready to request.',
                     'receipt_id' => $receipt->id,
                     'created_at' => now(),
                 ]);
@@ -172,7 +229,7 @@ class ClaimController extends Controller
         try {
             DB::transaction(function () use ($id, $validated, $admin, $activityLogger) {
                 $receipt = Receipt::query()->lockForUpdate()->findOrFail($id);
-                if ($receipt->status !== 'pending') {
+                if ($receipt->archived_at || $receipt->status !== 'pending') {
                     throw ValidationException::withMessages(['error' => 'Only processing receipts can be rejected.']);
                 }
 

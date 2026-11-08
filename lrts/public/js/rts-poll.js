@@ -246,8 +246,21 @@
                     if (!message) { message = document.createElement('p'); message.dataset.ticketClosedMessage = ''; message.className = 'small text-danger'; message.setAttribute('role', 'status'); composer.prepend(message); }
                     message.textContent = 'This ticket no longer accepts replies. Your draft is preserved.';
                 } else message?.remove();
-            } else if (root.dataset.pulseRole === 'admin' && ['resolved', 'closed'].includes(data.status)) {
-                (modal || thread.parentElement).querySelectorAll('form [type="submit"]').forEach(button => button.disabled = true);
+            } else if (root.dataset.pulseRole === 'admin') {
+                const detail = thread.parentElement;
+                const archived = Boolean(data.archived);
+                const closed = data.status === 'closed';
+                detail.querySelectorAll('[data-admin-ticket-status]').forEach(badge => {
+                    badge.textContent = data.status.replaceAll('_', ' ').toUpperCase();
+                    badge.className = 'lrts-badge lrts-badge-' + (data.status === 'in_progress' ? 'progress' : data.status);
+                });
+                detail.querySelectorAll('[data-admin-ticket-reply]').forEach(button => { button.disabled = archived || closed; });
+                detail.querySelectorAll('[data-admin-ticket-composer]').forEach(composer => {
+                    composer.hidden = archived || closed;
+                    composer.querySelectorAll('form [type="submit"]').forEach(button => { button.disabled = archived; });
+                });
+                detail.querySelectorAll('[data-admin-ticket-closed], [data-admin-ticket-reopen], [data-admin-ticket-archive]').forEach(node => { node.hidden = archived || !closed; });
+                detail.querySelectorAll('[data-admin-ticket-archived], [data-admin-ticket-restore]').forEach(node => { node.hidden = !archived; });
             }
             if (thread.dataset.readUrl && after > readAfter) {
                 const read = await fetch(thread.dataset.readUrl, {method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':window.rtsCustomerConfig.csrf},body:JSON.stringify({after})});

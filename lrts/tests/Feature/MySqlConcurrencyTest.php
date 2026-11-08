@@ -8,6 +8,8 @@ use App\Models\PremiumProduct;
 use App\Models\Promotion;
 use App\Models\Receipt;
 use App\Models\User;
+use App\Models\Ticket;
+use App\Models\ActivityLog;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -86,5 +88,35 @@ class MySqlConcurrencyTest extends TestCase
         $product = PremiumProduct::factory()->create();
         $this->expectException(QueryException::class);
         DB::table('premium_products')->where('id', $product->id)->update(['stock' => -1]);
+    }
+
+    public function test_archive_is_idempotent_and_cannot_race_into_an_active_archived_ticket(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        foreach ([['archive', 'archive'], ['archive', 'reopen']] as $actions) {
+            $ticket = Ticket::create(['user_id' => User::factory()->create()->id, 'subject' => 'Concurrent archive test', 'category' => 'orders', 'status' => 'closed']);
+            $reply = $ticket->replies()->create(['user_id' => $ticket->user_id, 'body' => 'Preserved reply', 'is_internal_note' => false]);
+            $workers = [];
+            foreach ($actions as $action) {
+                $worker = new Process([PHP_BINARY, base_path('tests/Support/mysql-ticket-worker.php'), $action, (string) $ticket->id, (string) $admin->id], base_path(), [
+                    'RTS_MYSQL_TEST_DATABASE' => DB::getDatabaseName(), 'DB_CONNECTION' => 'mysql', 'DB_DATABASE' => DB::getDatabaseName(),
+                    'DB_HOST' => config('database.connections.mysql.host'), 'DB_PORT' => (string) config('database.connections.mysql.port'),
+                    'DB_USERNAME' => config('database.connections.mysql.username'), 'DB_PASSWORD' => (string) config('database.connections.mysql.password'),
+                    'DB_URL' => '', 'APP_ENV' => 'testing', 'SESSION_DRIVER' => 'array', 'CACHE_STORE' => 'array',
+                ]);
+                $worker->setTimeout(30);
+                $worker->start();
+                $workers[] = $worker;
+            }
+            foreach ($workers as $worker) {
+                $worker->wait();
+                $this->assertTrue($worker->isSuccessful(), 'Ticket worker failed: '.$worker->getErrorOutput());
+            }
+            $current = $ticket->fresh();
+            $this->assertTrue($current->archived_at ? $current->status === 'closed' : $current->status === 'open');
+            $this->assertSame('Preserved reply', $reply->fresh()->body);
+            $archives = ActivityLog::where('action', 'ticket.archived')->where('subject_id', $ticket->id)->count();
+            $this->assertSame($actions[1] === 'archive' || $current->archived_at ? 1 : 0, $archives);
+        }
     }
 }

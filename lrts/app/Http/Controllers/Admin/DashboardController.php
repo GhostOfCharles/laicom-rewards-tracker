@@ -44,13 +44,13 @@ class DashboardController extends Controller
             ->when($premiumAvailability === 'available', fn ($query) => $query->where('stock', '>', 0))
             ->when($premiumAvailability === 'out', fn ($query) => $query->where('stock', 0))
             ->when($premiumExpiry === 'perishable', fn ($query) => $query->where('is_perishable', true))
-            ->when($premiumExpiry === 'expiring_soon', fn ($query) => $query->where('is_perishable', true)->whereDate('expiry_date', '>=', today()->toDateString())->whereDate('expiry_date', '<=', today()->addDays(30)->toDateString()))
-            ->when($premiumExpiry === 'expired', fn ($query) => $query->where('is_perishable', true)->whereDate('expiry_date', '<', today()->toDateString()))
+            ->when($premiumExpiry === 'expiring_soon', fn ($query) => $query->where('is_perishable', true)->whereDate('expiry_date', '>=', \App\Services\BusinessDate::today()->toDateString())->whereDate('expiry_date', '<=', \App\Services\BusinessDate::today()->addDays(30)->toDateString()))
+            ->when($premiumExpiry === 'expired', fn ($query) => $query->where('is_perishable', true)->whereDate('expiry_date', '<', \App\Services\BusinessDate::today()->toDateString()))
             ->orderByRaw('LOWER(name)')->orderBy('item_code');
         $premiumProducts = (clone $premiumQuery)->paginate(20, ['*'], 'premium_page')->withQueryString();
         $visiblePremiumProducts = (clone $premiumQuery)->limit(5)->get();
         $editablePremiumProducts = $premiumProducts->getCollection()->merge($visiblePremiumProducts)->unique('id');
-        $premiumExpiryAlertCount = PremiumProduct::where('is_perishable', true)->whereDate('expiry_date', '<=', today()->addDays(30))->count();
+        $premiumExpiryAlertCount = PremiumProduct::where('is_perishable', true)->whereDate('expiry_date', '<=', \App\Services\BusinessDate::today()->addDays(30))->count();
 
         $promotionSearchInput = $request->query('promotion_search', '');
         $promotionSearch = mb_substr(trim(is_string($promotionSearchInput) ? $promotionSearchInput : ''), 0, 100);

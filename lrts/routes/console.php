@@ -29,7 +29,7 @@ Artisan::command('lrts:expire-rewards', function (ClaimService $claims, PremiumS
             }
         });
     EarnedReward::query()->whereIn('claim_status', ['unclaimed', 'claim_requested'])
-        ->whereHas('premiumProduct', fn ($query) => $query->where('is_perishable', true)->whereDate('expiry_date', '<', today()))
+        ->whereHas('premiumProduct', fn ($query) => $query->where('is_perishable', true)->whereDate('expiry_date', '<', \App\Services\BusinessDate::today()))
         ->orderBy('id')->chunkById(100, function ($rewards) use ($claims, &$expiredClaims) {
             foreach ($rewards as $reward) {
                 if ($claims->expireForProduct($reward)) {
@@ -39,7 +39,7 @@ Artisan::command('lrts:expire-rewards', function (ClaimService $claims, PremiumS
         });
 
     $expiredStock = 0;
-    PremiumProduct::query()->where('is_perishable', true)->whereDate('expiry_date', '<', today())
+    PremiumProduct::query()->where('is_perishable', true)->whereDate('expiry_date', '<', \App\Services\BusinessDate::today())
         ->where('stock', '>', 0)->orderBy('id')->chunkById(100, function ($products) use ($ledger, &$expiredStock) {
             foreach ($products as $product) {
                 $quantity = (int) $product->stock;
@@ -51,7 +51,7 @@ Artisan::command('lrts:expire-rewards', function (ClaimService $claims, PremiumS
     $this->info("Expired {$expiredClaims} reward claim(s) and wrote off {$expiredStock} expired premium item(s).");
 })->purpose('Expire reward claim windows and write off expired premium stock');
 
-Schedule::command('lrts:expire-rewards')->dailyAt('00:10');
+Schedule::command('lrts:expire-rewards')->dailyAt('00:10')->timezone(config('lrts.business_timezone'));
 
 Artisan::command('lrts:make-admin {email} {name}', function () {
     $data = ['email' => $this->argument('email'), 'name' => $this->argument('name'), 'password' => $this->secret('Strong password (not displayed)')];

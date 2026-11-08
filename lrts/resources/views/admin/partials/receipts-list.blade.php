@@ -1,9 +1,16 @@
 <div class="lrts-receipts-page mb-3" data-refresh-region="receipts">
+<nav class="d-flex gap-2 mb-3" aria-label="Receipt archive">
+    <a class="btn btn-sm {{ $archive === 'active' ? 'rts-btn-primary' : 'btn-outline-secondary' }}" href="{{ route('admin.receipts', ['archive' => 'active']) }}" @if($archive === 'active') aria-current="page" @endif>Active</a>
+    <a class="btn btn-sm {{ $archive === 'archived' ? 'rts-btn-primary' : 'btn-outline-secondary' }}" href="{{ route('admin.receipts', ['archive' => 'archived']) }}" @if($archive === 'archived') aria-current="page" @endif>Archived</a>
+</nav>
 <form method="GET" action="{{ route('admin.receipts') }}" class="lrts-receipts-filter d-flex flex-wrap gap-2 align-items-end mb-3">
+<input type="hidden" name="archive" value="{{ $archive }}">
 <div><label class="form-label" for="receiptStatusFilter">Receipt status</label><select id="receiptStatusFilter" name="status" class="form-select form-select-sm"><option value="">All receipts</option>@foreach(['pending'=>'Processing','approved'=>'Approved','rejected'=>'Rejected','cancelled'=>'Cancelled'] as $value=>$label)<option value="{{ $value }}" @selected($currentStatus===$value)>{{ $label }}</option>@endforeach</select></div>
 <div><label class="form-label" for="claimFilter">Reward status</label><select id="claimFilter" name="claim_filter" class="form-select form-select-sm">@foreach(['all'=>'All','awaiting_release'=>'Awaiting handover','awaiting_customer'=>'Awaiting customer','claimed'=>'Received','none_claimed'=>'None received'] as $value=>$label)<option value="{{ $value }}" @selected($claimFilter===$value)>{{ $label }}</option>@endforeach</select></div>
-<div><label for="receiptSearch" class="form-label">Order or customer</label><input id="receiptSearch" name="search" value="{{ request('search') }}" maxlength="100" class="form-control form-control-sm" placeholder="Order or name"></div>
-<button class="btn btn-sm rts-btn-primary">Filter</button><a class="btn btn-sm btn-outline-secondary" href="{{ route('admin.receipts') }}">Reset</a>
+<div><label for="receiptSearch" class="form-label">Order, receipt ID, or customer</label><input id="receiptSearch" name="search" value="{{ request('search') }}" maxlength="100" class="form-control form-control-sm" placeholder="Order, ID, or name"></div>
+<div><label for="receiptDateFrom" class="form-label">Submitted from</label><input id="receiptDateFrom" type="date" name="date_from" value="{{ request('date_from') }}" class="form-control form-control-sm"></div>
+<div><label for="receiptDateTo" class="form-label">Submitted to</label><input id="receiptDateTo" type="date" name="date_to" value="{{ request('date_to') }}" class="form-control form-control-sm"></div>
+<button class="btn btn-sm rts-btn-primary">Filter</button><a class="btn btn-sm btn-outline-secondary" href="{{ route('admin.receipts', ['archive' => $archive]) }}">Reset</a>
 </form>
 <div class="lrts-receipt-list">
 @forelse($receipts as $receipt)

@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'business_timezone' => env('BUSINESS_TIMEZONE', 'Asia/Manila'),
     'password_reset_enabled' => (bool) env('PASSWORD_RESET_ENABLED', false),
     'allow_admin_api' => (bool) env('ALLOW_ADMIN_API', false),
     'claim_window_days' => 30,

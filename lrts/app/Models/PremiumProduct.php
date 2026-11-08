@@ -27,7 +27,7 @@ class PremiumProduct extends Model
 
     public function isExpired(): bool
     {
-        return $this->is_perishable && $this->expiry_date !== null && $this->expiry_date->lt(today());
+        return $this->is_perishable && $this->expiry_date !== null && $this->expiry_date->toDateString() < \App\Services\BusinessDate::today()->toDateString();
     }
 
     public function isExpiringSoon(int $days = 30): bool
@@ -35,7 +35,7 @@ class PremiumProduct extends Model
         return $this->is_perishable
             && $this->expiry_date !== null
             && ! $this->isExpired()
-            && $this->expiry_date->lte(today()->addDays($days));
+            && $this->expiry_date->toDateString() <= \App\Services\BusinessDate::today()->addDays($days)->toDateString();
     }
 
     public function expiryStatus(): string
@@ -57,7 +57,9 @@ class PremiumProduct extends Model
             return null;
         }
 
-        return (int) today()->diffInDays($this->expiry_date, false);
+        $today = \App\Services\BusinessDate::today();
+
+        return (int) $today->diffInDays($today->setDateFrom($this->expiry_date), false);
     }
 
     public function categoryLabel(): string

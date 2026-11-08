@@ -17,6 +17,32 @@ class PollingTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_admin_version_detects_same_second_state_changes_and_archive_restore(): void
+    {
+        $this->travelTo(\Illuminate\Support\Carbon::parse('2026-11-08 12:00:00', 'UTC'));
+        $admin = User::factory()->create(['role' => 'admin']);
+        $receipt = Receipt::factory()->create();
+        $reward = EarnedReward::factory()->create(['receipt_id' => $receipt->id, 'user_id' => $receipt->user_id]);
+        $ticket = Ticket::create(['user_id' => $receipt->user_id, 'subject' => 'Finished ticket', 'category' => 'orders', 'status' => 'closed']);
+        $this->actingAs($admin);
+        $version = $this->getJson(route('admin.nav-counts'))->json('version');
+        foreach ([fn () => $receipt->update(['status' => 'approved']), fn () => $reward->update(['claim_status' => 'released']), fn () => $ticket->update(['status' => 'resolved'])] as $change) {
+            $change();
+            Cache::forget('rts-pulse:admin');
+            $next = $this->getJson(route('admin.nav-counts'))->json('version');
+            $this->assertNotSame($version, $next);
+            $version = $next;
+        }
+        $ticket->update(['status' => 'closed']);
+        Cache::forget('rts-pulse:admin');
+        $version = $this->getJson(route('admin.nav-counts'))->json('version');
+        $this->post(route('admin.tickets.archive', $ticket))->assertRedirect();
+        $next = $this->getJson(route('admin.nav-counts'))->assertJsonPath('tickets', 0)->json('version');
+        $this->assertNotSame($version, $next);
+        $this->post(route('admin.tickets.restore', $ticket))->assertRedirect();
+        $this->assertNotSame($next, $this->getJson(route('admin.nav-counts'))->json('version'));
+    }
+
     public function test_customer_pulse_is_scoped_conditional_and_authenticated(): void
     {
         $a = User::factory()->create();

@@ -33,8 +33,8 @@ class PremiumProductController extends Controller
             'category' => ['required', 'in:'.implode(',', array_keys(Inventory::CATEGORIES))],
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'is_perishable' => 'required|boolean',
-            'entry_date' => ['nullable', 'date', 'required_if:is_perishable,1', 'before_or_equal:'.today()->addYear()->toDateString()],
-            'expiry_date' => ['nullable', 'date', 'required_if:is_perishable,1', 'after:entry_date', 'after_or_equal:today', 'before_or_equal:'.today()->addYears(5)->toDateString()],
+            'entry_date' => ['nullable', 'date', 'required_if:is_perishable,1', 'before_or_equal:'.\App\Services\BusinessDate::today()->addYear()->toDateString()],
+            'expiry_date' => ['nullable', 'date', 'required_if:is_perishable,1', 'after:entry_date', 'after_or_equal:'.\App\Services\BusinessDate::today()->toDateString(), 'before_or_equal:'.\App\Services\BusinessDate::today()->addYears(5)->toDateString()],
         ]);
 
         $imagePath = $request->hasFile('image') ? app(ProductImageStorage::class)->store($request->file('image'), 'products') : null;
@@ -76,8 +76,8 @@ class PremiumProductController extends Controller
             'category' => ['required', 'in:'.implode(',', array_keys(Inventory::CATEGORIES))],
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'is_perishable' => 'required|boolean',
-            'entry_date' => ['nullable', 'date', 'required_if:is_perishable,1', 'before_or_equal:'.today()->addYear()->toDateString()],
-            'expiry_date' => ['nullable', 'date', 'required_if:is_perishable,1', 'after:entry_date', 'before_or_equal:'.today()->addYears(5)->toDateString()],
+            'entry_date' => ['nullable', 'date', 'required_if:is_perishable,1', 'before_or_equal:'.\App\Services\BusinessDate::today()->addYear()->toDateString()],
+            'expiry_date' => ['nullable', 'date', 'required_if:is_perishable,1', 'after:entry_date', 'before_or_equal:'.\App\Services\BusinessDate::today()->addYears(5)->toDateString()],
         ]);
 
         $imagePath = $product->image_path;

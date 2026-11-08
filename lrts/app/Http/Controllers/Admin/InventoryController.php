@@ -38,7 +38,7 @@ class InventoryController extends Controller
             }],
             'category' => ['required', 'in:'.implode(',', array_keys(Inventory::CATEGORIES))],
             'stock_balance' => 'required|integer|min:0',
-            'entry_date' => 'nullable|date|before_or_equal:today',
+            'entry_date' => 'nullable|date|before_or_equal:'.\App\Services\BusinessDate::today()->toDateString(),
             'expiry_date' => 'nullable|date|after_or_equal:entry_date',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
@@ -91,7 +91,7 @@ class InventoryController extends Controller
             'category' => ['required', 'in:'.implode(',', array_keys(Inventory::CATEGORIES))],
             'stock_balance' => 'required|integer|min:0',
             'expected_stock' => 'required|integer|min:0',
-            'entry_date' => 'nullable|date|before_or_equal:today',
+            'entry_date' => 'nullable|date|before_or_equal:'.\App\Services\BusinessDate::today()->toDateString(),
             'expiry_date' => 'nullable|date|after_or_equal:entry_date',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);

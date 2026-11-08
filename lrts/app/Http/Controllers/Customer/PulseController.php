@@ -29,7 +29,7 @@ class PulseController extends Controller
                 $r->user()->customerNotifications()->orderBy('id')->get(['id', 'read_at']),
                 (clone $publicReplies)->max('id'),
                 Promotion::with('premiumProduct')->orderBy('id')->get(),
-                today()->toDateString(),
+                \App\Services\BusinessDate::today()->toDateString(),
             ]));
 
             return ['unread_notifications' => $r->user()->customerNotifications()->whereNull('read_at')->count(), 'pending_receipts' => $r->user()->receipts()->where('status', 'pending')->count(), 'unseen_support_tickets' => $unseen, 'receipts' => $receipts->map->only(['id', 'status'])->all(), 'rewards' => $rewards->map->only(['id', 'claim_status'])->all(), 'version' => $version];

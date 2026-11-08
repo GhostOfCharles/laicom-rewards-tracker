@@ -32,8 +32,8 @@ class CustomerController extends Controller
         }
         $products = Inventory::orderBy('name')->get();
         $promotions = Promotion::with('premiumProduct')->where('is_active', true)
-            ->where(fn ($query) => $query->whereNull('start_date')->orWhereDate('start_date', '<=', today()))
-            ->where(fn ($query) => $query->whereNull('end_date')->orWhereDate('end_date', '>=', today()))
+            ->where(fn ($query) => $query->whereNull('start_date')->orWhereDate('start_date', '<=', \App\Services\BusinessDate::today()))
+            ->where(fn ($query) => $query->whereNull('end_date')->orWhereDate('end_date', '>=', \App\Services\BusinessDate::today()))
             ->get();
         $claimableReceipts = $user->receipts()->with(['items', 'earnedRewards.premiumProduct', 'earnedRewards.releaser'])
             ->where('status', 'approved')->whereHas('earnedRewards', fn ($q) => $q->whereIn('claim_status', ['unclaimed', 'claim_requested', 'released']))->latest()->paginate(10, ['*'], 'rewards_page')->withQueryString();
@@ -78,7 +78,7 @@ class CustomerController extends Controller
             DB::transaction(function () use ($receipt, $request, $activityLogger) {
                 $locked = Receipt::query()->lockForUpdate()->findOrFail($receipt->id);
                 abort_unless($locked->user_id === $request->user()->id, 403);
-                if ($locked->status !== 'pending') {
+                if ($locked->archived_at || $locked->status !== 'pending') {
                     throw new RuntimeException('Only processing receipts can be cancelled.');
                 }
 

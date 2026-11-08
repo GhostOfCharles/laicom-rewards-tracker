@@ -8,21 +8,25 @@ use App\Models\Ticket;
 use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class TicketController extends Controller
 {
     public function index(Request $request)
     {
-        $request->validate(['ticket' => 'nullable|integer|min:1']);
+        $request->validate(['ticket' => 'nullable|integer|min:1', 'status' => 'nullable|in:all,open,pending,in_progress,resolved,closed,archived']);
         $filter = $request->query('status', 'all');
         $selectedId = $request->query('ticket');
 
         $query = Ticket::with('user')
             ->withCount('replies')
             ->latest();
+
+        $filter === 'archived' ? $query->archived() : $query->unarchived();
 
         if (in_array($filter, ['open', 'pending', 'in_progress', 'resolved', 'closed'], true)) {
             $query->where('status', $filter);
@@ -35,6 +39,10 @@ class TicketController extends Controller
         $selectedTicket = $selectedId
             ? Ticket::with(['user', 'replies.user', 'relatedReceipt'])->find($selectedId)
             : $tickets->first()?->load(['replies.user', 'relatedReceipt']);
+
+        if ($selectedTicket && (bool) $selectedTicket->archived_at !== ($filter === 'archived')) {
+            return redirect()->route('admin.tickets', ['status' => $selectedTicket->archived_at ? 'archived' : $selectedTicket->status, 'ticket' => $selectedTicket->id]);
+        }
 
         return view('admin.tickets', compact('tickets', 'selectedTicket', 'filter', 'search'));
     }
@@ -57,6 +65,9 @@ class TicketController extends Controller
         try {
             DB::transaction(function () use ($ticket, $isInternal, $request, $attachmentPath, $activityLogger) {
                 $locked = Ticket::query()->lockForUpdate()->findOrFail($ticket->id);
+                if ($locked->archived_at || $locked->status === 'closed') {
+                    throw ValidationException::withMessages(['error' => 'Restore and reopen this ticket before replying.']);
+                }
                 $locked->replies()->create([
                     'user_id' => Auth::id(),
                     'body' => $request->body,
@@ -89,6 +100,8 @@ class TicketController extends Controller
             throw $exception;
         }
 
+        $this->forgetPulse($ticket);
+
         return redirect()
             ->route('admin.tickets', ['ticket' => $ticket->id, 'status' => $request->query('status', 'all')])
             ->with('success', $isInternal ? 'Internal note added.' : 'Reply sent.');
@@ -111,6 +124,9 @@ class TicketController extends Controller
 
         DB::transaction(function () use ($ticket, $updates, $newStatus, $activityLogger) {
             $locked = Ticket::query()->lockForUpdate()->findOrFail($ticket->id);
+            if ($locked->archived_at) {
+                throw ValidationException::withMessages(['error' => 'Restore this ticket before changing its status.']);
+            }
             $oldStatus = $locked->status;
             $locked->update($updates);
             if ($oldStatus !== $newStatus) {
@@ -118,8 +134,48 @@ class TicketController extends Controller
             }
         });
 
+        $this->forgetPulse($ticket);
+
         return redirect()
             ->route('admin.tickets', ['ticket' => $ticket->id, 'status' => $request->query('status', 'all')])
             ->with('success', 'Ticket marked as '.strtoupper(str_replace('_', ' ', $newStatus)).'.');
+    }
+
+    public function archive(Ticket $ticket, ActivityLogger $activityLogger)
+    {
+        DB::transaction(function () use ($ticket, $activityLogger) {
+            $locked = Ticket::query()->lockForUpdate()->findOrFail($ticket->id);
+            if ($locked->status !== 'closed') {
+                throw ValidationException::withMessages(['error' => 'Close this ticket before archiving it.']);
+            }
+            if (! $locked->archived_at) {
+                $locked->update(['archived_at' => now(), 'archived_by' => Auth::id()]);
+                $activityLogger->record('ticket.archived', 'Ticket #'.$locked->id.' archived.', $locked);
+            }
+        }, 3);
+        $this->forgetPulse($ticket);
+
+        return redirect()->route('admin.tickets', ['status' => 'closed'])->with('success', 'Ticket archived. Its conversation history is preserved.');
+    }
+
+    public function restore(Ticket $ticket, ActivityLogger $activityLogger)
+    {
+        DB::transaction(function () use ($ticket, $activityLogger) {
+            $locked = Ticket::query()->lockForUpdate()->findOrFail($ticket->id);
+            if ($locked->archived_at) {
+                $properties = ['archived_at' => $locked->archived_at->toIso8601String(), 'archived_by' => $locked->archived_by];
+                $locked->update(['archived_at' => null, 'archived_by' => null]);
+                $activityLogger->record('ticket.restored', 'Ticket #'.$locked->id.' restored.', $locked, $properties);
+            }
+        }, 3);
+        $this->forgetPulse($ticket);
+
+        return redirect()->route('admin.tickets', ['status' => $ticket->fresh()->status, 'ticket' => $ticket->id])->with('success', 'Ticket restored.');
+    }
+
+    private function forgetPulse(Ticket $ticket): void
+    {
+        Cache::forget('rts-pulse:admin');
+        Cache::forget('rts-pulse:customer:'.$ticket->user_id);
     }
 }

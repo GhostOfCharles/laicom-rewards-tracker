@@ -14,8 +14,8 @@ class RewardCalculator
     {
         $receipt->loadMissing('items');
         $orderDate = $receipt->order_date?->toDateString()
-            ?? $receipt->submitted_at?->toDateString()
-            ?? today()->toDateString();
+            ?? $receipt->submitted_at?->copy()->timezone(config('lrts.business_timezone'))->toDateString()
+            ?? BusinessDate::today()->toDateString();
 
         $cacheKey = $orderDate.':'.(int) $includeInactivePromotions;
         $promotions = $this->promotionCache[$cacheKey] ??= Promotion::with('premiumProduct')

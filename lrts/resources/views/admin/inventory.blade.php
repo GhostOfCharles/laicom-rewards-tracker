@@ -58,9 +58,9 @@
                     <td>{{ $item->entry_date?->format('M d, Y') ?? '—' }}</td>
                     <td>
                         @if ($item->expiry_date)
-                            @if ($item->expiry_date->lt(today()))
+                            @if ($item->expiry_date->toDateString() < \App\Services\BusinessDate::today()->toDateString())
                                 <span class="badge bg-danger">EXPIRED</span><span class="d-block small">{{ $item->expiry_date->format('M d, Y') }}</span>
-                            @elseif ($item->expiry_date->lte(now()->addDays(30)->startOfDay()))
+                            @elseif ($item->expiry_date->toDateString() <= \App\Services\BusinessDate::today()->addDays(30)->toDateString())
                                 <span class="badge bg-warning text-dark">EXPIRING SOON</span><span class="d-block small">{{ $item->expiry_date->format('M d, Y') }}</span>
                             @else
                                 {{ $item->expiry_date->format('M d, Y') }}
@@ -121,11 +121,11 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold small">ENTRY DATE:</label>
-                        <input type="date" name="entry_date" class="form-control border-dark border-2 rounded-0" max="{{ now()->toDateString() }}">
+                        <input type="date" name="entry_date" class="form-control border-dark border-2 rounded-0" max="{{ \App\Services\BusinessDate::today()->toDateString() }}">
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold small">EXPIRY DATE:</label>
-                        <input type="date" name="expiry_date" class="form-control border-dark border-2 rounded-0" min="{{ now()->toDateString() }}">
+                        <input type="date" name="expiry_date" class="form-control border-dark border-2 rounded-0" min="{{ \App\Services\BusinessDate::today()->toDateString() }}">
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold small">PRODUCT PICTURE:</label>
@@ -174,7 +174,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold small">ENTRY DATE:</label>
-                        <input type="date" name="entry_date" class="form-control border-dark border-2 rounded-0" value="{{ $item->entry_date?->format('Y-m-d') }}" max="{{ now()->toDateString() }}">
+                        <input type="date" name="entry_date" class="form-control border-dark border-2 rounded-0" value="{{ $item->entry_date?->format('Y-m-d') }}" max="{{ \App\Services\BusinessDate::today()->toDateString() }}">
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold small">EXPIRY DATE:</label>

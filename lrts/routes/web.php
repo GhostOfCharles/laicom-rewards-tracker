@@ -87,6 +87,7 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
     Route::get('/receipts/{receipt}/slip', [ReceiptSlipController::class, 'admin'])->name('admin.receipts.slip');
 
     Route::get('/receipts/{receipt}/panel', [ClaimController::class, 'panel'])->name('admin.receipts.panel');
+    Route::post('/receipts/{receipt}/archive', [ClaimController::class, 'archive'])->name('admin.receipts.archive');
 
     // Approve / Reject actions
     Route::post('/receipts/{id}/approve', [ClaimController::class, 'approve'])->name('admin.receipts.approve');
@@ -106,6 +107,8 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
     Route::get('/tickets', [AdminTicketController::class, 'index'])->name('admin.tickets');
     Route::post('/tickets/{ticket}/reply', [AdminTicketController::class, 'reply'])->name('admin.tickets.reply');
     Route::post('/tickets/{ticket}/status', [AdminTicketController::class, 'updateStatus'])->name('admin.tickets.status');
+    Route::post('/tickets/{ticket}/archive', [AdminTicketController::class, 'archive'])->name('admin.tickets.archive');
+    Route::post('/tickets/{ticket}/restore', [AdminTicketController::class, 'restore'])->name('admin.tickets.restore');
 
     Route::post('/products', [PremiumProductController::class, 'store'])->name('products.store');
     Route::put('/products/{id}', [PremiumProductController::class, 'update'])->name('products.update');

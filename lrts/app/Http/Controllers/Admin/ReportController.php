@@ -46,9 +46,9 @@ class ReportController extends Controller
         $rangeKey = $validated['range'] ?? 'last_30_days';
         [$from, $to, $rangeLabel] = $this->resolveDateRange($rangeKey, $validated);
         $report = Cache::remember('rts-report:'.hash('sha256', json_encode([$reportType, $from->toIso8601String(), $to->toIso8601String()])), 60, fn () => match ($reportType) {
-            'premium_stock' => $this->premiumStockReport($from, $to),
-            'inventory_movement' => $this->inventoryMovementReport($from, $to),
-            default => $this->promotionPerformanceReport($from, $to, $calculator),
+            'premium_stock' => $this->premiumStockReport($from->utc(), $to->utc()),
+            'inventory_movement' => $this->inventoryMovementReport($from->utc(), $to->utc()),
+            default => $this->promotionPerformanceReport($from->utc(), $to->utc(), $calculator),
         });
 
         if (isset($validated['export_format'])) {
@@ -71,11 +71,12 @@ class ReportController extends Controller
 
     private function resolveDateRange(string $key, array $input): array
     {
-        $now = CarbonImmutable::now();
+        $timezone = config('lrts.business_timezone');
+        $now = CarbonImmutable::now($timezone);
 
         if ($key === 'custom') {
-            $from = CarbonImmutable::createFromFormat('Y-m-d', $input['start_date'])->startOfDay();
-            $to = CarbonImmutable::createFromFormat('Y-m-d', $input['end_date'])->endOfDay();
+            $from = CarbonImmutable::createFromFormat('Y-m-d', $input['start_date'], $timezone)->startOfDay();
+            $to = CarbonImmutable::createFromFormat('Y-m-d', $input['end_date'], $timezone)->endOfDay();
         } elseif ($key === 'all_time') {
             $firstDates = array_filter([
                 Receipt::min('submitted_at'),
@@ -84,7 +85,7 @@ class ReportController extends Controller
                 StockMovement::min('created_at'),
             ]);
             $from = $firstDates
-                ? CarbonImmutable::parse(min($firstDates))->startOfDay()
+                ? CarbonImmutable::parse(min($firstDates), 'UTC')->timezone($timezone)->startOfDay()
                 : $now->startOfDay();
             $to = $now->endOfDay();
         } else {
@@ -302,8 +303,8 @@ class ReportController extends Controller
             ->get()
             ->keyBy('inventory_id');
 
-        $today = CarbonImmutable::today();
-        $expiringLimit = $today->addDays(30);
+        $today = \App\Services\BusinessDate::today()->toDateString();
+        $expiringLimit = \App\Services\BusinessDate::today()->addDays(30)->toDateString();
         $inventory = Inventory::orderBy('name')->get();
         $rows = $inventory->map(function (Inventory $item) use ($movementTotals, $today, $expiringLimit) {
             $movement = $movementTotals->get($item->id);
@@ -311,9 +312,9 @@ class ReportController extends Controller
             $outflow = (int) ($movement?->total_outflow ?? 0);
             $expiryStatus = 'NORMAL';
 
-            if ($item->expiry_date?->lt($today)) {
+            if ($item->expiry_date && $item->expiry_date->toDateString() < $today) {
                 $expiryStatus = 'EXPIRED';
-            } elseif ($item->expiry_date && $item->expiry_date->lte($expiringLimit)) {
+            } elseif ($item->expiry_date && $item->expiry_date->toDateString() <= $expiringLimit) {
                 $expiryStatus = 'EXPIRING SOON';
             }
 
@@ -334,8 +335,8 @@ class ReportController extends Controller
             'summaries' => [
                 ['Total Inflow Quantity', array_sum(array_column($rows, 3))],
                 ['Total Outflow Quantity', array_sum(array_column($rows, 4))],
-                ['Items Currently Expired', $inventory->filter(fn (Inventory $item) => $item->expiry_date?->lt($today))->count()],
-                ['Items Expiring Within 30 Days', $inventory->filter(fn (Inventory $item) => $item->expiry_date && $item->expiry_date->betweenIncluded($today, $expiringLimit))->count()],
+                ['Items Currently Expired', $inventory->filter(fn (Inventory $item) => $item->expiry_date && $item->expiry_date->toDateString() < $today)->count()],
+                ['Items Expiring Within 30 Days', $inventory->filter(fn (Inventory $item) => $item->expiry_date && $item->expiry_date->toDateString() >= $today && $item->expiry_date->toDateString() <= $expiringLimit)->count()],
             ],
             'charts' => [
                 'bar_charts' => [[
@@ -354,7 +355,7 @@ class ReportController extends Controller
         $exportRows = [
             [$report['title']],
             ['Range: '.$rangeLabel],
-            ['Generated: '.now()->format('M d, Y g:i A')],
+            ['Generated: '.now()->timezone(config('lrts.business_timezone'))->format('M d, Y g:i A')],
             [],
             $report['columns'],
             ...$report['rows'],

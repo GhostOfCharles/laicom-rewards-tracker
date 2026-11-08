@@ -12,6 +12,7 @@
         'in_progress' => 'IN PROGRESS',
         'resolved' => 'RESOLVED',
         'closed' => 'CLOSED',
+        'archived' => 'ARCHIVED',
     ];
 @endphp
 
@@ -100,7 +101,7 @@
                 <div>
                     <div class="adm-meta-label">STATUS:</div>
                     <div class="adm-meta-value">
-                        <span class="lrts-badge {{ match($selectedTicket->status) {
+                        <span data-admin-ticket-status class="lrts-badge {{ match($selectedTicket->status) {
                             'open' => 'lrts-badge-open',
                             'pending' => 'lrts-badge-pending',
                             'in_progress' => 'lrts-badge-progress',
@@ -169,8 +170,7 @@
                 @endforelse
             </div>
 
-            @if ($selectedTicket->status !== 'closed')
-                <div class="adm-ticket-composer">
+                <div class="adm-ticket-composer" data-admin-ticket-composer @if($selectedTicket->status === 'closed' || $selectedTicket->archived_at) hidden @endif>
                     <div class="adm-composer-title">REPLY AS ADMIN</div>
 
                     <form id="adminReplyForm"
@@ -200,7 +200,7 @@
                     </form>
 
                     <div class="adm-composer-actions">
-                        <button type="submit" form="adminReplyForm" class="adm-btn adm-btn-navy">
+                        <button type="submit" form="adminReplyForm" class="adm-btn adm-btn-navy" data-admin-ticket-reply>
                             <i class="bi bi-send-fill"></i> SEND REPLY
                         </button>
 
@@ -223,12 +223,30 @@
                         </form>
                     </div>
                 </div>
-            @else
-                <div class="lrts-ticket-closed-notice">
+                <div class="lrts-ticket-closed-notice" data-admin-ticket-closed @if($selectedTicket->status !== 'closed' || $selectedTicket->archived_at) hidden @endif>
                     <i class="bi bi-lock-fill"></i>
                     This ticket is closed. Reopen it first if you need to add another reply.
                 </div>
-            @endif
+                <div class="lrts-ticket-closed-notice" data-admin-ticket-archived @if(!$selectedTicket->archived_at) hidden @endif>
+                    <i class="bi bi-archive"></i> ARCHIVED
+                    @if($selectedTicket->archived_at)<span class="small">{{ $selectedTicket->archived_at->copy()->timezone(config('lrts.business_timezone'))->format('M d, Y g:i A') }}</span>@endif
+                    <span>Restore this ticket to return it to the queue.</span>
+                </div>
+                <div class="adm-composer-actions p-3" data-admin-ticket-actions>
+                    <form action="{{ route('admin.tickets.status', $selectedTicket) }}?status=open" method="POST" data-admin-ticket-reopen @if($selectedTicket->status !== 'closed' || $selectedTicket->archived_at) hidden @endif>
+                        @csrf
+                        <input type="hidden" name="status" value="open">
+                        <button type="submit" class="adm-btn adm-btn-outline"><i class="bi bi-arrow-counterclockwise"></i> REOPEN TICKET</button>
+                    </form>
+                    <button type="button" class="adm-btn adm-btn-outline" data-admin-ticket-archive data-bs-toggle="modal" data-bs-target="#archiveTicket{{ $selectedTicket->id }}" @if($selectedTicket->status !== 'closed' || $selectedTicket->archived_at) hidden @endif><i class="bi bi-archive"></i> ARCHIVE TICKET</button>
+                    <form action="{{ route('admin.tickets.restore', $selectedTicket) }}" method="POST" data-admin-ticket-restore @if(!$selectedTicket->archived_at) hidden @endif>
+                        @csrf
+                        <button type="submit" class="adm-btn adm-btn-outline"><i class="bi bi-arrow-counterclockwise"></i> RESTORE TICKET</button>
+                    </form>
+                </div>
+                <x-confirm-modal :id="'archiveTicket'.$selectedTicket->id" title="Archive ticket" :action="route('admin.tickets.archive', $selectedTicket)" label="Archive ticket">
+                    <p>Archive this closed ticket? It will move out of the admin queue. Its messages and attachments will remain available.</p>
+                </x-confirm-modal>
 
         @else
 
