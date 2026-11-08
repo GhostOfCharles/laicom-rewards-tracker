@@ -32,6 +32,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Cloud-managed disks override filesystems.php; failed private uploads must throw.
+        config(['filesystems.disks.private.throw' => true]);
+
         RateLimiter::for('login', fn ($r) => Limit::perMinute(5)->by(LoginProtection::key($r)));
         RateLimiter::for('register', fn ($r) => Limit::perHour(5)->by($r->ip()));
         RateLimiter::for('submit-order', fn ($r) => [Limit::perMinute(10)->by('minute:'.$r->user()->id), Limit::perDay(40)->by('day:'.$r->user()->id)]);

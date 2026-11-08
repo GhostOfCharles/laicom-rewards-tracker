@@ -34,3 +34,28 @@ At least monthly restore a database plus matching uploads into an isolated envir
 
 ## External requirements
 Deployment hostname/proxies, mail/CAPTCHA, bucket policy, backup destination, monitoring and representative load testing need operator configuration. Review rights to supplied background/product artwork. No deployment, live key rotation or populated database reset was performed.
+
+
+## Laravel Cloud: persistent receipt and ticket uploads
+
+Receipt and ticket uploads explicitly use the `private` disk. Changing only
+`FILESYSTEM_DISK` does not change these uploads.
+
+1. On the production environment infrastructure canvas, add an Object Storage bucket.
+2. Set its **disk name to `private`** and its bucket visibility to **Private**.
+   Keep this bucket attached across deployments. Do not expose receipts publicly.
+3. Redeploy. Laravel Cloud automatically supplies the disk configuration; do not
+   commit credentials or replace the Cloud-managed disk with manual configuration.
+4. In the production console run `php artisan lrts:check-upload-storage --probe`.
+   Expect the `s3` driver and successful write/read/delete verification.
+5. Upload a test receipt and support attachment, verify authorized access, then
+   redeploy and confirm both still load. Local tests cannot prove remote persistence.
+
+If local originals still exist, copy them BEFORE discarding that instance:
+`php artisan lrts:migrate-uploads --from=legacy-private --to=private --dry-run`,
+then run the same command without `--dry-run`. The command retains originals and
+preserves database paths. Recover files from backups at their original relative
+paths if the old instance no longer contains them. An absent file cannot be
+recreated from its database path or image hash. Database migrations do not restore it.
+
+Official setup: https://laravel.com/cloud/docs/resources/object-storage

@@ -94,3 +94,38 @@ Artisan::command('lrts:migrate-uploads {--from=legacy-private} {--to=private} {-
     }
     $this->info($copied.' upload(s) copied or eligible. Source files retained.');
 })->purpose('Copy uploads between disks, retain originals, skip existing destination keys');
+
+Artisan::command('lrts:check-upload-storage {--probe : Write, read and delete a temporary private test file}', function () {
+    $driver = config('filesystems.disks.private.driver');
+    $this->info('Private upload driver: '.$driver);
+    if ($driver === 'local' && app()->environment('production')) {
+        $this->error('Production uploads use local storage. Attach a private persistent bucket with disk name private before accepting uploads.');
+
+        return 1;
+    }
+    if (! $this->option('probe')) {
+        $this->info('Configuration checked. Use --probe to verify storage access.');
+
+        return 0;
+    }
+    $disk = Storage::disk('private');
+    $path = 'storage-checks/'.Illuminate\Support\Str::uuid().'.txt';
+    $payload = bin2hex(random_bytes(16));
+    try {
+        if (! $disk->put($path, $payload) || $disk->get($path) !== $payload) {
+            throw new RuntimeException('Storage write/read verification failed.');
+        }
+    } catch (Throwable $error) {
+        $this->error('Private storage verification failed. Check the bucket connection and application logs.');
+        report($error);
+
+        return 1;
+    } finally {
+        if (! $disk->delete($path)) {
+            throw new RuntimeException('Storage probe cleanup failed.');
+        }
+    }
+    $this->info('Private storage write/read/delete verified.');
+
+    return 0;
+})->purpose('Verify private upload storage without changing customer records');
