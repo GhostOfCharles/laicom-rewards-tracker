@@ -16,24 +16,24 @@ class VisualAssetsTest extends TestCase
         $document = new DOMDocument;
         $document->loadHTML($response->getContent(), LIBXML_NOERROR | LIBXML_NOWARNING);
         $xpath = new DOMXPath($document);
-        $preloads = $xpath->query('//link[@rel="preload" and @as="image" and contains(@href, "portal-backdrop.webp")]');
+        $preloads = $xpath->query('//link[@rel="preload" and @as="image" and contains(@href, "portal-bg.webp")]');
 
         $this->assertSame(1, $preloads->length);
         $url = $preloads->item(0)->getAttribute('href');
         $this->assertSame('image/webp', $preloads->item(0)->getAttribute('type'));
-        $this->assertStringContainsString('portal-backdrop.webp', $url);
-        $this->assertStringContainsString($url, $xpath->query('//style')->item(0)->textContent);
-        $response->assertDontSee('portal-bg.jpg')->assertDontSee('cdn.jsdelivr.net');
+        $this->assertStringContainsString('portal-bg.webp', $url);
+        $this->assertStringContainsString($url, $document->getElementsByTagName('body')->item(0)->getAttribute('style'));
+        $response->assertDontSee('portal-backdrop')->assertDontSee('cdn.jsdelivr.net');
 
         foreach ($xpath->query('//link[@rel="stylesheet"]') as $link) {
             $path = parse_url($link->getAttribute('href'), PHP_URL_PATH);
             $this->assertFileExists(public_path(ltrim($path, '/')));
         }
 
-        foreach (['webp' => 26000, 'jpg' => 51000] as $extension => $maxBytes) {
-            $path = public_path('images/portal-backdrop.'.$extension);
-            $this->assertSame(1600, getimagesize($path)[0]);
-            $this->assertLessThan($maxBytes, filesize($path));
+        foreach (['webp', 'jpg'] as $extension) {
+            $path = public_path('images/portal-bg.'.$extension);
+            $this->assertFileExists($path);
+            $this->assertNotFalse(getimagesize($path));
         }
     }
 

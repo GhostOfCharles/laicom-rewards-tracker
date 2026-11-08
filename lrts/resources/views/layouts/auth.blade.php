@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Welcome') | Rewards Tracker System</title>
     @php
-        $authBackgroundUrl = asset('images/portal-backdrop.jpg') . '?v=' . filemtime(public_path('images/portal-backdrop.jpg'));
-        $authBackgroundWebpUrl = asset('images/portal-backdrop.webp') . '?v=' . filemtime(public_path('images/portal-backdrop.webp'));
+        $authBackgroundUrl = asset('images/portal-bg.jpg') . '?v=' . filemtime(public_path('images/portal-bg.jpg'));
+        $authBackgroundWebpUrl = asset('images/portal-bg.webp') . '?v=' . filemtime(public_path('images/portal-bg.webp'));
     @endphp
     <x-critical-asset-preloads />
-    <style>html { background: #292627; background-image: url('{{ $authBackgroundWebpUrl }}'); }</style>
+    <style>html { background: #292627; }</style>
     <link rel="preload" as="image" type="image/webp" href="{{ $authBackgroundWebpUrl }}" fetchpriority="high">
     <link rel="icon" href="{{ asset('favicon.ico') }}?v={{ filemtime(public_path('favicon.ico')) }}" type="image/x-icon">
     <link href="{{ asset('vendor/bootstrap/bootstrap.min.css') }}" rel="stylesheet">
